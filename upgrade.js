@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'spotlight', name: 'Spotlight Scene', price: 95, tag: 'Điện ảnh, nổi bật', previewClass: 'quote-spotlight' }
   ];
 
+  const PRESET_DISCOUNT = 0.85;
+
   const PRESETS = [
     {
       id: 'classic-plus',
@@ -88,72 +90,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  const DAILY_QUOTES = [
-    {
-      id: 'q1',
-      mood: 'gentle',
-      badge: 'Câu nói mỗi ngày',
-      title: 'You do not have to carry everything alone.',
-      translation: 'Bạn không cần ôm hết mọi thứ một mình.',
-      note: 'Nhắc rằng chậm lại một chút cũng không sao.'
-    },
-    {
-      id: 'q2',
-      mood: 'healing',
-      badge: 'Câu nói mỗi ngày',
-      title: 'Resting is not falling behind.',
-      translation: 'Nghỉ một lúc không có nghĩa là tụt lại.',
-      note: 'Một câu dịu để giảm cảm giác phải chạy liên tục.'
-    },
-    {
-      id: 'q3',
-      mood: 'romantic',
-      badge: 'Câu nói mỗi ngày',
-      title: "I pretend to look around, but I'm actually looking for you.",
-      translation: 'Em giả vờ nhìn quanh, nhưng thật ra là đang tìm anh.',
-      note: 'Kiểu câu tạo cảm giác muốn lưu lại ngay.'
-    },
-    {
-      id: 'q4',
-      mood: 'calm',
-      badge: 'Câu nói mỗi ngày',
-      title: 'A kind word can change the whole evening.',
-      translation: 'Một lời dịu dàng có thể đổi cả buổi tối.',
-      note: 'Ngắn, ấm và dễ nhớ sau một ngày dài.'
-    },
-    {
-      id: 'q5',
-      mood: 'hope',
-      badge: 'Câu nói mỗi ngày',
-      title: 'You are allowed to begin again today.',
-      translation: 'Hôm nay bạn vẫn được phép bắt đầu lại.',
-      note: 'Mang cảm giác được tiếp sức để đi tiếp.'
-    },
-    {
-      id: 'q6',
-      mood: 'focus',
-      badge: 'Câu nói mỗi ngày',
-      title: 'One review now saves effort later.',
-      translation: 'Ôn lại một lần bây giờ sẽ đỡ vất vả về sau.',
-      note: 'Giữ đúng tinh thần học ít mà đều của extension.'
-    },
-    {
-      id: 'q7',
-      mood: 'warm',
-      badge: 'Câu nói mỗi ngày',
-      title: 'Your heart deserves softer words.',
-      translation: 'Trái tim bạn xứng đáng với những lời nhẹ hơn.',
-      note: 'Hợp cho giao diện note mềm và cảm xúc.'
-    },
-    {
-      id: 'q8',
-      mood: 'steady',
-      badge: 'Câu nói mỗi ngày',
-      title: 'Even slow learning still becomes fluency.',
-      translation: 'Học chậm nhưng đều vẫn có thể thành phản xạ.',
-      note: 'Nhắc người học rằng bền vẫn thắng nhanh.'
-    }
-  ];
+
+const DAILY_QUOTES = [
+  { id: 'q1', mood: 'gentle', badge: 'Câu nói mỗi ngày', title: 'You do not have to carry everything alone.', translation: 'Bạn không cần phải gánh mọi thứ một mình.', note: 'Một câu dịu để nhắc rằng chậm lại cũng không sao.' },
+  { id: 'q2', mood: 'healing', badge: 'Daily rescue line', title: 'Resting is not falling behind.', translation: 'Nghỉ ngơi không có nghĩa là bạn đang tụt lại phía sau.', note: 'Hợp cho những ngày học nhiều và dễ tự trách bản thân.' },
+  { id: 'q3', mood: 'romantic', badge: 'Saved phrase', title: "I pretend to look around, but I'm actually looking for you.", translation: 'Tôi giả vờ nhìn xung quanh, nhưng thật ra là đang tìm bạn.', note: 'Kiểu câu gợi cảm giác muốn lưu lại như ảnh bạn gửi.' },
+  { id: 'q4', mood: 'calm', badge: 'Micro comfort', title: 'A kind word can change the whole evening.', translation: 'Một lời dịu dàng có thể thay đổi cả buổi tối.', note: 'Ngắn, dễ nhớ, tạo cảm giác được cứu vãn.' },
+  { id: 'q5', mood: 'hope', badge: 'Small hope', title: 'You are allowed to begin again today.', translation: 'Hôm nay bạn được phép bắt đầu lại.', note: 'Một câu mạnh nhưng vẫn nhẹ.' },
+  { id: 'q6', mood: 'focus', badge: 'Study reminder', title: 'One review now saves effort later.', translation: 'Một lần ôn lúc này sẽ tiết kiệm công sức về sau.', note: 'Giữ đúng tinh thần học tập của extension.' },
+  { id: 'q7', mood: 'warm', badge: 'Gentle note', title: 'Your heart deserves softer words.', translation: 'Trái tim bạn xứng đáng với những lời nhẹ nhàng hơn.', note: 'Hợp giao diện note, letter hoặc rescue.' },
+  { id: 'q8', mood: 'steady', badge: 'Study calm', title: 'Even slow learning still becomes fluency.', translation: 'Ngay cả việc học chậm cũng vẫn có thể trở thành sự trôi chảy.', note: 'Nhắc người học nhớ lâu quan trọng hơn học gấp.' },
+  { id: 'q9', mood: 'quiet', badge: 'Quiet support', title: 'You can be tired and still be trying.', translation: 'Bạn có thể mệt mà vẫn đang cố gắng.', note: 'Dành cho những ngày muốn buông nhưng chưa bỏ cuộc.' },
+  { id: 'q10', mood: 'soft', badge: 'Soft focus', title: 'A calm mind remembers better.', translation: 'Một tâm trí bình tĩnh sẽ nhớ tốt hơn.', note: 'Rất hợp màn hình ôn tập và nhịp học bền.' },
+  { id: 'q11', mood: 'gentle', badge: 'Tiny rescue', title: 'You do not have to rush to be real.', translation: 'Bạn không cần phải vội mới trở nên đủ thật.', note: 'Nhẹ, lạ, và có chiều sâu hơn câu động lực thường thấy.' },
+  { id: 'q12', mood: 'focus', badge: 'Study line', title: 'Small progress is still progress.', translation: 'Tiến bộ nhỏ vẫn là tiến bộ.', note: 'Một câu rất hợp cho phần học lâu dài.' },
+  { id: 'q13', mood: 'healing', badge: 'Rescue note', title: 'Be kind to yourself while you are learning.', translation: 'Hãy dịu dàng với chính mình trong lúc học.', note: 'Giữ app đẹp nhưng vẫn bám mục tiêu học.' },
+  { id: 'q14', mood: 'romantic', badge: 'Letter line', title: 'I kept the quiet part of the day for you.', translation: 'Mình giữ lại phần yên tĩnh của ngày cho bạn.', note: 'Lãng mạn nhưng không quá sến, hợp quote card.' },
+  { id: 'q15', mood: 'steady', badge: 'Long-term memory', title: 'What you repeat with care will stay with you.', translation: 'Điều bạn lặp lại bằng sự chăm chút sẽ ở lại với bạn.', note: 'Nhấn mạnh sự ghi nhớ lâu dài.' },
+  { id: 'q16', mood: 'night', badge: 'Late-night note', title: 'Tonight can still end gently.', translation: 'Tối nay vẫn có thể kết thúc một cách dịu dàng.', note: 'Hợp giao diện tối và mood yên.' },
+  { id: 'q17', mood: 'hope', badge: 'New page', title: 'A new page can start with one sentence.', translation: 'Một trang mới có thể bắt đầu chỉ với một câu.', note: 'Nhỏ nhưng có cảm giác mở ra.' },
+  { id: 'q18', mood: 'warm', badge: 'Daily warmth', title: 'Some words feel like a hand on your shoulder.', translation: 'Có những lời giống như một bàn tay đặt nhẹ lên vai bạn.', note: 'Đúng tinh thần “being saved”.' },
+  { id: 'q19', mood: 'focus', badge: 'Review cue', title: 'Review with patience, not panic.', translation: 'Hãy ôn với sự kiên nhẫn, không phải hoảng hốt.', note: 'Rất hợp người dễ áp lực khi học.' },
+  { id: 'q20', mood: 'gentle', badge: 'Soft reminder', title: 'You are still doing enough for today.', translation: 'Bạn vẫn đang làm đủ cho hôm nay rồi.', note: 'Một câu dịu giúp giảm áp lực.' },
+  { id: 'q21', mood: 'romantic', badge: 'Quiet confession', title: 'I looked away first, but not because I wanted to.', translation: 'Mình là người nhìn đi chỗ khác trước, nhưng không phải vì muốn thế.', note: 'Dành cho các quote card thiên cảm xúc.' },
+  { id: 'q22', mood: 'calm', badge: 'Breathing space', title: 'Take a breath. Then one more step.', translation: 'Hít một hơi. Rồi thêm một bước nữa thôi.', note: 'Đơn giản và rất dễ nhớ.' },
+  { id: 'q23', mood: 'healing', badge: 'Kind rescue', title: 'Not every day has to be impressive to be meaningful.', translation: 'Không phải ngày nào cũng cần ấn tượng mới trở nên có ý nghĩa.', note: 'Một câu có chiều sâu mà vẫn gần gũi.' },
+  { id: 'q24', mood: 'study', badge: 'Memory note', title: 'Slow review builds strong memory.', translation: 'Ôn chậm tạo nên trí nhớ vững.', note: 'Rất hợp mục tiêu học bền và nhớ lâu.' },
+  { id: 'q25', mood: 'soft', badge: 'Quiet comfort', title: 'Let today be gentle with you.', translation: 'Hãy để hôm nay dịu dàng với bạn.', note: 'Ngắn, nhẹ, rất hợp ảnh quote.' },
+  { id: 'q26', mood: 'hope', badge: 'Tomorrow line', title: 'You can meet tomorrow with a softer heart.', translation: 'Bạn có thể gặp ngày mai với một trái tim mềm hơn.', note: 'Tạo cảm giác khép lại một ngày đẹp.' },
+  { id: 'q27', mood: 'focus', badge: 'Study patience', title: 'Learning stays longer when you stop fighting yourself.', translation: 'Việc học sẽ ở lại lâu hơn khi bạn ngừng chống lại chính mình.', note: 'Hợp người học dài hạn và dễ tự ép bản thân.' },
+  { id: 'q28', mood: 'romantic', badge: 'Film line', title: 'Some people arrive like a sentence you keep rereading.', translation: 'Có những người đến như một câu mà bạn cứ muốn đọc lại.', note: 'Rất hợp quote card có hình.' },
+  { id: 'q29', mood: 'steady', badge: 'Small habit', title: 'A little every day can change everything later.', translation: 'Mỗi ngày một chút có thể thay đổi mọi thứ về sau.', note: 'Một câu nền rất ổn cho app học.' },
+  { id: 'q30', mood: 'night', badge: 'Midnight glass', title: 'Quiet does not mean empty.', translation: 'Yên lặng không có nghĩa là trống rỗng.', note: 'Hợp theme glass, dark, midnight.' },
+  { id: 'q31', mood: 'warm', badge: 'Safe line', title: 'You deserve a place where your mind can soften.', translation: 'Bạn xứng đáng có một nơi để tâm trí mình mềm lại.', note: 'Cảm giác như app là nơi trú nhẹ.' },
+  { id: 'q32', mood: 'study', badge: 'Retention cue', title: 'Memory grows in calm repetition.', translation: 'Trí nhớ lớn lên trong sự lặp lại bình tĩnh.', note: 'Rất đúng mục tiêu long-term memory.' },
+  { id: 'q33', mood: 'gentle', badge: 'Soft page', title: 'Maybe this sentence is enough for today.', translation: 'Có lẽ câu này là đủ cho hôm nay rồi.', note: 'Câu kết nhẹ và đáng lưu.' },
+  { id: 'q34', mood: 'hope', badge: 'Keep going', title: 'You are closer than your doubts say.', translation: 'Bạn gần hơn những gì nỗi nghi ngờ nói với bạn.', note: 'Một câu động viên nhưng không ồn.' },
+  { id: 'q35', mood: 'romantic', badge: 'Saved scene', title: 'I was not searching for a sign until you felt like one.', translation: 'Mình vốn không tìm một dấu hiệu nào, cho đến khi bạn giống như một dấu hiệu.', note: 'Câu có chất điện ảnh hơn.' },
+  { id: 'q36', mood: 'calm', badge: 'Ease note', title: 'You can learn deeply without being harsh.', translation: 'Bạn vẫn có thể học sâu mà không cần quá khắt khe.', note: 'Giữ app đẹp nhưng không làm người học mệt.' },
+  { id: 'q37', mood: 'focus', badge: 'Focus cue', title: 'A clear minute is better than a noisy hour.', translation: 'Một phút rõ ràng vẫn tốt hơn một giờ ồn ào.', note: 'Hợp phần Pomodoro và focus mode.' },
+  { id: 'q38', mood: 'warm', badge: 'Gentle saving', title: 'Sometimes one sentence is enough to keep going.', translation: 'Đôi khi chỉ một câu thôi cũng đủ để đi tiếp.', note: 'Rất đúng cảm giác user muốn lưu lại.' },
+  { id: 'q39', mood: 'night', badge: 'Late calm', title: 'The night is softer when you stop proving yourself to it.', translation: 'Đêm sẽ dịu hơn khi bạn ngừng cố chứng minh bản thân với nó.', note: 'Mood tối, trầm, hợp glass.' },
+  { id: 'q40', mood: 'study', badge: 'Smart review', title: 'Understanding once is good. Returning is better.', translation: 'Hiểu một lần là tốt. Quay lại ôn còn tốt hơn.', note: 'Giúp kéo người dùng về đúng mục tiêu học.' }
+];
 
   const SHOP_CONFIG = {
     theme: { items: THEMES, activeKey: 'theme', unlockedKey: 'unlockedThemes', label: 'theme' },
@@ -229,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="daily-launcher-copy">
             <span class="daily-launcher-label">Câu nói mỗi ngày</span>
             <strong id="dailyLauncherTitle">Nhấn để mở câu nói hôm nay</strong>
-            <small id="dailyLauncherNote">Một câu ngắn, dễ lưu và dễ nhớ mỗi ngày.</small>
+            <small id="dailyLauncherNote">Một câu tiếng Anh ngắn để tạo cảm giác muốn lưu lại.</small>
           </span>
           <span class="daily-launcher-meta">
             <span id="dailyLauncherMood" class="daily-launcher-chip">gentle</span>
@@ -280,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="customizer-section">
               <div class="section-title-row">
                 <h3>Preset 1 chạm</h3>
-                <span class="muted-text">Chọn một tổ hợp đẹp sẵn để áp dụng nhanh mà không phải chỉnh từng phần.</span>
+                <span class="muted-text">Bấm vào preset để mở đủ các phần còn thiếu và áp dụng ngay trong một lần.</span>
               </div>
               <div id="presetGrid" class="theme-shop-grid preset-grid"></div>
             </div>
@@ -381,11 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="daily-saying-modal-head">
               <div>
                 <h2>💬 Câu nói mỗi ngày</h2>
-                <p class="muted-text">Mặc định chỉ là một nút nhỏ trong màn hình ôn tập. Bấm vào mới mở thẻ quote lớn để tránh làm rối giao diện chính.</p>
+                <p class="muted-text">Mỗi ngày hệ thống tự xoay sang một câu mới trong bộ quote lớn để hạn chế lặp lại. Ở màn hình ôn tập nó chỉ hiện như một nút nhỏ, bấm vào mới mở card lớn.</p>
               </div>
               <div class="daily-saying-head-actions">
                 <button id="dailyQuotePrevBtn" class="secondary-btn" type="button">← Trước</button>
-                <button id="dailyQuoteNextBtn" class="secondary-btn" type="button">Tiếp →</button>
+                <button id="dailyQuoteNextBtn" class="secondary-btn" type="button">Sau →</button>
               </div>
             </div>
             <div id="dailySayingCard" class="daily-saying-card">
@@ -397,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="daily-saying-image">
                   <div class="daily-saying-image-chip" id="dailyQuoteMood">gentle</div>
                   <div class="daily-saying-image-copy">
-                    <strong id="dailyQuoteHeroTitle">One short line can steady the day.</strong>
-                    <span id="dailyQuoteHeroNote">Ngắn, êm và dễ lưu lại.</span>
+                    <strong id="dailyQuoteHeroTitle">A small sentence can feel like being saved.</strong>
+                    <span id="dailyQuoteHeroNote">Nhẹ, dễ lưu, dễ nhớ.</span>
                   </div>
                 </div>
                 <div class="daily-saying-text-panel">
@@ -532,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.quotes = normalizeQuotesState(result.vm_quotes || {});
     state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
-    state.runtime.quoteIndex = getTodayQuoteIndex();
+    await ensureDailyQuoteFreshness();
   }
 
   function normalizeStats(stats = {}) {
@@ -601,30 +580,115 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function normalizeQuotesState(raw = {}) {
-    const savedIds = Array.isArray(raw.savedIds)
-      ? raw.savedIds.filter((id) => DAILY_QUOTES.some((quote) => quote.id === id))
-      : [];
-    return { savedIds };
+
+function normalizeQuotesState(raw = {}) {
+  const validIds = DAILY_QUOTES.map((quote) => quote.id);
+  const savedIds = Array.isArray(raw.savedIds)
+    ? raw.savedIds.filter((id) => validIds.includes(id))
+    : [];
+
+  const storedCycle = Array.isArray(raw.cycleOrder)
+    ? raw.cycleOrder.filter((id) => validIds.includes(id))
+    : [];
+  const needsFreshCycle = storedCycle.length !== validIds.length || new Set(storedCycle).size !== validIds.length;
+  const shuffleSeed = Number.isInteger(raw.shuffleSeed) ? raw.shuffleSeed : 11;
+  const cycleOrder = needsFreshCycle ? buildQuoteCycle(shuffleSeed, raw.currentQuoteId || '') : storedCycle;
+  const safeCursor = Math.max(0, Math.min(Number(raw.cycleCursor) || 0, Math.max(0, cycleOrder.length - 1)));
+  const currentQuoteId = validIds.includes(raw.currentQuoteId) ? raw.currentQuoteId : (cycleOrder[safeCursor] || validIds[0]);
+
+  return {
+    savedIds,
+    cycleOrder,
+    cycleCursor: safeCursor,
+    currentQuoteId,
+    lastServedDate: typeof raw.lastServedDate === 'string' ? raw.lastServedDate : '',
+    shuffleSeed
+  };
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function createSeededRandom(seed) {
+  let value = Math.abs(Number(seed) || 1) % 2147483647;
+  if (value === 0) value = 1;
+  return () => {
+    value = (value * 48271) % 2147483647;
+    return (value - 1) / 2147483646;
+  };
+}
+
+function buildQuoteCycle(seed, avoidFirstId = '') {
+  const ids = DAILY_QUOTES.map((quote) => quote.id);
+  const random = createSeededRandom(seed);
+  for (let i = ids.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  if (avoidFirstId && ids.length > 1 && ids[0] === avoidFirstId) {
+    [ids[0], ids[1]] = [ids[1], ids[0]];
+  }
+  return ids;
+}
+
+async function ensureDailyQuoteFreshness() {
+  const today = getTodayKey();
+  let changed = false;
+
+  if (!Array.isArray(state.quotes.cycleOrder) || state.quotes.cycleOrder.length !== DAILY_QUOTES.length) {
+    state.quotes.shuffleSeed = (Number(state.quotes.shuffleSeed) || 11) + 17;
+    state.quotes.cycleOrder = buildQuoteCycle(state.quotes.shuffleSeed, state.quotes.currentQuoteId || '');
+    state.quotes.cycleCursor = 0;
+    state.quotes.currentQuoteId = state.quotes.cycleOrder[0] || DAILY_QUOTES[0].id;
+    changed = true;
   }
 
-  function getTodayKey() {
-    return new Date().toISOString().slice(0, 10);
+  if (!state.quotes.currentQuoteId) {
+    state.quotes.currentQuoteId = state.quotes.cycleOrder[state.quotes.cycleCursor] || DAILY_QUOTES[0].id;
+    changed = true;
   }
 
-  function getTodayQuoteIndex() {
-    const key = getTodayKey();
-    const total = key.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return total % DAILY_QUOTES.length;
+  if (!state.quotes.lastServedDate) {
+    state.quotes.lastServedDate = today;
+    changed = true;
+  } else if (state.quotes.lastServedDate !== today) {
+    let nextCursor = state.quotes.cycleCursor + 1;
+    if (nextCursor >= state.quotes.cycleOrder.length) {
+      state.quotes.shuffleSeed += 17;
+      state.quotes.cycleOrder = buildQuoteCycle(state.quotes.shuffleSeed, state.quotes.currentQuoteId);
+      nextCursor = 0;
+    }
+    state.quotes.cycleCursor = nextCursor;
+    state.quotes.currentQuoteId = state.quotes.cycleOrder[nextCursor] || DAILY_QUOTES[0].id;
+    state.quotes.lastServedDate = today;
+    changed = true;
   }
 
-  function getCurrentQuoteIndex() {
-    return Number.isInteger(state.runtime.quoteIndex) ? state.runtime.quoteIndex : getTodayQuoteIndex();
-  }
+  state.runtime.quoteIndex = getQuoteIndexById(state.quotes.currentQuoteId);
+  if (changed) await storage.set({ vm_quotes: state.quotes });
+}
 
-  function getCurrentQuote() {
-    return DAILY_QUOTES[getCurrentQuoteIndex()] || DAILY_QUOTES[0];
-  }
+function getQuoteIndexById(id) {
+  const index = DAILY_QUOTES.findIndex((quote) => quote.id === id);
+  return index >= 0 ? index : 0;
+}
+
+function getTodayQuoteIndex() {
+  return getQuoteIndexById(state.quotes?.currentQuoteId);
+}
+
+function getCurrentQuoteIndex() {
+  return Number.isInteger(state.runtime.quoteIndex) ? state.runtime.quoteIndex : getTodayQuoteIndex();
+}
+
+function getTodayQuote() {
+  return DAILY_QUOTES[getTodayQuoteIndex()] || DAILY_QUOTES[0];
+}
+
+function getCurrentQuote() {
+  return DAILY_QUOTES[getCurrentQuoteIndex()] || getTodayQuote();
+}
 
   function getMeta(kind, id) {
     const config = SHOP_CONFIG[kind];
@@ -648,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openDailySayingModal() {
-    if (!Number.isInteger(state.runtime.quoteIndex)) state.runtime.quoteIndex = getTodayQuoteIndex();
+    state.runtime.quoteIndex = getTodayQuoteIndex();
     renderDailySayingModal();
     openModal('dailySayingModal');
   }
@@ -840,60 +904,95 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
-  function renderPresetCards() {
-    const grid = byId('presetGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    PRESETS.forEach((preset) => {
-      const ready = isPresetReady(preset);
-      const active = isPresetActive(preset);
-      const card = document.createElement('div');
-      card.className = `shop-card preset-card ${active ? 'active' : ''}`;
-      card.innerHTML = `
-        <div class="shop-card-preview preset-preview ${escapeHtml(getMeta('theme', preset.theme).previewClass)}">
-          <div class="preset-preview-note">${escapeHtml(preset.tag)}</div>
-          <div class="preset-preview-title">${escapeHtml(preset.name)}</div>
-          <div class="preset-preview-stack">
-            <span>${escapeHtml(getMeta('layout', preset.layoutPack).name)}</span>
-            <span>${escapeHtml(getMeta('quote', preset.quoteStyle).name)}</span>
-          </div>
-        </div>
-        <div class="shop-card-head">
-          <div>
-            <strong>${escapeHtml(preset.name)}</strong>
-            <div class="shop-tag">${escapeHtml(preset.note)}</div>
-          </div>
-          <span class="shop-price">${ready ? 'Sẵn sàng' : 'Thiếu pack'}</span>
-        </div>
-        <div class="shop-actions">
-          <button class="${ready ? 'primary-btn' : 'secondary-btn'}" data-preset-id="${preset.id}" ${!ready && !active ? 'disabled' : ''}>${active ? 'Đang dùng' : 'Áp dụng preset'}</button>
-        </div>
-      `;
-      grid.appendChild(card);
-    });
-  }
 
-  function isPresetReady(preset) {
-    return (
-      state.ui.unlockedThemes.includes(preset.theme) &&
-      state.ui.unlockedCardStyles.includes(preset.cardStyle) &&
-      state.ui.unlockedLayoutPacks.includes(preset.layoutPack) &&
-      state.ui.unlockedFontTones.includes(preset.fontTone) &&
-      state.ui.unlockedQuoteStyles.includes(preset.quoteStyle)
-    );
-  }
+function renderPresetCards() {
+  const grid = byId('presetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const available = getAvailableCoins();
 
-  function isPresetActive(preset) {
-    return (
-      state.ui.theme === preset.theme &&
-      state.ui.cardStyle === preset.cardStyle &&
-      state.ui.layoutPack === preset.layoutPack &&
-      state.ui.fontTone === preset.fontTone &&
-      state.ui.quoteStyle === preset.quoteStyle
-    );
-  }
+  PRESETS.forEach((preset) => {
+    const ready = isPresetReady(preset);
+    const active = isPresetActive(preset);
+    const missingItems = getPresetMissingItems(preset);
+    const bundlePrice = getPresetBundlePrice(preset);
+    const canUnlock = ready || bundlePrice <= available;
+    const statusLabel = active
+      ? 'Đang dùng'
+      : ready
+        ? 'Sẵn sàng'
+        : `Thiếu ${missingItems.length} pack • ${bundlePrice} xu`;
+    const buttonLabel = active
+      ? 'Đang dùng'
+      : ready
+        ? 'Áp dụng preset'
+        : `Mở đủ + áp dụng (${bundlePrice} xu)`;
+    const helperNote = ready
+      ? 'Bạn đã có đủ các phần của preset này.'
+      : `Preset 1 chạm sẽ tự mở ${missingItems.map((item) => item.meta.name).join(', ')} rồi áp dụng ngay.`;
 
-  async function handlePresetClick(event) {
+    const card = document.createElement('div');
+    card.className = `shop-card preset-card ${active ? 'active' : ''}`;
+    card.innerHTML = `
+      <div class="shop-card-preview preset-preview ${escapeHtml(getMeta('theme', preset.theme).previewClass)}">
+        <div class="preset-preview-note">${escapeHtml(preset.tag)}</div>
+        <div class="preset-preview-title">${escapeHtml(preset.name)}</div>
+        <div class="preset-preview-stack">
+          <span>${escapeHtml(getMeta('layout', preset.layoutPack).name)}</span>
+          <span>${escapeHtml(getMeta('quote', preset.quoteStyle).name)}</span>
+        </div>
+      </div>
+      <div class="shop-card-head">
+        <div>
+          <strong>${escapeHtml(preset.name)}</strong>
+          <div class="shop-tag">${escapeHtml(preset.note)}</div>
+        </div>
+        <span class="shop-price">${escapeHtml(statusLabel)}</span>
+      </div>
+      <div class="shop-tag preset-helper-note">${escapeHtml(helperNote)}</div>
+      <div class="shop-actions">
+        <button class="${ready || active ? 'primary-btn' : 'secondary-btn'}" data-preset-id="${preset.id}" ${!canUnlock && !active ? 'disabled' : ''}>${escapeHtml(buttonLabel)}</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function isPresetReady(preset) {
+  return getPresetMissingItems(preset).length === 0;
+}
+
+function getPresetMissingItems(preset) {
+  const checks = [
+    ['theme', preset.theme],
+    ['card', preset.cardStyle],
+    ['layout', preset.layoutPack],
+    ['font', preset.fontTone],
+    ['quote', preset.quoteStyle]
+  ];
+
+  return checks
+    .filter(([kind, id]) => !getUnlocked(kind).includes(id))
+    .map(([kind, id]) => ({ kind, id, meta: getMeta(kind, id) }));
+}
+
+function getPresetBundlePrice(preset) {
+  const total = getPresetMissingItems(preset).reduce((sum, item) => sum + (Number(item.meta?.price) || 0), 0);
+  return total > 0 ? Math.max(0, Math.round(total * PRESET_DISCOUNT)) : 0;
+}
+
+function isPresetActive(preset) {
+  return (
+    state.ui.theme === preset.theme &&
+    state.ui.cardStyle === preset.cardStyle &&
+    state.ui.layoutPack === preset.layoutPack &&
+    state.ui.fontTone === preset.fontTone &&
+    state.ui.quoteStyle === preset.quoteStyle
+  );
+}
+
+async function handlePresetClick(event) {
+
     const button = event.target.closest('button[data-preset-id]');
     if (!button) return;
     const preset = PRESETS.find((item) => item.id === button.dataset.presetId);
@@ -1057,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderDailySayingLauncher() {
-    const quote = getCurrentQuote();
+    const quote = getTodayQuote();
     setText('dailyLauncherTitle', quote.title);
     setText('dailyLauncherNote', quote.translation);
     setText('dailyLauncherMood', quote.mood);

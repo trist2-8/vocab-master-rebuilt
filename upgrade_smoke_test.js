@@ -20,9 +20,14 @@ assert.ok(upgradeJs.includes('dailySayingModal'), 'upgrade.js should include dai
 assert.ok(upgradeJs.includes('QUOTE_STYLES'), 'upgrade.js should define quote styles');
 assert.ok(upgradeJs.includes('FONT_TONES'), 'upgrade.js should define font tones');
 assert.ok(upgradeJs.includes('PRESETS'), 'upgrade.js should define presets');
+assert.ok(upgradeJs.includes('getPresetBundlePrice'), 'upgrade.js should support 1-click preset bundle pricing');
+assert.ok(upgradeJs.includes('ensureDailyQuoteFreshness'), 'upgrade.js should rotate daily quotes through a larger pool');
+assert.ok((upgradeJs.match(/id: 'q\d+'/g) || []).length >= 30, 'upgrade.js should ship with at least 30 daily quotes');
 assert.ok(upgradeCss.includes('body[data-ui-layout="split"]'), 'upgrade.css should include split layout styles');
 assert.ok(upgradeCss.includes('.daily-saying-launcher'), 'upgrade.css should style the daily saying launcher');
 assert.ok(upgradeCss.includes('body[data-ui-font-tone="editorial"]'), 'upgrade.css should include font tone styles');
+assert.ok(upgradeCss.includes('left: 20px;'), 'upgrade.css should dock the mini Pomodoro widget on the left');
+assert.ok(upgradeCss.includes('backdrop-filter: blur(20px)'), 'upgrade.css should use liquid-glass blur for the mini Pomodoro widget');
 assert.ok(manifest.version, 'manifest.json should have a version');
 
 new vm.Script(upgradeJs, { filename: 'upgrade.js' });
