@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "4.1.0",
-  "description": "Vocab Master with memory-first study, smarter input tools, prompt helper, expanded UI customization, and a floating Pomodoro mini clock.",
+  "version": "4.2.0",
+  "description": "Vocab Master with preserved classic learning flow, richer UI style packs, layout presets, daily saying launcher/card, and floating Pomodoro.",
   "permissions": [
     "storage"
   ],

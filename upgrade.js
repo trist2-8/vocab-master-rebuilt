@@ -1,29 +1,174 @@
+
 document.addEventListener('DOMContentLoaded', () => {
-  const DAY_MS = 24 * 60 * 60 * 1000;
   const THEMES = [
-    { id: 'midnight', name: 'Midnight Core', price: 0, tag: 'Mặc định ổn định', companion: '📘' },
-    { id: 'aurora', name: 'Aurora Glass', price: 90, tag: 'Xu hướng glass hiện đại', companion: '✨' },
-    { id: 'latte', name: 'Cozy Latte', price: 80, tag: 'Tông ấm, học lâu dễ chịu', companion: '☕' },
-    { id: 'paper', name: 'Paper Minimal', price: 70, tag: 'Sạch, sáng, tập trung', companion: '📝' },
-    { id: 'neon', name: 'Neon Focus', price: 130, tag: 'Đậm tương phản, cá tính', companion: '⚡' },
-    { id: 'forest', name: 'Forest Focus', price: 95, tag: 'Xanh rêu dịu, hợp học dài', companion: '🌿' },
-    { id: 'rose', name: 'Rose Glow', price: 105, tag: 'Mềm, hiện đại, nổi bật nhẹ', companion: '🌸' },
-    { id: 'mono', name: 'Mono Studio', price: 75, tag: 'Xám tối tối giản, cực gọn', companion: '🖤' }
+    { id: 'midnight', name: 'Midnight Core', price: 0, tag: 'Mặc định ổn định', companion: '📘', previewClass: 'theme-midnight' },
+    { id: 'aurora', name: 'Aurora Glass', price: 90, tag: 'Xu hướng glass hiện đại', companion: '✨', previewClass: 'theme-aurora' },
+    { id: 'latte', name: 'Cozy Latte', price: 80, tag: 'Tông ấm, học lâu dễ chịu', companion: '☕', previewClass: 'theme-latte' },
+    { id: 'paper', name: 'Paper Minimal', price: 70, tag: 'Sạch, sáng, tập trung', companion: '📝', previewClass: 'theme-paper' },
+    { id: 'neon', name: 'Neon Focus', price: 130, tag: 'Đậm tương phản, cá tính', companion: '⚡', previewClass: 'theme-neon' },
+    { id: 'forest', name: 'Forest Focus', price: 95, tag: 'Xanh rêu dịu, hợp học dài', companion: '🌿', previewClass: 'theme-forest' },
+    { id: 'rose', name: 'Rose Glow', price: 105, tag: 'Mềm, hiện đại, nổi bật nhẹ', companion: '🌸', previewClass: 'theme-rose' },
+    { id: 'mono', name: 'Mono Studio', price: 75, tag: 'Xám tối tối giản, cực gọn', companion: '🖤', previewClass: 'theme-mono' }
   ];
+
   const CARD_STYLES = [
-    { id: 'classic', name: 'Classic', price: 0, tag: 'Giữ nguyên cảm giác gốc' },
-    { id: 'rounded', name: 'Soft Rounded', price: 60, tag: 'Bo tròn hiện đại' },
-    { id: 'notebook', name: 'Notebook', price: 85, tag: 'Cảm giác sổ tay học tập' },
-    { id: 'glass', name: 'Glass Card', price: 110, tag: 'Trong mờ kiểu app mới' },
-    { id: 'focusboard', name: 'Focus Board', price: 95, tag: 'Khung gọn kiểu dashboard mới' }
+    { id: 'classic', name: 'Classic', price: 0, tag: 'Giữ nguyên cảm giác gốc', previewClass: 'style-classic' },
+    { id: 'rounded', name: 'Soft Rounded', price: 60, tag: 'Bo tròn hiện đại', previewClass: 'style-rounded' },
+    { id: 'notebook', name: 'Notebook', price: 85, tag: 'Cảm giác sổ tay học tập', previewClass: 'style-notebook' },
+    { id: 'glass', name: 'Glass Card', price: 110, tag: 'Trong mờ kiểu app mới', previewClass: 'style-glass' },
+    { id: 'focusboard', name: 'Focus Board', price: 95, tag: 'Khung gọn kiểu dashboard mới', previewClass: 'style-focusboard' }
   ];
+
+  const LAYOUT_PACKS = [
+    { id: 'classic', name: 'Classic Layout', price: 0, tag: 'Giữ nguyên bố cục gốc', previewClass: 'layout-classic' },
+    { id: 'split', name: 'Split Dashboard', price: 80, tag: 'Khối gợi ý nổi bật hơn', previewClass: 'layout-split' },
+    { id: 'stacked', name: 'Stacked Focus', price: 75, tag: 'Dọc, gọn, nhẹ áp lực', previewClass: 'layout-stacked' },
+    { id: 'spotlight', name: 'Spotlight Hero', price: 120, tag: 'Nhấn mạnh khu vực trọng tâm', previewClass: 'layout-spotlight' },
+    { id: 'compact', name: 'Compact Flow', price: 65, tag: 'Tối ưu popup nhỏ', previewClass: 'layout-compact' }
+  ];
+
+  const FONT_TONES = [
+    { id: 'system', name: 'System Sans', price: 0, tag: 'Đọc nhanh, ổn định', previewClass: 'font-system' },
+    { id: 'editorial', name: 'Editorial', price: 55, tag: 'Tinh tế như tạp chí', previewClass: 'font-editorial' },
+    { id: 'rounded', name: 'Friendly Rounded', price: 60, tag: 'Thân thiện, mềm hơn', previewClass: 'font-rounded' },
+    { id: 'mono', name: 'Mono Study', price: 50, tag: 'Gọn, thẳng hàng, kỹ thuật', previewClass: 'font-mono' }
+  ];
+
+  const QUOTE_STYLES = [
+    { id: 'soft', name: 'Soft Rescue', price: 0, tag: 'Ấm, dịu, gần ảnh mẫu', previewClass: 'quote-soft' },
+    { id: 'glass', name: 'Glass Whisper', price: 70, tag: 'Trong mờ, hiện đại', previewClass: 'quote-glass' },
+    { id: 'letter', name: 'Letter Note', price: 75, tag: 'Giống tờ note cảm xúc', previewClass: 'quote-letter' },
+    { id: 'spotlight', name: 'Spotlight Scene', price: 95, tag: 'Điện ảnh, nổi bật', previewClass: 'quote-spotlight' }
+  ];
+
+  const PRESETS = [
+    {
+      id: 'classic-plus',
+      name: 'Classic Plus',
+      tag: 'Nâng cấp nhẹ, vẫn rất gốc',
+      note: 'Giữ học là trung tâm, chỉ làm mọi thứ gọn và đẹp hơn.',
+      theme: 'midnight',
+      cardStyle: 'rounded',
+      layoutPack: 'classic',
+      fontTone: 'system',
+      quoteStyle: 'soft'
+    },
+    {
+      id: 'focus-studio',
+      name: 'Focus Studio',
+      tag: 'Premium tối, tập trung',
+      note: 'Hợp người muốn nhìn hiện đại nhưng ít rối.',
+      theme: 'mono',
+      cardStyle: 'focusboard',
+      layoutPack: 'split',
+      fontTone: 'system',
+      quoteStyle: 'glass'
+    },
+    {
+      id: 'cozy-notes',
+      name: 'Cozy Notes',
+      tag: 'Ấm, mềm, học lâu',
+      note: 'Hợp phong cách note, nhật ký, học dịu mắt.',
+      theme: 'latte',
+      cardStyle: 'notebook',
+      layoutPack: 'stacked',
+      fontTone: 'editorial',
+      quoteStyle: 'letter'
+    },
+    {
+      id: 'future-pop',
+      name: 'Future Pop',
+      tag: 'Khác biệt, hiện đại hơn',
+      note: 'Dành cho người muốn popup trông mới lạ hơn hẳn.',
+      theme: 'aurora',
+      cardStyle: 'glass',
+      layoutPack: 'spotlight',
+      fontTone: 'rounded',
+      quoteStyle: 'spotlight'
+    }
+  ];
+
+  const DAILY_QUOTES = [
+    {
+      id: 'q1',
+      mood: 'gentle',
+      badge: 'Câu nói mỗi ngày',
+      title: 'You do not have to carry everything alone.',
+      translation: 'Bạn không cần ôm hết mọi thứ một mình.',
+      note: 'Nhắc rằng chậm lại một chút cũng không sao.'
+    },
+    {
+      id: 'q2',
+      mood: 'healing',
+      badge: 'Câu nói mỗi ngày',
+      title: 'Resting is not falling behind.',
+      translation: 'Nghỉ một lúc không có nghĩa là tụt lại.',
+      note: 'Một câu dịu để giảm cảm giác phải chạy liên tục.'
+    },
+    {
+      id: 'q3',
+      mood: 'romantic',
+      badge: 'Câu nói mỗi ngày',
+      title: "I pretend to look around, but I'm actually looking for you.",
+      translation: 'Em giả vờ nhìn quanh, nhưng thật ra là đang tìm anh.',
+      note: 'Kiểu câu tạo cảm giác muốn lưu lại ngay.'
+    },
+    {
+      id: 'q4',
+      mood: 'calm',
+      badge: 'Câu nói mỗi ngày',
+      title: 'A kind word can change the whole evening.',
+      translation: 'Một lời dịu dàng có thể đổi cả buổi tối.',
+      note: 'Ngắn, ấm và dễ nhớ sau một ngày dài.'
+    },
+    {
+      id: 'q5',
+      mood: 'hope',
+      badge: 'Câu nói mỗi ngày',
+      title: 'You are allowed to begin again today.',
+      translation: 'Hôm nay bạn vẫn được phép bắt đầu lại.',
+      note: 'Mang cảm giác được tiếp sức để đi tiếp.'
+    },
+    {
+      id: 'q6',
+      mood: 'focus',
+      badge: 'Câu nói mỗi ngày',
+      title: 'One review now saves effort later.',
+      translation: 'Ôn lại một lần bây giờ sẽ đỡ vất vả về sau.',
+      note: 'Giữ đúng tinh thần học ít mà đều của extension.'
+    },
+    {
+      id: 'q7',
+      mood: 'warm',
+      badge: 'Câu nói mỗi ngày',
+      title: 'Your heart deserves softer words.',
+      translation: 'Trái tim bạn xứng đáng với những lời nhẹ hơn.',
+      note: 'Hợp cho giao diện note mềm và cảm xúc.'
+    },
+    {
+      id: 'q8',
+      mood: 'steady',
+      badge: 'Câu nói mỗi ngày',
+      title: 'Even slow learning still becomes fluency.',
+      translation: 'Học chậm nhưng đều vẫn có thể thành phản xạ.',
+      note: 'Nhắc người học rằng bền vẫn thắng nhanh.'
+    }
+  ];
+
+  const SHOP_CONFIG = {
+    theme: { items: THEMES, activeKey: 'theme', unlockedKey: 'unlockedThemes', label: 'theme' },
+    card: { items: CARD_STYLES, activeKey: 'cardStyle', unlockedKey: 'unlockedCardStyles', label: 'card style' },
+    layout: { items: LAYOUT_PACKS, activeKey: 'layoutPack', unlockedKey: 'unlockedLayoutPacks', label: 'layout' },
+    font: { items: FONT_TONES, activeKey: 'fontTone', unlockedKey: 'unlockedFontTones', label: 'font tone' },
+    quote: { items: QUOTE_STYLES, activeKey: 'quoteStyle', unlockedKey: 'unlockedQuoteStyles', label: 'quote style' }
+  };
 
   const storage = {
     get(defaults) {
-      return new Promise(resolve => chrome.storage.local.get(defaults, resolve));
+      return new Promise((resolve) => chrome.storage.local.get(defaults, resolve));
     },
     set(values) {
-      return new Promise(resolve => chrome.storage.local.set(values, resolve));
+      return new Promise((resolve) => chrome.storage.local.set(values, resolve));
     }
   };
 
@@ -34,10 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
     focus: null,
     spentCoins: 0,
     bonusCoins: 0,
+    quotes: null,
     runtime: {
       remainingSec: 25 * 60,
       intervalId: null,
-      isRunning: false
+      isRunning: false,
+      quoteIndex: null
     }
   };
 
@@ -58,23 +205,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function injectUpgradeUi() {
     const reviewView = byId('review-dashboard-view');
-    if (reviewView && !byId('upgradeRewardBar')) {
+    if (reviewView && !byId('upgradeHub')) {
       const anchor = byId('dailyFocusGrid') || reviewView.firstElementChild;
       const wrapper = document.createElement('div');
+      wrapper.id = 'upgradeHub';
       wrapper.innerHTML = `
         <div id="upgradeRewardBar" class="upgrade-reward-bar panel-card">
           <div class="reward-summary-row">
             <div class="reward-pill"><span>🟡</span><strong id="walletAvailableCoins">0</strong><small>xu giao diện khả dụng</small></div>
             <div class="reward-pill"><span>🎨</span><strong id="walletThemeName">Midnight Core</strong><small>giao diện đang dùng</small></div>
             <div class="reward-pill"><span>🍅</span><strong id="walletPomodoroToday">0</strong><small>pomodoro hôm nay</small></div>
+            <div class="reward-pill"><span>🪄</span><strong id="walletLayoutName">Classic Layout</strong><small>bố cục đang dùng</small></div>
           </div>
           <div class="reward-action-row">
             <button id="openCustomizationBtn" class="secondary-btn">🎨 Tùy biến UI</button>
             <button id="openPomodoroBtn" class="secondary-btn">🍅 Pomodoro</button>
             <button id="openProgressBoosterBtn" class="secondary-btn">🎯 Nhiệm vụ hôm nay</button>
+            <button id="openDailySayingBtn" class="secondary-btn">💬 Câu nói mỗi ngày</button>
           </div>
           <div class="reward-mini-note" id="rewardMiniNote">Hoàn thành phiên học, Pomodoro và chuỗi ngày để mở khóa giao diện mới mà không đổi mục tiêu học từ.</div>
         </div>
+        <button id="dailySayingLauncher" class="daily-saying-launcher" type="button" aria-haspopup="dialog" aria-controls="dailySayingModal">
+          <span class="daily-launcher-copy">
+            <span class="daily-launcher-label">Câu nói mỗi ngày</span>
+            <strong id="dailyLauncherTitle">Nhấn để mở câu nói hôm nay</strong>
+            <small id="dailyLauncherNote">Một câu ngắn, dễ lưu và dễ nhớ mỗi ngày.</small>
+          </span>
+          <span class="daily-launcher-meta">
+            <span id="dailyLauncherMood" class="daily-launcher-chip">gentle</span>
+            <span class="daily-launcher-arrow">→</span>
+          </span>
+        </button>
         <div id="missionStrip" class="mission-strip"></div>
       `;
       anchor.insertAdjacentElement('afterend', wrapper);
@@ -87,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="ambient-orb"></div>
           <div class="ambient-avatar"><span id="ambientEmoji">📘</span></div>
         </div>
+
         <div id="pomodoroMiniWidget" class="pomodoro-mini-widget">
           <button id="pomodoroMiniOpenBtn" class="pomodoro-mini-main" title="Mở Pomodoro">
             <span class="pomodoro-mini-emoji">🍅</span>
@@ -97,28 +259,77 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
           <button id="pomodoroMiniToggleBtn" class="pomodoro-mini-action" title="Bắt đầu hoặc tạm dừng">▶</button>
         </div>
+
         <div id="customizationModal" class="modal hidden">
-          <div class="modal-content tutorial-modal-content wide-modal">
+          <div class="modal-content tutorial-modal-content wide-modal vm-customization-modal">
             <button class="close-modal" data-close-modal="customizationModal" aria-label="Đóng">×</button>
             <h2>🎨 Tùy biến giao diện ngay trong extension</h2>
-            <p class="muted-text">Bạn có thể cuộn để xem thêm theme, card style và gói giao diện mới ngay trong cửa sổ này.</p>
-            <p class="muted-text">Mở khóa giao diện mới bằng xu kiếm được từ học tập. Tất cả chỉ thay đổi cảm giác sử dụng, không làm lệch mục tiêu học từ vựng.</p>
+            <p class="muted-text">Bản nâng cấp này giữ nguyên luồng học cũ. Mọi thay đổi mới đều nằm trong lớp tùy biến, nên người dùng vẫn có thể giữ mode cổ điển nếu muốn.</p>
             <div class="wallet-board">
               <div class="wallet-stat"><span>Xu đang có</span><strong id="modalAvailableCoins">0</strong></div>
               <div class="wallet-stat"><span>Đã kiếm từ học</span><strong id="modalEarnedCoins">0</strong></div>
               <div class="wallet-stat"><span>Thưởng tập trung</span><strong id="modalBonusCoins">0</strong></div>
               <div class="wallet-stat"><span>Đã tiêu cho giao diện</span><strong id="modalSpentCoins">0</strong></div>
             </div>
+
+            <div class="classic-safe-note">
+              <strong>Classic mode luôn được giữ lại.</strong>
+              <span>Bạn chỉ mở thêm style packs, layout packs, font packs và quote packs để giao diện đa dạng hơn mà không ảnh hưởng tính năng học cũ.</span>
+            </div>
+
             <div class="customizer-section">
-              <div class="section-title-row"><h3>Theme shop</h3><span class="muted-text">Lấy cảm hứng từ các phong cách UI online hiện nay nhưng giữ độ đọc cao.</span></div>
+              <div class="section-title-row">
+                <h3>Preset 1 chạm</h3>
+                <span class="muted-text">Chọn một tổ hợp đẹp sẵn để áp dụng nhanh mà không phải chỉnh từng phần.</span>
+              </div>
+              <div id="presetGrid" class="theme-shop-grid preset-grid"></div>
+            </div>
+
+            <div class="customizer-section">
+              <div class="section-title-row">
+                <h3>Theme shop</h3>
+                <span class="muted-text">Thay đổi bầu không khí tổng thể.</span>
+              </div>
               <div id="themeShopGrid" class="theme-shop-grid"></div>
             </div>
+
             <div class="customizer-section">
-              <div class="section-title-row"><h3>Card style</h3><span class="muted-text">Tinh chỉnh cách thẻ, panel và flashcard hiện ra mà không chạm vào logic học.</span></div>
+              <div class="section-title-row">
+                <h3>Card style</h3>
+                <span class="muted-text">Thay cách panel và card xuất hiện, không chạm logic học.</span>
+              </div>
               <div id="cardStyleGrid" class="theme-shop-grid"></div>
             </div>
+
             <div class="customizer-section">
-              <div class="section-title-row"><h3>Nhịp hiển thị</h3><span class="muted-text">Giữ app hiện đại nhưng không áp lực thị giác.</span></div>
+              <div class="section-title-row">
+                <h3>Layout packs</h3>
+                <span class="muted-text">Đây là phần làm giao diện bớt đơn điệu hơn đổi màu đơn thuần.</span>
+              </div>
+              <div id="layoutPackGrid" class="theme-shop-grid"></div>
+            </div>
+
+            <div class="customizer-section">
+              <div class="section-title-row">
+                <h3>Font tones</h3>
+                <span class="muted-text">Đổi sắc thái chữ để giao diện có cảm giác khác hơn.</span>
+              </div>
+              <div id="fontPackGrid" class="theme-shop-grid"></div>
+            </div>
+
+            <div class="customizer-section">
+              <div class="section-title-row">
+                <h3>Daily saying styles</h3>
+                <span class="muted-text">Nút “câu nói mỗi ngày” vẫn là nút nhỏ ở home, nhưng có thể đổi cách mở card.</span>
+              </div>
+              <div id="quoteStyleGrid" class="theme-shop-grid"></div>
+            </div>
+
+            <div class="customizer-section">
+              <div class="section-title-row">
+                <h3>Nhịp hiển thị</h3>
+                <span class="muted-text">Giữ app hiện đại nhưng không áp lực thị giác.</span>
+              </div>
               <div class="toggle-grid">
                 <label class="toggle-card"><span>Hiệu ứng chuyển động nhẹ</span><input id="motionToggle" type="checkbox"></label>
                 <label class="toggle-card"><span>Hiện study companion động</span><input id="companionToggle" type="checkbox"></label>
@@ -128,11 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         </div>
+
         <div id="pomodoroModal" class="modal hidden">
           <div class="modal-content tutorial-modal-content wide-modal pomodoro-modal-content">
             <button class="close-modal" data-close-modal="pomodoroModal" aria-label="Đóng">×</button>
             <h2>🍅 Pomodoro tập trung</h2>
-            <p class="muted-text">Giữ nhịp học tập trung theo chặng ngắn, nhận thêm xu giao diện khi hoàn thành mà không làm rối luồng học chính.</p>
+            <p class="muted-text">Giữ nhịp học theo chặng ngắn, nhận thêm xu giao diện khi hoàn thành mà không làm rối luồng học chính.</p>
             <p class="muted-text">Đồng hồ mini sẽ luôn hiện riêng ở góc màn hình để người dùng dễ quan sát mà không cần mở lại modal.</p>
             <div class="pomodoro-shell">
               <div class="pomodoro-clock-wrap">
@@ -162,6 +374,47 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         </div>
+
+        <div id="dailySayingModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal daily-saying-modal-content">
+            <button class="close-modal" data-close-modal="dailySayingModal" aria-label="Đóng">×</button>
+            <div class="daily-saying-modal-head">
+              <div>
+                <h2>💬 Câu nói mỗi ngày</h2>
+                <p class="muted-text">Mặc định chỉ là một nút nhỏ trong màn hình ôn tập. Bấm vào mới mở thẻ quote lớn để tránh làm rối giao diện chính.</p>
+              </div>
+              <div class="daily-saying-head-actions">
+                <button id="dailyQuotePrevBtn" class="secondary-btn" type="button">← Trước</button>
+                <button id="dailyQuoteNextBtn" class="secondary-btn" type="button">Tiếp →</button>
+              </div>
+            </div>
+            <div id="dailySayingCard" class="daily-saying-card">
+              <div class="daily-saying-hero">
+                <div class="daily-saying-badge" id="dailyQuoteBadge">Câu nói mỗi ngày</div>
+                <button id="saveDailyQuoteBtn" class="daily-save-btn" type="button">♡ Lưu</button>
+              </div>
+              <div class="daily-saying-body">
+                <div class="daily-saying-image">
+                  <div class="daily-saying-image-chip" id="dailyQuoteMood">gentle</div>
+                  <div class="daily-saying-image-copy">
+                    <strong id="dailyQuoteHeroTitle">One short line can steady the day.</strong>
+                    <span id="dailyQuoteHeroNote">Ngắn, êm và dễ lưu lại.</span>
+                  </div>
+                </div>
+                <div class="daily-saying-text-panel">
+                  <div class="daily-saying-title" id="dailyQuoteTitle">You do not have to carry everything alone.</div>
+                  <div class="daily-saying-translation" id="dailyQuoteTranslation">Bạn không cần phải gánh mọi thứ một mình.</div>
+                  <div class="daily-saying-note" id="dailyQuoteNote">Một câu ngắn để nhắc người học rằng chậm lại cũng không sao.</div>
+                </div>
+              </div>
+            </div>
+            <div class="daily-saying-footer">
+              <div class="wallet-stat"><span>Đã lưu</span><strong id="savedQuotesCount">0</strong></div>
+              <div class="wallet-stat"><span>Style quote</span><strong id="currentQuoteStyleName">Soft Rescue</strong></div>
+            </div>
+          </div>
+        </div>
+
         <div id="celebrationBurst" class="celebration-burst hidden" aria-hidden="true">
           <span>✨</span><span>🎉</span><span>📘</span><span>🍅</span><span>🟡</span>
         </div>
@@ -174,12 +427,17 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('openCustomizationBtn')?.addEventListener('click', () => openModal('customizationModal'));
     byId('openPomodoroBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
     byId('openProgressBoosterBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openDailySayingBtn')?.addEventListener('click', openDailySayingModal);
+    byId('dailySayingLauncher')?.addEventListener('click', openDailySayingModal);
+    byId('dailyQuotePrevBtn')?.addEventListener('click', () => shiftQuote(-1));
+    byId('dailyQuoteNextBtn')?.addEventListener('click', () => shiftQuote(1));
+    byId('saveDailyQuoteBtn')?.addEventListener('click', toggleCurrentQuoteSaved);
 
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
     });
 
-    ['customizationModal', 'pomodoroModal'].forEach(modalId => {
+    ['customizationModal', 'pomodoroModal', 'dailySayingModal'].forEach((modalId) => {
       const modal = byId(modalId);
       modal?.addEventListener('click', (event) => {
         if (event.target === modal) closeModal(modalId);
@@ -205,6 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     byId('themeShopGrid')?.addEventListener('click', handleCustomizerClick);
     byId('cardStyleGrid')?.addEventListener('click', handleCustomizerClick);
+    byId('layoutPackGrid')?.addEventListener('click', handleCustomizerClick);
+    byId('fontPackGrid')?.addEventListener('click', handleCustomizerClick);
+    byId('quoteStyleGrid')?.addEventListener('click', handleCustomizerClick);
+    byId('presetGrid')?.addEventListener('click', handlePresetClick);
 
     byId('pomodoroMinutesSelect')?.addEventListener('change', async (event) => {
       state.focus.preferredMinutes = Number(event.target.value) || 25;
@@ -225,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else startPomodoro();
     });
 
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
       window.setTimeout(renderUpgradeLayer, 60);
     }));
     byId('reviewSetDropdown')?.addEventListener('change', () => window.setTimeout(renderUpgradeLayer, 60));
@@ -235,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (changes.stats) state.stats = normalizeStats(changes.stats.newValue || {});
       if (changes.vocab) state.vocab = Array.isArray(changes.vocab.newValue) ? changes.vocab.newValue : [];
       if (changes.vm_ui) state.ui = normalizeUiState(changes.vm_ui.newValue || {});
+      if (changes.vm_quotes) state.quotes = normalizeQuotesState(changes.vm_quotes.newValue || {});
       if (changes.vm_focus) {
         state.focus = normalizeFocusState(changes.vm_focus.newValue || {});
         syncPomodoroRuntime();
@@ -257,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vocab: [],
       vm_ui: {},
       vm_focus: {},
+      vm_quotes: {},
       vm_spentCoins: 0,
       vm_bonusCoins: 0
     });
@@ -265,8 +529,10 @@ document.addEventListener('DOMContentLoaded', () => {
     state.vocab = Array.isArray(result.vocab) ? result.vocab : [];
     state.ui = normalizeUiState(result.vm_ui || {});
     state.focus = normalizeFocusState(result.vm_focus || {});
+    state.quotes = normalizeQuotesState(result.vm_quotes || {});
     state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
+    state.runtime.quoteIndex = getTodayQuoteIndex();
   }
 
   function normalizeStats(stats = {}) {
@@ -281,20 +547,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeUiState(raw = {}) {
     const ui = {
-      theme: THEMES.some(item => item.id === raw.theme) ? raw.theme : 'midnight',
-      unlockedThemes: Array.isArray(raw.unlockedThemes) ? raw.unlockedThemes.filter(id => THEMES.some(item => item.id === id)) : ['midnight'],
-      cardStyle: CARD_STYLES.some(item => item.id === raw.cardStyle) ? raw.cardStyle : 'classic',
-      unlockedCardStyles: Array.isArray(raw.unlockedCardStyles) ? raw.unlockedCardStyles.filter(id => CARD_STYLES.some(item => item.id === id)) : ['classic'],
+      theme: THEMES.some((item) => item.id === raw.theme) ? raw.theme : 'midnight',
+      unlockedThemes: filterUnlocked(raw.unlockedThemes, THEMES, ['midnight']),
+      cardStyle: CARD_STYLES.some((item) => item.id === raw.cardStyle) ? raw.cardStyle : 'classic',
+      unlockedCardStyles: filterUnlocked(raw.unlockedCardStyles, CARD_STYLES, ['classic']),
+      layoutPack: LAYOUT_PACKS.some((item) => item.id === raw.layoutPack) ? raw.layoutPack : 'classic',
+      unlockedLayoutPacks: filterUnlocked(raw.unlockedLayoutPacks, LAYOUT_PACKS, ['classic']),
+      fontTone: FONT_TONES.some((item) => item.id === raw.fontTone) ? raw.fontTone : 'system',
+      unlockedFontTones: filterUnlocked(raw.unlockedFontTones, FONT_TONES, ['system']),
+      quoteStyle: QUOTE_STYLES.some((item) => item.id === raw.quoteStyle) ? raw.quoteStyle : 'soft',
+      unlockedQuoteStyles: filterUnlocked(raw.unlockedQuoteStyles, QUOTE_STYLES, ['soft']),
       motionEnabled: raw.motionEnabled !== false,
       companionEnabled: raw.companionEnabled !== false,
       autoCelebrate: raw.autoCelebrate !== false,
       density: ['compact', 'balanced', 'comfortable'].includes(raw.density) ? raw.density : 'balanced'
     };
-    if (!ui.unlockedThemes.includes('midnight')) ui.unlockedThemes.unshift('midnight');
-    if (!ui.unlockedThemes.includes(ui.theme)) ui.theme = 'midnight';
-    if (!ui.unlockedCardStyles.includes('classic')) ui.unlockedCardStyles.unshift('classic');
-    if (!ui.unlockedCardStyles.includes(ui.cardStyle)) ui.cardStyle = 'classic';
+
+    ensureActiveUnlocked(ui, 'theme', 'unlockedThemes', 'midnight');
+    ensureActiveUnlocked(ui, 'cardStyle', 'unlockedCardStyles', 'classic');
+    ensureActiveUnlocked(ui, 'layoutPack', 'unlockedLayoutPacks', 'classic');
+    ensureActiveUnlocked(ui, 'fontTone', 'unlockedFontTones', 'system');
+    ensureActiveUnlocked(ui, 'quoteStyle', 'unlockedQuoteStyles', 'soft');
     return ui;
+  }
+
+  function filterUnlocked(rawIds, items, fallbackIds) {
+    const validIds = Array.isArray(rawIds)
+      ? rawIds.filter((id) => items.some((item) => item.id === id))
+      : [];
+    const merged = [...fallbackIds];
+    validIds.forEach((id) => {
+      if (!merged.includes(id)) merged.push(id);
+    });
+    return merged;
+  }
+
+  function ensureActiveUnlocked(ui, activeKey, unlockedKey, fallbackId) {
+    if (!ui[unlockedKey].includes(fallbackId)) ui[unlockedKey].unshift(fallbackId);
+    if (!ui[unlockedKey].includes(ui[activeKey])) ui[activeKey] = fallbackId;
   }
 
   function normalizeFocusState(raw = {}) {
@@ -311,16 +601,42 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function normalizeQuotesState(raw = {}) {
+    const savedIds = Array.isArray(raw.savedIds)
+      ? raw.savedIds.filter((id) => DAILY_QUOTES.some((quote) => quote.id === id))
+      : [];
+    return { savedIds };
+  }
+
   function getTodayKey() {
     return new Date().toISOString().slice(0, 10);
   }
 
-  function getThemeMeta(id) {
-    return THEMES.find(item => item.id === id) || THEMES[0];
+  function getTodayQuoteIndex() {
+    const key = getTodayKey();
+    const total = key.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return total % DAILY_QUOTES.length;
   }
 
-  function getCardStyleMeta(id) {
-    return CARD_STYLES.find(item => item.id === id) || CARD_STYLES[0];
+  function getCurrentQuoteIndex() {
+    return Number.isInteger(state.runtime.quoteIndex) ? state.runtime.quoteIndex : getTodayQuoteIndex();
+  }
+
+  function getCurrentQuote() {
+    return DAILY_QUOTES[getCurrentQuoteIndex()] || DAILY_QUOTES[0];
+  }
+
+  function getMeta(kind, id) {
+    const config = SHOP_CONFIG[kind];
+    return config?.items.find((item) => item.id === id) || config?.items[0] || null;
+  }
+
+  function getUnlocked(kind) {
+    return state.ui[SHOP_CONFIG[kind].unlockedKey];
+  }
+
+  function getActive(kind) {
+    return state.ui[SHOP_CONFIG[kind].activeKey];
   }
 
   function openModal(id) {
@@ -331,19 +647,29 @@ document.addEventListener('DOMContentLoaded', () => {
     byId(id)?.classList.add('hidden');
   }
 
+  function openDailySayingModal() {
+    if (!Number.isInteger(state.runtime.quoteIndex)) state.runtime.quoteIndex = getTodayQuoteIndex();
+    renderDailySayingModal();
+    openModal('dailySayingModal');
+  }
+
   function getAvailableCoins() {
     return Math.max(0, (Number(state.stats.coins) || 0) + state.bonusCoins - state.spentCoins);
   }
 
   function applyUiPreferences() {
     document.body.dataset.uiTheme = state.ui.theme;
-    document.body.datasetCardStyle = state.ui.cardStyle;
     document.body.dataset.uiCardStyle = state.ui.cardStyle;
+    document.body.dataset.uiLayout = state.ui.layoutPack;
+    document.body.dataset.uiFontTone = state.ui.fontTone;
+    document.body.dataset.uiQuoteStyle = state.ui.quoteStyle;
     document.body.dataset.uiDensity = state.ui.density;
     document.body.classList.toggle('reduced-motion', !state.ui.motionEnabled);
+
     const companion = byId('ambientCompanion');
     const emoji = byId('ambientEmoji');
-    if (emoji) emoji.textContent = getThemeMeta(state.ui.theme).companion || '📘';
+    const theme = getMeta('theme', state.ui.theme);
+    if (emoji) emoji.textContent = theme?.companion || '📘';
     companion?.classList.toggle('hidden', !state.ui.companionEnabled);
   }
 
@@ -351,26 +677,31 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWalletBar();
     renderMissionStrip();
     renderCustomizer();
+    renderDailySayingLauncher();
+    renderDailySayingModal();
     renderPomodoroWidgets();
   }
 
   function renderWalletBar() {
-    const theme = getThemeMeta(state.ui.theme);
     const available = getAvailableCoins();
-    const note = byId('rewardMiniNote');
     const counts = computeStudyCounts(state.vocab);
     setText('walletAvailableCoins', String(available));
-    setText('walletThemeName', theme.name);
+    setText('walletThemeName', getMeta('theme', state.ui.theme).name);
     setText('walletPomodoroToday', String(state.focus.completedToday));
-    if (note) {
-      note.textContent = counts.weak
-        ? `Bạn còn ${counts.weak} từ yếu. Một Pomodoro + Gõ từ sẽ vừa tăng tập trung vừa kiếm thêm xu giao diện.`
-        : `Giao diện đang dùng: ${theme.name}. Giữ nhịp học đều để mở thêm phong cách mới mà không làm app rối đi.`;
-    }
+    setText('walletLayoutName', getMeta('layout', state.ui.layoutPack).name);
     setText('modalAvailableCoins', String(available));
     setText('modalEarnedCoins', String(Number(state.stats.coins) || 0));
     setText('modalBonusCoins', String(state.bonusCoins));
     setText('modalSpentCoins', String(state.spentCoins));
+
+    const note = byId('rewardMiniNote');
+    if (note) {
+      if (counts.weak) {
+        note.textContent = `Bạn còn ${counts.weak} từ yếu. Có thể giữ classic mode để học như cũ, hoặc mở thêm layout/style mới mà không ảnh hưởng logic ôn tập.`;
+      } else {
+        note.textContent = `Classic mode vẫn còn nguyên. Hiện tại bạn đang dùng ${getMeta('theme', state.ui.theme).name} + ${getMeta('layout', state.ui.layoutPack).name}.`;
+      }
+    }
   }
 
   function renderMissionStrip() {
@@ -403,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     strip.innerHTML = '';
-    missions.forEach(mission => {
+    missions.forEach((mission) => {
       const card = document.createElement('div');
       card.className = `mission-card ${mission.done ? 'done' : ''}`;
       card.innerHTML = `
@@ -416,25 +747,37 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderCustomizer() {
-    renderThemeCards('themeShopGrid', THEMES, state.ui.unlockedThemes, state.ui.theme, 'theme');
-    renderThemeCards('cardStyleGrid', CARD_STYLES, state.ui.unlockedCardStyles, state.ui.cardStyle, 'card');
+    renderShopCards('themeShopGrid', 'theme');
+    renderShopCards('cardStyleGrid', 'card');
+    renderShopCards('layoutPackGrid', 'layout');
+    renderShopCards('fontPackGrid', 'font');
+    renderShopCards('quoteStyleGrid', 'quote');
+    renderPresetCards();
+
     if (byId('motionToggle')) byId('motionToggle').checked = state.ui.motionEnabled;
     if (byId('companionToggle')) byId('companionToggle').checked = state.ui.companionEnabled;
     if (byId('celebrateToggle')) byId('celebrateToggle').checked = state.ui.autoCelebrate;
     if (byId('densitySelect')) byId('densitySelect').value = state.ui.density;
   }
 
-  function renderThemeCards(containerId, items, unlockedIds, activeId, kind) {
+  function renderShopCards(containerId, kind) {
     const grid = byId(containerId);
     if (!grid) return;
+    const config = SHOP_CONFIG[kind];
+    const unlockedIds = getUnlocked(kind);
+    const activeId = getActive(kind);
     const available = getAvailableCoins();
+
     grid.innerHTML = '';
-    items.forEach(item => {
+    config.items.forEach((item) => {
       const unlocked = unlockedIds.includes(item.id) || item.price === 0;
       const active = item.id === activeId;
       const card = document.createElement('div');
       card.className = `shop-card ${active ? 'active' : ''}`;
       card.innerHTML = `
+        <div class="shop-card-preview ${escapeHtml(item.previewClass || '')}">
+          ${getPreviewMarkup(kind, item)}
+        </div>
         <div class="shop-card-head">
           <div>
             <strong>${escapeHtml(item.name)}</strong>
@@ -452,52 +795,153 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function getPreviewMarkup(kind, item) {
+    if (kind === 'theme') {
+      return `
+        <div class="preview-mini-window">
+          <span></span><span></span><span></span>
+          <div class="preview-mini-card"></div>
+        </div>
+      `;
+    }
+    if (kind === 'card') {
+      return `
+        <div class="preview-card-stack">
+          <div class="preview-stack-card top"></div>
+          <div class="preview-stack-card bottom"></div>
+        </div>
+      `;
+    }
+    if (kind === 'layout') {
+      return `
+        <div class="preview-layout ${escapeHtml(item.previewClass || '')}">
+          <div class="preview-layout-a"></div>
+          <div class="preview-layout-b"></div>
+          <div class="preview-layout-c"></div>
+        </div>
+      `;
+    }
+    if (kind === 'font') {
+      return `
+        <div class="preview-font-block ${escapeHtml(item.previewClass || '')}">
+          <strong>Abandon</strong>
+          <span>/əˈbæn.dən/ • từ bỏ</span>
+        </div>
+      `;
+    }
+    if (kind === 'quote') {
+      return `
+        <div class="preview-quote ${escapeHtml(item.previewClass || '')}">
+          <small>Câu nói mỗi ngày</small>
+          <strong>You are allowed to begin again.</strong>
+        </div>
+      `;
+    }
+    return '';
+  }
+
+  function renderPresetCards() {
+    const grid = byId('presetGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    PRESETS.forEach((preset) => {
+      const ready = isPresetReady(preset);
+      const active = isPresetActive(preset);
+      const card = document.createElement('div');
+      card.className = `shop-card preset-card ${active ? 'active' : ''}`;
+      card.innerHTML = `
+        <div class="shop-card-preview preset-preview ${escapeHtml(getMeta('theme', preset.theme).previewClass)}">
+          <div class="preset-preview-note">${escapeHtml(preset.tag)}</div>
+          <div class="preset-preview-title">${escapeHtml(preset.name)}</div>
+          <div class="preset-preview-stack">
+            <span>${escapeHtml(getMeta('layout', preset.layoutPack).name)}</span>
+            <span>${escapeHtml(getMeta('quote', preset.quoteStyle).name)}</span>
+          </div>
+        </div>
+        <div class="shop-card-head">
+          <div>
+            <strong>${escapeHtml(preset.name)}</strong>
+            <div class="shop-tag">${escapeHtml(preset.note)}</div>
+          </div>
+          <span class="shop-price">${ready ? 'Sẵn sàng' : 'Thiếu pack'}</span>
+        </div>
+        <div class="shop-actions">
+          <button class="${ready ? 'primary-btn' : 'secondary-btn'}" data-preset-id="${preset.id}" ${!ready && !active ? 'disabled' : ''}>${active ? 'Đang dùng' : 'Áp dụng preset'}</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function isPresetReady(preset) {
+    return (
+      state.ui.unlockedThemes.includes(preset.theme) &&
+      state.ui.unlockedCardStyles.includes(preset.cardStyle) &&
+      state.ui.unlockedLayoutPacks.includes(preset.layoutPack) &&
+      state.ui.unlockedFontTones.includes(preset.fontTone) &&
+      state.ui.unlockedQuoteStyles.includes(preset.quoteStyle)
+    );
+  }
+
+  function isPresetActive(preset) {
+    return (
+      state.ui.theme === preset.theme &&
+      state.ui.cardStyle === preset.cardStyle &&
+      state.ui.layoutPack === preset.layoutPack &&
+      state.ui.fontTone === preset.fontTone &&
+      state.ui.quoteStyle === preset.quoteStyle
+    );
+  }
+
+  async function handlePresetClick(event) {
+    const button = event.target.closest('button[data-preset-id]');
+    if (!button) return;
+    const preset = PRESETS.find((item) => item.id === button.dataset.presetId);
+    if (!preset) return;
+    if (!isPresetReady(preset)) {
+      showToast('Preset này cần mở đủ các packs trước khi áp dụng.');
+      return;
+    }
+    state.ui.theme = preset.theme;
+    state.ui.cardStyle = preset.cardStyle;
+    state.ui.layoutPack = preset.layoutPack;
+    state.ui.fontTone = preset.fontTone;
+    state.ui.quoteStyle = preset.quoteStyle;
+    await saveUiState();
+    maybeCelebrate(`Đã áp dụng preset ${preset.name}.`);
+  }
+
   async function handleCustomizerClick(event) {
     const button = event.target.closest('button[data-kind]');
     if (!button) return;
     const { kind, id, action } = button.dataset;
-    if (kind === 'theme') {
-      if (action === 'unlock') await unlockTheme(id);
-      else await applyTheme(id);
+    if (!SHOP_CONFIG[kind]) return;
+    if (action === 'unlock') await unlockShopItem(kind, id);
+    else await applyShopItem(kind, id);
+  }
+
+  async function unlockShopItem(kind, id) {
+    const config = SHOP_CONFIG[kind];
+    const meta = getMeta(kind, id);
+    if (!meta || !config) return;
+    if (getAvailableCoins() < meta.price) {
+      showToast('Xu giao diện chưa đủ để mở pack này.');
+      return;
     }
-    if (kind === 'card') {
-      if (action === 'unlock') await unlockCardStyle(id);
-      else await applyCardStyle(id);
-    }
-  }
-
-  async function unlockTheme(id) {
-    const meta = getThemeMeta(id);
-    if (getAvailableCoins() < meta.price) return showToast('Xu giao diện chưa đủ để mở theme này.');
     state.spentCoins += meta.price;
-    if (!state.ui.unlockedThemes.includes(id)) state.ui.unlockedThemes.push(id);
-    state.ui.theme = id;
+    if (!state.ui[config.unlockedKey].includes(id)) state.ui[config.unlockedKey].push(id);
+    state.ui[config.activeKey] = id;
     await Promise.all([saveUiState(), saveWalletState()]);
-    maybeCelebrate(`Đã mở khóa theme ${meta.name}!`);
+    maybeCelebrate(`Đã mở khóa ${config.label} ${meta.name}!`);
   }
 
-  async function applyTheme(id) {
-    if (!state.ui.unlockedThemes.includes(id)) return;
-    state.ui.theme = id;
+  async function applyShopItem(kind, id) {
+    const config = SHOP_CONFIG[kind];
+    if (!config) return;
+    if (!state.ui[config.unlockedKey].includes(id)) return;
+    state.ui[config.activeKey] = id;
     await saveUiState();
-    showToast(`Đã áp dụng theme ${getThemeMeta(id).name}.`);
-  }
-
-  async function unlockCardStyle(id) {
-    const meta = getCardStyleMeta(id);
-    if (getAvailableCoins() < meta.price) return showToast('Xu giao diện chưa đủ để mở card style này.');
-    state.spentCoins += meta.price;
-    if (!state.ui.unlockedCardStyles.includes(id)) state.ui.unlockedCardStyles.push(id);
-    state.ui.cardStyle = id;
-    await Promise.all([saveUiState(), saveWalletState()]);
-    maybeCelebrate(`Đã mở khóa card style ${meta.name}!`);
-  }
-
-  async function applyCardStyle(id) {
-    if (!state.ui.unlockedCardStyles.includes(id)) return;
-    state.ui.cardStyle = id;
-    await saveUiState();
-    showToast(`Đã áp dụng card style ${getCardStyleMeta(id).name}.`);
+    showToast(`Đã áp dụng ${config.label} ${getMeta(kind, id).name}.`);
   }
 
   async function saveUiState() {
@@ -516,11 +960,14 @@ document.addEventListener('DOMContentLoaded', () => {
     await storage.set({ vm_focus: state.focus });
   }
 
+  async function saveQuotesState() {
+    renderUpgradeLayer();
+    await storage.set({ vm_quotes: state.quotes });
+  }
+
   function syncPomodoroRuntime(forceReset = false) {
     if (state.runtime.isRunning && !forceReset) return;
-    if (forceReset) {
-      pausePomodoro(false);
-    }
+    if (forceReset) pausePomodoro(false);
     state.runtime.remainingSec = state.focus.preferredMinutes * 60;
     renderPomodoroWidgets();
   }
@@ -533,9 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.runtime.intervalId = window.setInterval(async () => {
       state.runtime.remainingSec -= 1;
       renderPomodoroWidgets();
-      if (state.runtime.remainingSec <= 0) {
-        await completePomodoroSession();
-      }
+      if (state.runtime.remainingSec <= 0) await completePomodoroSession();
     }, 1000);
   }
 
@@ -575,17 +1020,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderPomodoroWidgets() {
-    const clock = byId('pomodoroClock');
-    const statusText = byId('pomodoroStatusText');
-    const miniClock = byId('pomodoroMiniClock');
-    const miniStatus = byId('pomodoroMiniStatus');
-    const miniToggle = byId('pomodoroMiniToggleBtn');
-    const miniWidget = byId('pomodoroMiniWidget');
     const total = state.focus.preferredMinutes * 60;
     const remaining = Math.max(0, state.runtime.remainingSec);
     const formatted = formatClock(remaining);
-    if (clock) clock.textContent = formatted;
-    if (miniClock) miniClock.textContent = formatted;
+
+    setText('pomodoroClock', formatted);
+    setText('pomodoroMiniClock', formatted);
+    setText('pomodoroTodayKpi', String(state.focus.completedToday));
+    setText('pomodoroTotalKpi', String(state.focus.totalCompleted));
+    setText('pomodoroRewardKpi', String(state.focus.rewardPerSession));
+
+    const statusText = byId('pomodoroStatusText');
     if (statusText) {
       statusText.textContent = state.runtime.isRunning
         ? `Đang focus. Còn ${formatted} trước khi nhận thưởng giao diện.`
@@ -593,6 +1038,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'Sẵn sàng cho một phiên tập trung ngắn.'
           : `Đã tạm dừng ở ${formatted}.`;
     }
+
+    const miniStatus = byId('pomodoroMiniStatus');
     if (miniStatus) {
       miniStatus.textContent = state.runtime.isRunning
         ? 'Đang focus'
@@ -600,19 +1047,68 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'Sẵn sàng focus'
           : 'Đang tạm dừng';
     }
+
+    const miniToggle = byId('pomodoroMiniToggleBtn');
     if (miniToggle) miniToggle.textContent = state.runtime.isRunning ? '❚❚' : '▶';
-    miniWidget?.classList.toggle('running', state.runtime.isRunning);
+    byId('pomodoroMiniWidget')?.classList.toggle('running', state.runtime.isRunning);
+
     if (byId('pomodoroMinutesSelect')) byId('pomodoroMinutesSelect').value = String(state.focus.preferredMinutes);
     if (byId('pomodoroAutoLaunch')) byId('pomodoroAutoLaunch').checked = state.focus.autoLaunchRecommended;
-    setText('pomodoroTodayKpi', String(state.focus.completedToday));
-    setText('pomodoroTotalKpi', String(state.focus.totalCompleted));
-    setText('pomodoroRewardKpi', String(state.focus.rewardPerSession));
+  }
+
+  function renderDailySayingLauncher() {
+    const quote = getCurrentQuote();
+    setText('dailyLauncherTitle', quote.title);
+    setText('dailyLauncherNote', quote.translation);
+    setText('dailyLauncherMood', quote.mood);
+  }
+
+  function renderDailySayingModal() {
+    const quote = getCurrentQuote();
+    const saved = state.quotes.savedIds.includes(quote.id);
+
+    setText('dailyQuoteBadge', quote.badge);
+    setText('dailyQuoteMood', quote.mood);
+    setText('dailyQuoteHeroTitle', quote.title);
+    setText('dailyQuoteHeroNote', quote.note);
+    setText('dailyQuoteTitle', quote.title);
+    setText('dailyQuoteTranslation', quote.translation);
+    setText('dailyQuoteNote', quote.note);
+    setText('savedQuotesCount', String(state.quotes.savedIds.length));
+    setText('currentQuoteStyleName', getMeta('quote', state.ui.quoteStyle).name);
+
+    const saveBtn = byId('saveDailyQuoteBtn');
+    if (saveBtn) {
+      saveBtn.textContent = saved ? '♥ Đã lưu' : '♡ Lưu';
+      saveBtn.classList.toggle('saved', saved);
+    }
+  }
+
+  function shiftQuote(delta) {
+    const length = DAILY_QUOTES.length;
+    const nextIndex = (getCurrentQuoteIndex() + delta + length) % length;
+    state.runtime.quoteIndex = nextIndex;
+    renderDailySayingLauncher();
+    renderDailySayingModal();
+  }
+
+  async function toggleCurrentQuoteSaved() {
+    const currentId = getCurrentQuote().id;
+    if (state.quotes.savedIds.includes(currentId)) {
+      state.quotes.savedIds = state.quotes.savedIds.filter((id) => id !== currentId);
+      await saveQuotesState();
+      showToast('Đã bỏ lưu câu nói.');
+      return;
+    }
+    state.quotes.savedIds = [currentId, ...state.quotes.savedIds.filter((id) => id !== currentId)];
+    await saveQuotesState();
+    maybeCelebrate('Đã lưu câu nói này vào bộ sưu tập nhỏ của bạn.');
   }
 
   function computeStudyCounts(vocab) {
     const now = Date.now();
     const counts = { total: vocab.length, due: 0, weak: 0, fresh: 0 };
-    vocab.forEach(word => {
+    vocab.forEach((word) => {
       const review = word?.review || {};
       const confidence = Number.isFinite(review.confidence) ? review.confidence : (word?.isLearned ? 4 : review.correctCount >= 2 ? 2 : 0);
       const seenCount = Number(review.seenCount) || 0;
