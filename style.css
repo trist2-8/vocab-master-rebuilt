@@ -353,12 +353,16 @@ select,
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
 }
 .modal-content {
   position: relative;
   width: min(100%, 520px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 28px;
   background: #171c23;
   border: 1px solid var(--border-color);
