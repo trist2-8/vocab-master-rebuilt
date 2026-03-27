@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocab Master</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <div id="main-container">
+    <nav class="main-nav">
+      <div class="nav-brand-wrap">
+        <div class="nav-brand">Vocab Master</div>
+        <div class="nav-subtitle">Học từ vựng gọn gàng, nhớ lâu hơn.</div>
+      </div>
+      <div class="nav-links">
+        <button id="navMainBtn" class="nav-btn active">Thêm từ</button>
+        <button id="navManagementBtn" class="nav-btn">Bộ từ của tôi</button>
+        <button id="navReviewBtn" class="nav-btn">Ôn tập</button>
+      </div>
+    </nav>
+
+    <main id="content-area">
+      <section id="main-view" class="view">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <div>
+              <h1>Thêm vào bộ từ</h1>
+              <p class="header-subtext">Dán nhanh từ Excel, nhập tay, hoặc tải CSV rồi kiểm tra trước khi lưu.</p>
+            </div>
+            <div class="header-actions">
+              <select id="wordsetDropdown" aria-label="Chọn bộ từ"></select>
+              <button id="addSetBtn" class="secondary-btn">＋ Bộ mới</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="input-view" class="panel-card">
+          <div class="input-header">
+            <div class="help-box">
+              <h2>Định dạng đề xuất</h2>
+              <p class="format-hint">từ vựng | /phiên âm/ | loại từ / nhóm | nghĩa | ví dụ | ghi chú</p>
+              <p class="quick-add-hint">Mẹo: bạn có thể copy nhiều cột từ Excel hoặc Google Sheets và dán thẳng vào đây.</p>
+            </div>
+            <div class="action-buttons">
+              <div class="dropdown-wrapper">
+                <button class="secondary-btn dropdown-toggle">Nhập dữ liệu ▼</button>
+                <div class="dropdown-menu hidden">
+                  <button class="dropdown-item" id="importCsvBtn">Chọn file CSV</button>
+                </div>
+              </div>
+              <button class="secondary-btn" id="tutorialBtn">Hướng dẫn</button>
+              <button class="secondary-btn" id="promptHelperBtn">🤖 Prompt chủ đề</button>
+              <button class="primary-btn" id="quickAddBtn">⚡ Thêm nhanh</button>
+            </div>
+          </div>
+
+          <textarea id="bulkInput" placeholder="abandon | /əˈbæn.dən/ | verb | từ bỏ | She abandoned her car.
+ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></textarea>
+
+          <div class="footer-actions">
+            <button id="previewBtn" class="primary-btn">Kiểm tra & sửa</button>
+          </div>
+        </div>
+
+        <div id="preview-view" class="panel-card hidden">
+          <div class="preview-header">
+            <div>
+              <h2>Kiểm tra trước khi lưu</h2>
+              <p id="importSummaryText" class="muted-text">Xem lại dữ liệu, sửa nhanh và bỏ những dòng không cần.</p>
+            </div>
+          </div>
+          <div id="previewTableContainer"></div>
+          <div class="footer-actions footer-sticky">
+            <button id="cancelPreviewBtn" class="secondary-btn">Quay lại</button>
+            <button id="saveWordsBtn" class="primary-btn">Lưu 0 từ</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="management-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <div>
+              <h1>Bộ từ của tôi</h1>
+              <p class="header-subtext">Quản lý từng bộ từ, theo dõi tiến độ và sửa nội dung ngay trong bảng.</p>
+            </div>
+          </div>
+        </div>
+        <div id="managementSummary" class="summary-strip"></div>
+        <div class="toolbar-card panel-card">
+          <div class="toolbar-grid">
+            <input id="setSearchInput" class="modern-input" type="text" placeholder="Tìm bộ từ, chủ đề, loại từ...">
+            <select id="setSortSelect" class="modern-input">
+              <option value="due">Ưu tiên đến hạn</option>
+              <option value="recent">Mới cập nhật</option>
+              <option value="size">Nhiều từ nhất</option>
+              <option value="progress">Tiến độ cao nhất</option>
+              <option value="name">Tên A → Z</option>
+            </select>
+            <button id="exportBackupBtn" class="secondary-btn">Xuất backup JSON</button>
+            <button id="importBackupBtn" class="secondary-btn">Nhập backup JSON</button>
+          </div>
+        </div>
+        <div id="wordsetGrid" class="wordset-grid"></div>
+      </section>
+
+      <section id="set-details-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <div class="header-actions left-actions">
+              <button id="backToManagementBtn" class="secondary-btn">← Quay lại</button>
+              <h1 id="detailsSetName">Tên bộ từ</h1>
+            </div>
+            <div class="header-actions">
+              <button id="deleteSetBtn" class="secondary-btn danger-btn">Xóa bộ từ</button>
+              <button id="saveSetChangesBtn" class="primary-btn">Lưu thay đổi</button>
+            </div>
+          </div>
+          <p id="detailsSummaryText" class="header-subtext"></p>
+        </div>
+        <div class="toolbar-card panel-card">
+          <div class="toolbar-grid toolbar-grid-tight">
+            <input id="detailsSearchInput" class="modern-input" type="text" placeholder="Tìm trong bộ từ này...">
+            <select id="detailsFilterSelect" class="modern-input">
+              <option value="all">Tất cả mức nhớ</option>
+              <option value="due">Chỉ từ đến hạn</option>
+              <option value="weak">Chỉ từ cần củng cố</option>
+              <option value="new">Chỉ từ mới</option>
+              <option value="strong">Chỉ từ khá chắc / rất vững</option>
+            </select>
+          </div>
+        </div>
+        <div id="setDetailsTableContainer" class="panel-card"></div>
+      </section>
+
+      <section id="review-dashboard-view" class="view hidden">
+        <div class="filter-row-section">
+          <div class="filter-box">
+            <label for="reviewSetDropdown">Bộ từ vựng</label>
+            <select id="reviewSetDropdown">
+              <option value="all">Tất cả bộ từ</option>
+            </select>
+          </div>
+          <div class="filter-box filter-box-wide">
+            <label>Gợi ý hôm nay</label>
+            <div id="reviewRecommendation" class="dashboard-recommendation">Hãy chọn một bộ từ để bắt đầu ôn tập.</div>
+            <div class="recommended-study-row">
+              <div class="recommended-study-copy">
+                <span class="recommended-study-label">Bắt đầu theo lộ trình gợi ý</span>
+                <strong id="recommendedModeTitle">Chưa có đề xuất</strong>
+                <span id="recommendedModeReason" class="recommended-study-reason">Khi có dữ liệu, hệ thống sẽ gợi ý bước học đầu tiên an toàn nhất cho trí nhớ dài hạn.</span>
+              </div>
+              <button id="startRecommendedBtn" class="primary-btn start-recommended-btn">▶ Học theo gợi ý</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="dailyFocusGrid" class="daily-focus-grid"></div>
+
+        <div class="quick-focus-row">
+          <button id="startDueFocusBtn" class="secondary-btn">Ôn từ đến hạn</button>
+          <button id="startWeakFocusBtn" class="secondary-btn">Ôn từ yếu</button>
+          <button id="startNewFocusBtn" class="secondary-btn">Làm quen từ mới</button>
+        </div>
+
+        <div class="stats-overview">
+          <div class="stat-card">
+            <span class="stat-label">Đến hạn</span>
+            <strong id="reviewDueCount">0</strong>
+            <span class="stat-note">Nên ôn ngay hôm nay</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Từ mới</span>
+            <strong id="reviewNewCount">0</strong>
+            <span class="stat-note">Chưa ôn lần nào</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Cần củng cố</span>
+            <strong id="reviewWeakCount">0</strong>
+            <span class="stat-note">Sai nhiều hoặc mức nhớ còn thấp</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Đã vững</span>
+            <strong id="reviewMasteredCount">0</strong>
+            <span class="stat-note">Qua nhiều lượt nhớ tốt</span>
+          </div>
+        </div>
+
+        <div id="memoryStageStrip" class="memory-stage-strip"></div>
+        <div id="reviewInsightPanel" class="insight-panel panel-card"></div>
+
+        <div class="dashboard-body-section panel-card">
+          <div class="status-summary-row">
+            <div>
+              <span class="status-summary-title">Chọn chế độ học</span>
+              <p id="dashboardSubtext" class="muted-text">Mỗi chế độ đều cập nhật tiến độ và lịch ôn tập chung.</p>
+            </div>
+            <button id="openStrategyBtn" class="primary-btn strategy-btn">🧠 Lộ trình học</button>
+          </div>
+
+          <div class="vibrant-game-grid">
+            <button class="vibrant-card card-purple" data-game="flashcard">
+              <div class="v-icon">≡</div>
+              <h3>Flashcard</h3>
+              <p>Lật thẻ, tự nhớ lại nghĩa và đánh dấu mức độ nhớ.</p>
+              <span class="v-badge" data-badge="flashcard">20 thẻ</span>
+            </button>
+            <button class="vibrant-card card-orange" data-game="quiz">
+              <div class="v-icon">☑️</div>
+              <h3>Trắc nghiệm</h3>
+              <p>Nhận diện nhanh qua từ, nghĩa và ngữ cảnh.</p>
+              <span class="v-badge" data-badge="quiz">10 câu</span>
+            </button>
+            <button class="vibrant-card card-blue" data-game="matching">
+              <div class="v-icon">⧉</div>
+              <h3>Nối cặp</h3>
+              <p>Ghép từ và nghĩa để tăng phản xạ nhớ nhanh.</p>
+              <span class="v-badge" data-badge="matching">6 cặp</span>
+            </button>
+            <button class="vibrant-card card-green" data-game="typing">
+              <div class="v-icon">T</div>
+              <h3>Gõ từ</h3>
+              <p>Nhìn gợi ý rồi viết ra đúng từ vựng.</p>
+              <span class="v-badge" data-badge="typing">10 câu</span>
+            </button>
+            <button class="vibrant-card card-cyan" data-game="dictation">
+              <div class="v-icon">🎧</div>
+              <h3>Nghe viết</h3>
+              <p>Nghe phát âm và gõ lại chính xác mặt chữ.</p>
+              <span class="v-badge" data-badge="dictation">10 câu</span>
+            </button>
+            <button class="vibrant-card card-pink" data-game="srs">
+              <div class="v-icon">🔀</div>
+              <h3>Ôn tập thông minh</h3>
+              <p>Ưu tiên từ đến hạn, từ mới và từ bạn hay quên.</p>
+              <span class="v-badge hot-badge">Ưu tiên</span>
+              <span class="v-badge card-bottom-badge" data-badge="srs">0 từ</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="study-mode-view" class="view hidden">
+        <div class="fc-top-bar panel-card">
+          <div class="fc-top-left">
+            <span class="fc-chip">🟡 <span id="fcCoinCount">0</span></span>
+            <span class="fc-chip" id="studyProgress">1 / 20</span>
+          </div>
+          <div class="fc-top-center">
+            <span id="studyModeLabel" class="session-mode-label">Flashcard</span>
+            <span id="fcStatusBadge" class="session-status-badge">Mới</span>
+            <span id="fcMemoryBadge" class="session-status-badge memory-stage-badge">Mức nhớ: Mới</span>
+          </div>
+          <div class="fc-top-right">
+            <button id="restartStudyBtn" class="fc-icon-btn">↺ Chơi lại</button>
+            <button class="fc-icon-btn exit-game-btn">Thoát</button>
+          </div>
+        </div>
+
+        <div class="flashcard-container">
+          <div class="flashcard" id="activeFlashcard">
+            <div class="card-face front fc-gradient-bg">
+              <h2 id="fcWord">accuse</h2>
+              <p id="fcType" class="fc-type-label">VERB</p>
+              <p id="fcPhonetic" class="fc-phonetic-label">/əˈkjuːz/</p>
+              <span class="fc-hint">Nhấn Space hoặc click để lật thẻ</span>
+            </div>
+            <div class="card-face back fc-gradient-bg">
+              <h2 id="fcMeaning">buộc tội</h2>
+              <p id="fcExample" class="fc-example-label"></p>
+              <p id="fcNotes" class="fc-note-label"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="fc-typing-check panel-card compact-panel">
+          <input type="text" id="fcTypingInput" placeholder="Gõ nghĩa tiếng Việt để tự kiểm tra" autocomplete="off">
+          <button id="fcCheckBtn" class="primary-btn">Kiểm tra</button>
+        </div>
+
+        <div class="fc-bottom-controls panel-card">
+          <div class="fc-ctrl-group">
+            <button id="btnPrev" class="fc-ctrl-btn">‹ Trước</button>
+            <span class="fc-shortcut">←</span>
+          </div>
+          <div class="fc-ctrl-group">
+            <button id="btnAudio" class="fc-ctrl-btn btn-round">🔊</button>
+            <span class="fc-shortcut">S</span>
+          </div>
+          <div class="fc-ctrl-group">
+            <button id="btnNotLearned" class="fc-ctrl-btn btn-pill btn-wrong">✕ Chưa nhớ</button>
+            <span class="fc-shortcut">1 / X</span>
+          </div>
+          <div class="fc-ctrl-group">
+            <button id="btnAlmostLearned" class="fc-ctrl-btn btn-pill btn-mid">△ Gần nhớ</button>
+            <span class="fc-shortcut">2 / Z</span>
+          </div>
+          <div class="fc-ctrl-group">
+            <button id="btnLearned" class="fc-ctrl-btn btn-pill btn-correct">✔ Nhớ rồi</button>
+            <span class="fc-shortcut">3 / C</span>
+          </div>
+          <div class="fc-ctrl-group">
+            <button id="btnNext" class="fc-ctrl-btn">Tiếp ›</button>
+            <span class="fc-shortcut">→</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="quiz-mode-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <button class="exit-game-btn secondary-btn">← Thoát</button>
+            <h1>Trắc nghiệm</h1>
+            <span id="quizProgress" class="progress-text">1 / 10</span>
+          </div>
+        </div>
+        <div class="quiz-container panel-card">
+          <div class="quiz-question-box"><h2 id="quizQuestionWord">Word</h2></div>
+          <div class="quiz-options-grid" id="quizOptionsGrid"></div>
+        </div>
+      </section>
+
+      <section id="matching-mode-view" class="view hidden">
+        <div class="matching-top-bar panel-card compact-panel">
+          <div class="matching-lives" id="matchingLives">❤️❤️❤️❤️❤️</div>
+          <div class="matching-timer">⏱ <span id="matchingTimerTxt">0s</span></div>
+        </div>
+        <div class="matching-container panel-card">
+          <div class="match-col-wrapper">
+            <h3 class="match-col-title">Tiếng Anh</h3>
+            <div class="match-col" id="matchColLeft"></div>
+          </div>
+          <div class="match-col-wrapper">
+            <h3 class="match-col-title">Tiếng Việt</h3>
+            <div class="match-col" id="matchColRight"></div>
+          </div>
+        </div>
+        <div class="center-actions">
+          <button class="exit-game-btn secondary-btn">Thoát game</button>
+        </div>
+      </section>
+
+      <section id="typing-mode-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <button class="exit-game-btn secondary-btn">← Thoát</button>
+            <h1>Gõ từ vựng</h1>
+            <span id="typingProgress" class="progress-text">1 / 10</span>
+          </div>
+        </div>
+        <div class="typing-container panel-card">
+          <div class="typing-meaning-box">
+            <div id="typingPromptHint" class="typing-prompt-hint">Nghĩa của từ</div>
+            <h2 id="typingQuestionText">...</h2>
+            <button id="typingSpeakBtn" class="secondary-btn hidden typing-speak-btn">🔊 Nghe phát âm</button>
+          </div>
+          <input type="text" id="typingInput" class="game-input" placeholder="Gõ từ vựng tiếng Anh vào đây" autocomplete="off">
+          <button id="typingSubmitBtn" class="primary-btn full-btn">Kiểm tra</button>
+        </div>
+      </section>
+
+      <section id="dictation-mode-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <button class="exit-game-btn secondary-btn">← Thoát</button>
+            <h1>Nghe viết</h1>
+            <span id="dictationProgress" class="progress-text">1 / 10</span>
+          </div>
+        </div>
+        <div class="typing-container panel-card">
+          <button class="audio-box" id="playAudioBtn">
+            <span class="audio-box-icon">🔊</span>
+            <p>Nhấn để nghe lại</p>
+          </button>
+          <input type="text" id="dictationInput" class="game-input" placeholder="Gõ từ bạn nghe được" autocomplete="off">
+          <button id="dictationSubmitBtn" class="primary-btn full-btn cyan-btn">Kiểm tra</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <input type="file" id="fileInputCsv" accept=".csv" class="hidden">
+  <input type="file" id="fileInputBackup" accept=".json" class="hidden">
+  <div id="toastNotification" class="toast hidden">Thông báo</div>
+
+  <div id="quickAddModal" class="modal hidden">
+    <div class="modal-content quick-add-content">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>⚡ Thêm nhanh 1 từ</h2>
+      <input type="text" id="quickWord" placeholder="Từ vựng (ví dụ: hello)" class="modern-input">
+      <input type="text" id="quickPhonetic" placeholder="Phiên âm (ví dụ: /həˈləʊ/)" class="modern-input">
+      <input type="text" id="quickType" placeholder="Loại từ / nhóm (ví dụ: verb, noun)" class="modern-input">
+      <input type="text" id="quickMeaning" placeholder="Nghĩa (ví dụ: xin chào)" class="modern-input">
+      <input type="text" id="quickExample" placeholder="Ví dụ ngắn (không bắt buộc)" class="modern-input">
+      <input type="text" id="quickNotes" placeholder="Ghi chú / mẹo nhớ (không bắt buộc)" class="modern-input">
+      <button id="saveQuickWordBtn" class="primary-btn full-btn">Lưu từ này</button>
+    </div>
+  </div>
+
+  <div id="createSetModal" class="modal hidden">
+    <div class="modal-content quick-add-content">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>📚 Tạo bộ từ mới</h2>
+      <input type="text" id="newSetNameInput" placeholder="Ví dụ: IELTS Reading - Unit 1" class="modern-input">
+      <button id="saveSetNameBtn" class="primary-btn full-btn">Tạo bộ từ</button>
+    </div>
+  </div>
+
+  <div id="tutorialModal" class="modal hidden">
+    <div class="modal-content tutorial-modal-content wide-modal">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>📖 Hướng dẫn nhập từ</h2>
+      <p><b>Dạng đầy đủ:</b> <code>từ | phiên âm | loại từ / nhóm | nghĩa | ví dụ | ghi chú</code></p>
+      <p><b>Dạng nhanh:</b> <code>từ | nghĩa</code> hoặc 2 cột tab từ Excel/Sheets.</p>
+      <p><b>CSV:</b> có thể dùng 2 cột (<code>word, meaning</code>) hoặc 6 cột đầy đủ. App sẽ ưu tiên thứ tự mới: <code>word, phonetic, type, meaning, example, notes</code>, nhưng vẫn cố gắng nhận diện thứ tự cũ nếu loại từ nằm sau nghĩa. Dòng tiêu đề sẽ được tự động bỏ qua nếu có.</p>
+      <p><b>Prompt AI:</b> nhấn <b>Prompt chủ đề</b> ở màn hình Thêm từ để tạo sẵn một prompt tiếng Việt giúp sinh danh sách từ vựng theo chủ đề rồi dán kết quả vào app.</p>
+      <p><b>Mẹo học nhanh:</b> sau khi lưu, hãy vào <b>Ôn tập thông minh</b> để hệ thống ưu tiên từ mới, từ đến hạn và từ bạn đang hay quên.</p>
+    </div>
+  </div>
+
+  <div id="promptHelperModal" class="modal hidden">
+    <div class="modal-content tutorial-modal-content wide-modal">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>🤖 Prompt tạo từ vựng theo chủ đề</h2>
+      <p>Nhập chủ đề bên dưới, app sẽ tự tạo prompt tiếng Việt để bạn copy sang AI rồi lấy kết quả dán lại vào ô nhập từ.</p>
+      <input type="text" id="promptTopicInput" class="modern-input" placeholder="Ví dụ: du lịch, công việc văn phòng, IELTS Speaking, môi trường...">
+      <textarea id="promptOutput" class="prompt-output" readonly></textarea>
+      <div class="footer-actions">
+        <button id="resetPromptBtn" class="secondary-btn">Đặt lại</button>
+        <button id="copyPromptBtn" class="primary-btn">Sao chép prompt</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="strategyModal" class="modal hidden">
+    <div class="modal-content strategy-modal-content wide-modal">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2 class="strategy-title">🧠 Lộ trình học gọn nhưng hiệu quả</h2>
+      <p class="muted-text">Tất cả chế độ đều cùng cập nhật một lịch ôn tập chung để bạn không phải học lặp lại vô ích.</p>
+      <div class="strategy-step"><div class="step-icon purple-icon">1</div><div class="step-info"><h3>Flashcard — nhớ lại chủ động</h3><p>Tự nhớ nghĩa trước khi lật thẻ. Đây là bước tạo dấu vết trí nhớ ban đầu.</p></div></div>
+      <div class="strategy-step"><div class="step-icon orange-icon">2</div><div class="step-info"><h3>Quiz — nhận diện đúng trong nhiều kiểu hỏi</h3><p>Giúp củng cố khả năng nhận biết nhanh từ, nghĩa và ngữ cảnh.</p></div></div>
+      <div class="strategy-step"><div class="step-icon blue-icon">3</div><div class="step-info"><h3>Nối cặp — tăng tốc độ phản xạ</h3><p>Giảm thói quen dịch chậm trong đầu bằng phản xạ ghép nhanh.</p></div></div>
+      <div class="strategy-step"><div class="step-icon green-icon">4</div><div class="step-info"><h3>Gõ từ — chuyển sang vốn từ chủ động</h3><p>Nhìn gợi ý rồi tự viết ra, giúp nhớ chính tả và gọi từ nhanh hơn.</p></div></div>
+      <div class="strategy-step"><div class="step-icon cyan-icon">5</div><div class="step-info"><h3>Nghe viết — nối âm thanh với mặt chữ</h3><p>Phù hợp để sửa lỗi nghe âm và tăng chắc tay phần spelling.</p></div></div>
+    </div>
+  </div>
+
+  <div id="quizModeModal" class="modal hidden">
+    <div class="modal-content quiz-modal-content">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>Chọn chế độ Quiz</h2>
+      <div class="quiz-mode-list">
+        <button class="quiz-mode-selector btn-mode-1" data-mode="word-meaning">
+          <h3>Từ → Nghĩa</h3>
+          <p>Nhìn từ tiếng Anh và chọn nghĩa đúng.</p>
+        </button>
+        <button class="quiz-mode-selector btn-mode-2" data-mode="context">
+          <h3>Ngữ cảnh</h3>
+          <p>Che từ trong ví dụ rồi chọn đáp án phù hợp.</p>
+        </button>
+        <button class="quiz-mode-selector btn-mode-3" data-mode="meaning-word">
+          <h3>Nghĩa → Từ</h3>
+          <p>Nhìn nghĩa tiếng Việt và chọn từ tương ứng.</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sessionSummaryModal" class="modal hidden">
+    <div class="modal-content tutorial-modal-content wide-modal">
+      <button class="close-modal" aria-label="Đóng">×</button>
+      <h2>📈 Tóm tắt lượt học</h2>
+      <div id="sessionSummaryGrid" class="summary-strip"></div>
+      <div id="sessionSummaryText" class="session-summary-text muted-text">Hoàn thành một lượt học.</div>
+      <div class="footer-actions">
+        <button id="closeSessionSummaryBtn" class="secondary-btn">Đóng</button>
+        <button id="repeatRecommendedBtn" class="primary-btn">Học tiếp theo gợi ý</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vocab.js"></script>
+</body>
+</html>
