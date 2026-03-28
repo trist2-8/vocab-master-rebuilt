@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -15,21 +14,20 @@ const manifest = JSON.parse(read('manifest.json'));
 
 assert.ok(html.includes('upgrade.css'), 'vocab.html should load upgrade.css');
 assert.ok(html.includes('upgrade.js'), 'vocab.html should load upgrade.js');
-assert.ok(upgradeJs.includes('layoutPackGrid'), 'upgrade.js should include layout pack customization');
-assert.ok(upgradeJs.includes('dailySayingModal'), 'upgrade.js should include daily saying modal');
-assert.ok(upgradeJs.includes('QUOTE_STYLES'), 'upgrade.js should define quote styles');
-assert.ok(upgradeJs.includes('FONT_TONES'), 'upgrade.js should define font tones');
-assert.ok(upgradeJs.includes('PRESETS'), 'upgrade.js should define presets');
+assert.ok(upgradeJs.includes('QUOTE_WORD_BANK'), 'upgrade.js should define quote vocabulary hints');
+assert.ok(upgradeJs.includes('ensureDailyQuoteFreshness'), 'upgrade.js should rotate daily quotes with a shuffled cycle');
+assert.ok(upgradeJs.includes('collectionsModal'), 'upgrade.js should include saved collections modal');
+assert.ok(upgradeJs.includes('focusRoomModal'), 'upgrade.js should include focus room modal');
+assert.ok(upgradeJs.includes('weeklyRecapModal'), 'upgrade.js should include weekly recap modal');
 assert.ok(upgradeJs.includes('getPresetBundlePrice'), 'upgrade.js should support 1-click preset bundle pricing');
-assert.ok(upgradeJs.includes('ensureDailyQuoteFreshness'), 'upgrade.js should rotate daily quotes through a larger pool');
-assert.ok((upgradeJs.match(/id: 'q\d+'/g) || []).length >= 30, 'upgrade.js should ship with at least 30 daily quotes');
-assert.ok(upgradeCss.includes('body[data-ui-layout="split"]'), 'upgrade.css should include split layout styles');
-assert.ok(upgradeCss.includes('.daily-saying-launcher'), 'upgrade.css should style the daily saying launcher');
-assert.ok(upgradeCss.includes('body[data-ui-font-tone="editorial"]'), 'upgrade.css should include font tone styles');
+assert.ok(upgradeJs.includes('saveSelectedQuoteWordToVocabulary'), 'upgrade.js should support quote to vocabulary saving');
+assert.ok((upgradeJs.match(/id: 'q\d+'/g) || []).length >= 40, 'upgrade.js should ship with at least 40 daily quotes');
 assert.ok(upgradeCss.includes('left: 20px;'), 'upgrade.css should dock the mini Pomodoro widget on the left');
-assert.ok(upgradeCss.includes('backdrop-filter: blur(20px)'), 'upgrade.css should use liquid-glass blur for the mini Pomodoro widget');
+assert.ok(upgradeCss.includes('backdrop-filter: blur(20px);'), 'upgrade.css should use liquid-glass blur for key surfaces');
+assert.ok(upgradeCss.includes('body[data-ui-theme="liquidglass"]'), 'upgrade.css should include liquid glass theme styles');
+assert.ok(upgradeCss.includes('.focus-room-shell'), 'upgrade.css should style focus room');
+assert.ok(upgradeCss.includes('.saved-item-grid'), 'upgrade.css should style collections');
 assert.ok(manifest.version, 'manifest.json should have a version');
 
 new vm.Script(upgradeJs, { filename: 'upgrade.js' });
-
 console.log('Smoke tests passed.');

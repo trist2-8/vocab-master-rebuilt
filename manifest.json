@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "4.2.0",
-  "description": "Vocab Master with preserved classic learning flow, richer UI style packs, layout presets, daily saying launcher/card, and floating Pomodoro.",
+  "version": "5.0.0",
+  "description": "Vocab Master learning-first bundle with quote-to-vocabulary mode, richer daily sayings, 1-click presets, liquid glass packs, focus room, collections, weekly recap, and preserved classic flow.",
   "permissions": [
     "storage"
   ],
