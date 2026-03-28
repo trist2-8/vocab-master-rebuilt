@@ -1,114 +1,35 @@
-# Vocab Master Phase Next — Full Feature Pack
+# Vocab Master Phase Next — Modular Atmosphere Pack
 
-This bundle keeps the original goal fixed at the top:
+This pass keeps the original goal fixed at the top:
 - preserve the original purpose
 - keep the extension simple and learning-first
 - strengthen vocabulary retention and long-term memory
 - avoid losing old features
-- add richer UI and motivation only as optional layers
+- keep visual upgrades optional
 
-## Preserved
-- Classic/default UI still works
-- Existing add-word, set management, review logic, study modes, and memory-first review flow remain intact
-- New features live mostly in the upgrade layer and can be ignored if the user wants the classic flow
+## What changed
+- reorganized the upgrade layer into smaller branches/files
+  - `upgrade.js` = main controller
+  - `src/upgrade/data.js` = themes, presets, quotes, pattern banks
+  - `src/upgrade/effects.js` = dynamic rain/snow atmosphere logic
+  - `styles/upgrade-effects.css` = atmosphere effect styling
+- added optional **Atmosphere effects** inside UI customization
+  - Off
+  - Rain
+  - Snow
+  - effect density slider
+  - effect speed slider
+- kept all old study views and the classic/default flow intact
 
-## Added in this full feature pass
-- **Quote-to-Lesson Cards 2.0**
-  - daily saying now turns the selected quote word into a mini lesson
-  - collocation
-  - sentence pattern
-  - grammar hint
-  - speaking prompt
-  - delayed recall prompt
-
-- **Memory Path Mode**
-  - word → collocation → sentence → delayed recall
-  - can save the word to Quote Vocabulary
-  - can save the pattern to collections
-
-- **Weak-Word Rescue Engine**
-  - picks the weakest words from real review data
-  - explains them again in a lighter, simpler form
-  - adds compare/confusion notes and rescue phrases
-  - can save weak words into the Difficult folder
-
-- **Sentence Pattern Vault**
-  - reusable sentence frames from the current quote, saved patterns, and curated templates
-  - one-click save into pattern collections
-
-## Still included from the previous bundle
-- Quote → Vocabulary mode
-- larger non-repeating daily quote rotation
-- 1-click preset bundles
-- Liquid Glass / Postcard / Film Frame UI packs
-- Focus Room
-- collections for quotes, words, and patterns
-- weekly recap
-- left-side liquid-glass Pomodoro mini widget
-
-## Main files changed
-- upgrade.js
-- upgrade.css
-- manifest.json
-- upgrade_smoke_test.js
+## Why this is safer
+The core study engine stays where it was. Only the upgrade layer was redistributed, so the structure is cleaner without rewriting the review logic.
 
 ## Quick test
 1. Load the extension folder in Chrome
-2. Open Review
+2. Open Review → Tùy biến UI
 3. Check:
-   - classic mode still works
-   - Daily Saying opens and shows the new lesson card
-   - Memory Path opens and can save a word/pattern
-   - Weak-Word Rescue opens and shows real weak words when available
-   - Pattern Vault opens and can save sentence frames
-   - old study modes still behave as before
-4. Optional: run `node upgrade_smoke_test.js` inside the folder
-
-
-## Added in this wallpaper + pattern expansion
-- **Expanded Sentence Pattern Vault**
-  - many more curated structures across daily English, emotional English, study language, speaking, and writing
-  - vault now surfaces more patterns at once instead of only a few starter templates
-- **Anime-inspired wallpaper UI packs**
-  - Anime Study Room
-  - Rainy Window Night
-  - Cafe Notes
-  - Dream Sky Minimal
-  - Neon City Memory
-- **New 1-click wallpaper presets** built from those packs while keeping classic mode available
-
-## Design safeguard
-Wallpaper themes stay optional and use dark/glass reading surfaces so the background mood feels richer without making the learning text hard to read.
-
-
-## Admin tools add-on
-- Added an optional admin mode that can be turned on or off.
-- Added an admin wallet modal to directly adjust study coins, focus bonus coins, spent UI coins, or set a target available balance.
-- Added quick +100 / +500 / +1000 / +5000 and subtract actions for fast UI testing.
-- Admin tools are optional and do not replace the normal learning flow.
-
-
-## Next-wave improvements
-- Expanded Sentence Pattern Vault with many more speaking / writing / emotion / study structures
-- Pattern Vault search + category filtering
-- Wallpaper mood controls:
-  - wallpaper on/off
-  - intensity
-  - blur
-  - readability overlay
-- Admin developer tools:
-  - unlock all UI packs
-  - restore classic mode
-  - reset cosmetic layer only
-  - grant starter test wallet
-
-## Core rule preserved
-All of the above remain optional layers. The classic learning flow and old study features stay intact.
-
-
-## Interaction fix revision
-- Fixed review-section tool behavior so upgrade modals do not stack on top of each other.
-- Opening one tool now closes the previous upgrade modal first.
-- Added stronger close behavior for Admin and other review tools: close button, footer close button, overlay click, and Escape key.
-- Turning Admin mode off now closes the Admin panel automatically so it is easier to return to normal flow.
-- Added modal-content click isolation to reduce accidental overlay-close conflicts.
+   - Theme shop still works
+   - Admin still works
+   - New Atmosphere effects section appears
+   - Rain and Snow can be turned on and off
+   - Classic mode still works

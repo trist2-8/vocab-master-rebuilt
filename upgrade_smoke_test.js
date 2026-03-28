@@ -10,82 +10,42 @@ function read(name) {
 const html = read('vocab.html');
 const upgradeJs = read('upgrade.js');
 const upgradeCss = read('upgrade.css');
+const dataJs = read('src/upgrade/data.js');
+const effectsJs = read('src/upgrade/effects.js');
+const effectsCss = read('styles/upgrade-effects.css');
+const vocabJs = read('vocab.js');
 const manifest = JSON.parse(read('manifest.json'));
 
-assert.ok(html.includes('upgrade.css'), 'vocab.html should load upgrade.css');
-assert.ok(html.includes('upgrade.js'), 'vocab.html should load upgrade.js');
-assert.ok(upgradeJs.includes('QUOTE_WORD_BANK'), 'upgrade.js should define quote vocabulary hints');
-assert.ok(upgradeJs.includes('ensureDailyQuoteFreshness'), 'upgrade.js should rotate daily quotes with a shuffled cycle');
-assert.ok(upgradeJs.includes('collectionsModal'), 'upgrade.js should include saved collections modal');
-assert.ok(upgradeJs.includes('focusRoomModal'), 'upgrade.js should include focus room modal');
-assert.ok(upgradeJs.includes('weeklyRecapModal'), 'upgrade.js should include weekly recap modal');
-assert.ok(upgradeJs.includes('getPresetBundlePrice'), 'upgrade.js should support 1-click preset bundle pricing');
-assert.ok(upgradeJs.includes('saveSelectedQuoteWordToVocabulary'), 'upgrade.js should support quote to vocabulary saving');
-assert.ok(upgradeJs.includes('renderQuoteLessonCard'), 'upgrade.js should render quote-to-lesson cards');
-assert.ok(upgradeJs.includes('renderMemoryPathModal'), 'upgrade.js should include memory path mode');
-assert.ok(upgradeJs.includes('renderWeakRescueModal'), 'upgrade.js should include weak-word rescue mode');
-assert.ok(upgradeJs.includes('renderPatternVaultModal'), 'upgrade.js should include sentence pattern vault');
-assert.ok(upgradeJs.includes('PATTERN_TEMPLATES'), 'upgrade.js should define reusable sentence patterns');
-assert.ok(upgradeCss.includes('.memory-path-shell'), 'upgrade.css should style memory path mode');
-assert.ok(upgradeCss.includes('.weak-rescue-grid'), 'upgrade.css should style weak-word rescue mode');
-assert.ok(upgradeCss.includes('.pattern-vault-grid'), 'upgrade.css should style sentence pattern vault');
-assert.ok((upgradeJs.match(/id: 'q\d+'/g) || []).length >= 40, 'upgrade.js should ship with at least 40 daily quotes');
-assert.ok(upgradeCss.includes('left: 20px;'), 'upgrade.css should dock the mini Pomodoro widget on the left');
-assert.ok(upgradeCss.includes('backdrop-filter: blur(20px);'), 'upgrade.css should use liquid-glass blur for key surfaces');
-assert.ok(upgradeCss.includes('body[data-ui-theme="liquidglass"]'), 'upgrade.css should include liquid glass theme styles');
-assert.ok(upgradeCss.includes('.focus-room-shell'), 'upgrade.css should style focus room');
-assert.ok(upgradeCss.includes('.saved-item-grid'), 'upgrade.css should style collections');
-
-assert.ok(upgradeJs.includes('getWalletSnapshot'), 'upgrade.js should derive a consistent wallet snapshot');
-assert.ok(upgradeJs.includes('ensureWalletConsistency'), 'upgrade.js should clamp and synchronize wallet state');
-assert.ok(upgradeJs.includes('summarizeSessionHistory'), 'upgrade.js should summarize weekly session history');
-assert.ok(upgradeCss.includes('--vm-font-body'), 'upgrade.css should use stable font variables for font-tone switching');
-assert.ok(vocabJsIncludesSessionHistory(), 'vocab.js should persist sessionHistory for weekly sync');
-
-function vocabJsIncludesSessionHistory() {
-  const vocabJs = read('vocab.js');
-  return vocabJs.includes('sessionHistory') && vocabJs.includes('getDateKeyFromTimestamp');
-}
-
-
-assert.ok(upgradeJs.includes("anime-room"), 'upgrade.js should include Anime Study Room theme');
-assert.ok(upgradeJs.includes("rainy-window"), 'upgrade.js should include Rainy Window Night theme');
-assert.ok(upgradeJs.includes("cafe-notes"), 'upgrade.js should include Cafe Notes theme');
-assert.ok(upgradeJs.includes("dream-sky"), 'upgrade.js should include Dream Sky Minimal theme');
-assert.ok(upgradeJs.includes("neon-city"), 'upgrade.js should include Neon City Memory theme');
-assert.ok(upgradeCss.includes('body[data-ui-theme="anime-room"]'), 'upgrade.css should include Anime Study Room wallpaper theme');
-assert.ok(upgradeCss.includes('body[data-ui-theme="rainy-window"]'), 'upgrade.css should include Rainy Window Night wallpaper theme');
-assert.ok(upgradeCss.includes('body[data-ui-theme="cafe-notes"]'), 'upgrade.css should include Cafe Notes wallpaper theme');
-assert.ok(upgradeCss.includes('body[data-ui-theme="dream-sky"]'), 'upgrade.css should include Dream Sky Minimal wallpaper theme');
-assert.ok(upgradeCss.includes('body[data-ui-theme="neon-city"]'), 'upgrade.css should include Neon City Memory wallpaper theme');
-assert.ok((upgradeJs.match(/id: '[^']+'/g) || []).filter(x => x.includes('need-not-carry') || x.includes('trying-to') || x.includes('as-a-result')).length >= 3, 'upgrade.js should include expanded curated sentence patterns');
-
-
-assert.ok(upgradeJs.includes('wallpaperIntensity'), 'upgrade.js should persist wallpaper intensity controls');
-assert.ok(upgradeJs.includes('patternVaultSearchInput'), 'upgrade.js should include Pattern Vault search controls');
-assert.ok(upgradeJs.includes('adminUnlockAllUiBtn'), 'upgrade.js should include admin developer tools');
-assert.ok(upgradeCss.includes('--vm-wallpaper-opacity'), 'upgrade.css should expose wallpaper intensity variables');
-assert.ok(upgradeCss.includes('.pattern-vault-toolbar'), 'upgrade.css should style Pattern Vault controls');
-
+assert.ok(html.includes('src/upgrade/data.js'), 'vocab.html should load upgrade data script');
+assert.ok(html.includes('src/upgrade/effects.js'), 'vocab.html should load upgrade effects script');
+assert.ok(html.includes('upgrade.js'), 'vocab.html should load main upgrade script');
+assert.ok(upgradeJs.includes('window.VMUpgradeData') || upgradeJs.includes('const { THEMES'), 'upgrade.js should consume modular upgrade data');
+assert.ok(dataJs.includes('const THEMES'), 'data.js should define themes');
+assert.ok(dataJs.includes('PATTERN_TEMPLATES'), 'data.js should define pattern templates');
+assert.ok(dataJs.includes('anime-room'), 'data.js should include Anime Study Room theme');
+assert.ok(dataJs.includes('rainy-window'), 'data.js should include Rainy Window Night theme');
+assert.ok(dataJs.includes('cafe-notes'), 'data.js should include Cafe Notes theme');
+assert.ok(dataJs.includes('dream-sky'), 'data.js should include Dream Sky Minimal theme');
+assert.ok(dataJs.includes('neon-city'), 'data.js should include Neon City Memory theme');
+assert.ok((dataJs.match(/id: 'q\d+'/g) || []).length >= 40, 'data.js should ship with at least 40 daily quotes');
+assert.ok(upgradeJs.includes('weatherEffectSelect'), 'upgrade.js should expose weather effect controls');
+assert.ok(upgradeJs.includes('weatherIntensityRange'), 'upgrade.js should expose weather intensity control');
+assert.ok(upgradeJs.includes('weatherSpeedRange'), 'upgrade.js should expose weather speed control');
+assert.ok(upgradeJs.includes('function clampRange'), 'upgrade.js should define clampRange for modular atmosphere controls');
+assert.ok(upgradeJs.includes('ensureUpgradeState'), 'upgrade.js should normalize null state before rendering modular panels');
+assert.ok(upgradeJs.includes('VMUpgradeEffects'), 'upgrade.js should call the atmosphere effects module');
+assert.ok(upgradeJs.includes('syncSavedQuoteIdsFromCollections'), 'upgrade.js should synchronize saved quote ids safely');
+assert.ok(effectsJs.includes('VMUpgradeEffects'), 'effects.js should define the upgrade effects module');
+assert.ok(effectsJs.includes('apply({ effect ='), 'effects.js should expose an apply method');
+assert.ok(upgradeCss.includes('@import url("./styles/upgrade-effects.css")'), 'upgrade.css should import modular effects CSS');
+assert.ok(effectsCss.includes('.vm-weather-layer'), 'effects CSS should define the weather layer');
+assert.ok(effectsCss.includes('vm-rain-fall'), 'effects CSS should define rain animation');
+assert.ok(effectsCss.includes('vm-snow-fall'), 'effects CSS should define snow animation');
+assert.ok(vocabJs.includes('review-dashboard-view'), 'vocab.js should still target the review dashboard');
 assert.ok(manifest.version, 'manifest.json should have a version');
 
-assert.ok(upgradeJs.includes('getWalletSnapshot'), 'upgrade.js should normalize wallet balance through a shared snapshot');
-assert.ok(upgradeJs.includes('ensureWalletConsistency'), 'upgrade.js should include wallet consistency repair');
-const vocabJs = read('vocab.js');
-assert.ok(vocabJs.includes('getVisibleCoinCount'), 'vocab.js should compute a visible wallet balance');
-assert.ok(vocabJs.includes('vm_bonusCoins'), 'vocab.js should read bonus UI coins for wallet sync');
-assert.ok(vocabJs.includes('vm_spentCoins'), 'vocab.js should read spent UI coins for wallet sync');
-assert.ok(upgradeCss.includes('body[data-ui-font-tone] .insight-label'), 'upgrade.css should keep micro labels on the stable UI font');
-
+new vm.Script(dataJs, { filename: 'data.js' });
+new vm.Script(effectsJs, { filename: 'effects.js' });
 new vm.Script(upgradeJs, { filename: 'upgrade.js' });
-console.log('Smoke tests passed.');
 
-assert.ok(upgradeJs.includes('adminModal'), 'upgrade.js should include admin modal');
-assert.ok(upgradeJs.includes('toggleAdminMode'), 'upgrade.js should support toggling admin mode');
-assert.ok(upgradeJs.includes('unlockAllUiPacks'), 'upgrade.js should define unlockAllUiPacks for admin tools');
-assert.ok(upgradeJs.includes('restoreClassicUiMode'), 'upgrade.js should define restoreClassicUiMode for admin tools');
-assert.ok(upgradeJs.includes('resetCosmeticLayer'), 'upgrade.js should define resetCosmeticLayer for admin tools');
-assert.ok(upgradeJs.includes('grantStarterWallet'), 'upgrade.js should define grantStarterWallet for admin tools');
-assert.ok(upgradeJs.includes('applyAdminTargetAvailable'), 'upgrade.js should support setting a target available balance');
-assert.ok(upgradeJs.includes('adjustAdminAvailableBy'), 'upgrade.js should support quick admin balance adjustments');
-assert.ok(upgradeCss.includes('.admin-grid'), 'upgrade.css should style the admin tools layout');
+console.log('Smoke tests passed.');

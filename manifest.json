@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "5.6.0",
-  "description": "Vocab Master with preserved learning-first flow, expanded pattern vault, wallpaper mood controls, admin developer tools, and richer optional UI packs.",
+  "version": "6.1.0",
+  "description": "Vocab Master with learning-first core, modular upgrade layer, wallpaper themes, optional rain/snow atmosphere effects, and preserved legacy study flow.",
   "permissions": [
     "storage"
   ],

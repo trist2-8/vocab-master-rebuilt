@@ -1,0 +1,72 @@
+#main-container {
+  position: relative;
+  z-index: 10;
+}
+
+.vm-weather-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vm-weather-layer.hidden {
+  display: none;
+}
+
+.vm-weather-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 35%);
+  opacity: 0.25;
+}
+
+.vm-weather-particle {
+  position: absolute;
+  top: -16%;
+  left: var(--vm-left, 50%);
+  opacity: var(--vm-opacity, 0.4);
+  animation-delay: var(--vm-delay, 0s);
+  animation-duration: var(--vm-duration, 4s);
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  will-change: transform, opacity;
+}
+
+.vm-weather-particle.rain {
+  width: 1.5px;
+  height: var(--vm-size, 22px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(194, 224, 255, 0.8));
+  filter: blur(0.2px);
+  animation-name: vm-rain-fall;
+}
+
+.vm-weather-particle.snow {
+  width: var(--vm-size, 7px);
+  height: var(--vm-size, 7px);
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(216, 235, 255, 0.72));
+  box-shadow: 0 0 10px rgba(255,255,255,0.28);
+  animation-name: vm-snow-fall;
+}
+
+.vm-weather-layer.is-reduced-motion .vm-weather-particle {
+  animation-duration: calc(var(--vm-duration, 4s) * 1.8);
+  opacity: calc(var(--vm-opacity, 0.4) * 0.7);
+}
+
+@keyframes vm-rain-fall {
+  from { transform: translate3d(0, 0, 0) rotate(14deg); }
+  to { transform: translate3d(calc(var(--vm-drift, 10px) + 4px), 120vh, 0) rotate(14deg); }
+}
+
+@keyframes vm-snow-fall {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(calc(var(--vm-drift, 6px) * 0.5), 28vh, 0) scale(1.03); }
+  50% { transform: translate3d(var(--vm-drift, 6px), 56vh, 0) scale(0.96); }
+  75% { transform: translate3d(calc(var(--vm-drift, 6px) * -0.45), 86vh, 0) scale(1.02); }
+  100% { transform: translate3d(calc(var(--vm-drift, 6px) * 0.2), 118vh, 0) scale(0.98); }
+}

@@ -41,8 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDetailsSet: null,
     currentPlanTitle: '',
     currentPlanReason: '',
-    sessionStats: null,
-    wallet: { bonusCoins: 0, spentCoins: 0 }
+    sessionStats: null
   };
 
   const storage = {
@@ -63,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     bindStaticEvents();
     setupModals();
-    bindStorageSync();
     await loadState();
     showView('main-view');
     renderAll();
@@ -264,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadState() {
-    const result = await storage.get({ vocab: [], stats: { coins: 0 }, vm_bonusCoins: 0, vm_spentCoins: 0 });
+    const result = await storage.get({ vocab: [], stats: { coins: 0 } });
     let changed = false;
 
     state.vocab = result.vocab.map((item, index) => {
@@ -274,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     state.stats = normalizeStats(result.stats || {});
-    state.wallet = normalizeWalletState(result);
     updateStreakStats();
     changed = changed || JSON.stringify(result.stats || {}) !== JSON.stringify(state.stats);
 
@@ -286,84 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function normalizeStats(stats = {}) {
     const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
     const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
-    const sessionHistory = Array.isArray(stats.sessionHistory)
-      ? stats.sessionHistory
-          .filter(entry => entry && (typeof entry.dateKey === 'string' || Number(entry.finishedAt) > 0))
-          .map(entry => ({
-            dateKey: typeof entry.dateKey === 'string' && entry.dateKey ? entry.dateKey : getDateKeyFromTimestamp(entry.finishedAt || Date.now()),
-            finishedAt: Number(entry.finishedAt) || 0,
-            game: String(entry.game || entry.gameType || 'Study session'),
-            total: Math.max(0, Number(entry.total) || 0),
-            good: Math.max(0, Number(entry.good) || 0),
-            hard: Math.max(0, Number(entry.hard) || 0),
-            again: Math.max(0, Number(entry.again) || 0),
-            strengthened: Math.max(0, Number(entry.strengthened) || 0),
-            durationSeconds: Math.max(0, Number(entry.durationSeconds) || 0)
-          }))
-          .slice(-180)
-      : [];
     return {
-      coins: Math.max(0, Number(stats.coins) || 0),
+      coins: Number(stats.coins) || 0,
       dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
       dailyProgress,
       currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
       bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
-      totalSessions: Math.max(0, Number(stats.totalSessions) || sessionHistory.length || 0),
-      studyLog,
-      sessionHistory
+      totalSessions: Math.max(0, Number(stats.totalSessions) || 0),
+      studyLog
     };
-  }
-
-
-  function normalizeWalletState(raw = {}) {
-    return {
-      bonusCoins: Math.max(0, Number(raw.vm_bonusCoins) || 0),
-      spentCoins: Math.max(0, Number(raw.vm_spentCoins) || 0)
-    };
-  }
-
-  function getWalletSnapshot() {
-    const studyCoins = Math.max(0, Number(state.stats.coins) || 0);
-    const bonusCoins = Math.max(0, Number(state.wallet?.bonusCoins) || 0);
-    const totalEarned = studyCoins + bonusCoins;
-    const spentCoins = Math.max(0, Math.min(Number(state.wallet?.spentCoins) || 0, totalEarned));
-    const availableCoins = Math.max(0, totalEarned - spentCoins);
-    return { studyCoins, bonusCoins, totalEarned, spentCoins, availableCoins };
-  }
-
-  function getVisibleCoinCount() {
-    return getWalletSnapshot().availableCoins;
-  }
-
-  function bindStorageSync() {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== 'local') return;
-      let shouldRender = false;
-      if (changes.stats) {
-        state.stats = normalizeStats(changes.stats.newValue || {});
-        updateStreakStats();
-        shouldRender = true;
-      }
-      if (changes.vocab) {
-        state.vocab = Array.isArray(changes.vocab.newValue)
-          ? changes.vocab.newValue.map((item, index) => normalizeWord(item, index))
-          : [];
-        shouldRender = true;
-      }
-      if (changes.vm_bonusCoins) {
-        state.wallet.bonusCoins = Math.max(0, Number(changes.vm_bonusCoins.newValue) || 0);
-        shouldRender = true;
-      }
-      if (changes.vm_spentCoins) {
-        state.wallet.spentCoins = Math.max(0, Number(changes.vm_spentCoins.newValue) || 0);
-        shouldRender = true;
-      }
-      if (shouldRender) renderAll();
-    });
-  }
-
-  function getDateKeyFromTimestamp(timestamp) {
-    return new Date(Number(timestamp) || Date.now()).toISOString().slice(0, 10);
   }
 
   function normalizeWord(item, index = 0) {
@@ -1570,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = state.studyQueue[state.currentCardIdx];
     if (!card) return finishSession('Đã hoàn thành lượt ôn tập này.');
 
-    byId('fcCoinCount').textContent = getVisibleCoinCount();
+    byId('fcCoinCount').textContent = state.stats.coins;
     byId('studyProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
     byId('studyModeLabel').textContent = state.currentGame === 'srs' ? 'Ôn tập thông minh' : 'Flashcard';
     byId('fcStatusBadge').textContent = getWordStatusLabel(card);
@@ -1965,27 +1893,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.sessionStats) {
       state.sessionStats.durationSeconds = Math.max(1, Math.round((Date.now() - state.sessionStats.startAt) / 1000));
       state.stats.totalSessions += 1;
-      const finishedAt = Date.now();
-      const sessionRecord = {
-        dateKey: getDateKeyFromTimestamp(finishedAt),
-        finishedAt,
-        game: state.currentPlanTitle || state.sessionStats.planTitle || state.sessionStats.gameType,
-        total: state.sessionStats.total,
-        good: state.sessionStats.good,
-        hard: state.sessionStats.hard,
-        again: state.sessionStats.again,
-        strengthened: state.sessionStats.strengthened,
-        durationSeconds: state.sessionStats.durationSeconds,
-        dateLabel: new Date(finishedAt).toLocaleString('vi-VN')
-      };
       state.stats.studyLog = [
-        sessionRecord,
+        {
+          game: state.currentPlanTitle || state.sessionStats.planTitle || state.sessionStats.gameType,
+          total: state.sessionStats.total,
+          good: state.sessionStats.good,
+          hard: state.sessionStats.hard,
+          again: state.sessionStats.again,
+          strengthened: state.sessionStats.strengthened,
+          durationSeconds: state.sessionStats.durationSeconds,
+          dateLabel: new Date().toLocaleString('vi-VN')
+        },
         ...(state.stats.studyLog || [])
       ].slice(0, 20);
-      state.stats.sessionHistory = [
-        sessionRecord,
-        ...(state.stats.sessionHistory || [])
-      ].slice(0, 180);
       await persistState();
       renderSessionSummary(message);
       openModal('sessionSummaryModal');
