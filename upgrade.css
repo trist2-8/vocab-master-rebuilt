@@ -218,30 +218,62 @@ body[data-ui-density="comfortable"] .stat-card,
 body[data-ui-density="comfortable"] .focus-card,
 body[data-ui-density="comfortable"] .filter-box { padding: 22px; }
 
+body[data-ui-font-tone] {
+  --vm-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --vm-font-display: var(--vm-font-body);
+  --vm-font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
 body[data-ui-font-tone="system"] {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --vm-font-display: var(--vm-font-body);
 }
 body[data-ui-font-tone="editorial"] {
-  font-family: Georgia, "Times New Roman", serif;
-}
-body[data-ui-font-tone="editorial"] button,
-body[data-ui-font-tone="editorial"] input,
-body[data-ui-font-tone="editorial"] select,
-body[data-ui-font-tone="editorial"] textarea {
-  font-family: inherit;
+  --vm-font-display: Georgia, "Times New Roman", serif;
 }
 body[data-ui-font-tone="rounded"] {
-  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --vm-font-display: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
 }
 body[data-ui-font-tone="mono"] {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --vm-font-display: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
-body[data-ui-font-tone="mono"] button,
-body[data-ui-font-tone="mono"] input,
-body[data-ui-font-tone="mono"] select,
-body[data-ui-font-tone="mono"] textarea {
-  font-family: inherit;
+body[data-ui-font-tone] {
+  font-family: var(--vm-font-body);
 }
+body[data-ui-font-tone] button,
+body[data-ui-font-tone] input,
+body[data-ui-font-tone] select,
+body[data-ui-font-tone] textarea {
+  font-family: var(--vm-font-ui);
+}
+body[data-ui-font-tone] h1,
+body[data-ui-font-tone] h2,
+body[data-ui-font-tone] h3,
+body[data-ui-font-tone] .nav-brand,
+body[data-ui-font-tone] .set-title,
+body[data-ui-font-tone] .status-summary-title,
+body[data-ui-font-tone] .daily-saying-title,
+body[data-ui-font-tone] .daily-saying-image-copy strong,
+body[data-ui-font-tone] .preset-preview-title {
+  font-family: var(--vm-font-display);
+}
+body[data-ui-font-tone="mono"] .daily-saying-title,
+body[data-ui-font-tone="mono"] .daily-saying-image-copy strong,
+body[data-ui-font-tone="mono"] .set-title,
+body[data-ui-font-tone="mono"] .nav-brand {
+  letter-spacing: -0.01em;
+}
+
+body[data-ui-font-tone] .focus-card .focus-label,
+body[data-ui-font-tone] .insight-label,
+body[data-ui-font-tone] .summary-label,
+body[data-ui-font-tone] .stat-label,
+body[data-ui-font-tone] .recommended-study-label,
+body[data-ui-font-tone] .daily-launcher-label,
+body[data-ui-font-tone] .focus-room-mini-label {
+  font-family: var(--vm-font-ui);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 
 /* Layout packs */
 body[data-ui-layout="split"] #review-dashboard-view .filter-row-section {
@@ -499,6 +531,11 @@ body[data-ui-layout="compact"] #review-dashboard-view .daily-saying-launcher {
 .theme-forest { background: linear-gradient(135deg, rgba(52,211,153,0.18), rgba(16,185,129,0.12)); }
 .theme-rose { background: linear-gradient(135deg, rgba(251,113,133,0.2), rgba(244,114,182,0.12)); }
 .theme-mono { background: linear-gradient(135deg, rgba(148,163,184,0.18), rgba(255,255,255,0.03)); }
+.theme-anime-room { background: linear-gradient(135deg, rgba(255,205,178,0.18), rgba(255,175,204,0.14), rgba(189,224,254,0.14)); }
+.theme-rainy-window { background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(15,23,42,0.28), rgba(125,211,252,0.12)); }
+.theme-cafe-notes { background: linear-gradient(135deg, rgba(180,120,82,0.18), rgba(253,224,171,0.14), rgba(255,247,237,0.08)); }
+.theme-dream-sky { background: linear-gradient(135deg, rgba(186,230,253,0.20), rgba(221,214,254,0.18), rgba(255,255,255,0.08)); }
+.theme-neon-city { background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(168,85,247,0.18), rgba(30,41,59,0.18)); }
 
 .preview-card-stack {
   position: relative;
@@ -997,9 +1034,220 @@ body.reduced-motion .celebration-burst {
     transform: scale(0.92);
   }
   .pomodoro-mini-widget {
-    right: 12px;
+    left: 12px;
+    right: auto;
     bottom: 12px;
   }
+}
+
+
+/* Wallpaper-inspired UI packs */
+body[data-ui-theme="anime-room"],
+body[data-ui-theme="rainy-window"],
+body[data-ui-theme="cafe-notes"],
+body[data-ui-theme="dream-sky"],
+body[data-ui-theme="neon-city"] {
+  position: relative;
+  background-attachment: fixed;
+}
+body[data-ui-theme="anime-room"]::before,
+body[data-ui-theme="rainy-window"]::before,
+body[data-ui-theme="cafe-notes"]::before,
+body[data-ui-theme="dream-sky"]::before,
+body[data-ui-theme="neon-city"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.96;
+}
+body[data-ui-theme="anime-room"] {
+  background:
+    linear-gradient(180deg, #1d1621 0%, #221b27 100%);
+  --bg-dark-nav: rgba(30, 24, 33, 0.82);
+  --bg-dark-card: rgba(33, 26, 37, 0.82);
+  --bg-dark-input: rgba(25, 20, 30, 0.78);
+  --border-color: rgba(255, 223, 216, 0.12);
+  --primary-color: #f9a8d4;
+}
+body[data-ui-theme="anime-room"]::before {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 214, 165, 0.28), transparent 17%),
+    radial-gradient(circle at 78% 24%, rgba(255, 175, 204, 0.22), transparent 16%),
+    radial-gradient(circle at 80% 78%, rgba(189, 224, 254, 0.18), transparent 20%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    linear-gradient(160deg, rgba(56, 43, 62, 0.96), rgba(26, 20, 31, 0.96));
+}
+body[data-ui-theme="rainy-window"] {
+  background: linear-gradient(180deg, #0b1120 0%, #121a28 100%);
+  --bg-dark-nav: rgba(9, 15, 27, 0.76);
+  --bg-dark-card: rgba(14, 21, 35, 0.78);
+  --bg-dark-input: rgba(10, 16, 28, 0.74);
+  --border-color: rgba(148, 163, 184, 0.14);
+  --primary-color: #7dd3fc;
+}
+body[data-ui-theme="rainy-window"]::before {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(96, 165, 250, 0.20), transparent 18%),
+    radial-gradient(circle at 88% 12%, rgba(125, 211, 252, 0.14), transparent 18%),
+    repeating-linear-gradient(100deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 14px),
+    linear-gradient(180deg, rgba(15,23,42,0.16), rgba(15,23,42,0.52)),
+    linear-gradient(180deg, rgba(7, 12, 22, 0.98), rgba(13, 20, 34, 0.98));
+}
+body[data-ui-theme="cafe-notes"] {
+  background: linear-gradient(180deg, #1f1712 0%, #241b14 100%);
+  --bg-dark-nav: rgba(39, 28, 21, 0.84);
+  --bg-dark-card: rgba(48, 34, 25, 0.82);
+  --bg-dark-input: rgba(33, 24, 18, 0.8);
+  --border-color: rgba(245, 222, 179, 0.12);
+  --primary-color: #f59e0b;
+}
+body[data-ui-theme="cafe-notes"]::before {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(253, 224, 171, 0.18), transparent 18%),
+    radial-gradient(circle at 76% 22%, rgba(180, 120, 82, 0.20), transparent 20%),
+    radial-gradient(circle at 62% 82%, rgba(255, 247, 237, 0.08), transparent 18%),
+    linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0)),
+    linear-gradient(160deg, rgba(55, 38, 28, 0.97), rgba(27, 20, 15, 0.97));
+}
+body[data-ui-theme="dream-sky"] {
+  background: linear-gradient(180deg, #17233a 0%, #20293f 100%);
+  --bg-dark-nav: rgba(20, 31, 52, 0.72);
+  --bg-dark-card: rgba(26, 37, 57, 0.74);
+  --bg-dark-input: rgba(18, 28, 44, 0.7);
+  --border-color: rgba(255, 255, 255, 0.14);
+  --primary-color: #c4b5fd;
+}
+body[data-ui-theme="dream-sky"]::before {
+  background:
+    radial-gradient(circle at 20% 22%, rgba(186, 230, 253, 0.20), transparent 18%),
+    radial-gradient(circle at 80% 16%, rgba(221, 214, 254, 0.22), transparent 18%),
+    radial-gradient(circle at 50% 78%, rgba(255,255,255,0.08), transparent 18%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    linear-gradient(180deg, rgba(22, 35, 58, 0.98), rgba(32, 41, 63, 0.98));
+}
+body[data-ui-theme="neon-city"] {
+  background: linear-gradient(180deg, #090d16 0%, #120f22 100%);
+  --bg-dark-nav: rgba(10, 13, 22, 0.74);
+  --bg-dark-card: rgba(17, 18, 31, 0.76);
+  --bg-dark-input: rgba(11, 13, 24, 0.72);
+  --border-color: rgba(103, 232, 249, 0.15);
+  --primary-color: #67e8f9;
+}
+body[data-ui-theme="neon-city"]::before {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(6, 182, 212, 0.18), transparent 15%),
+    radial-gradient(circle at 82% 18%, rgba(168, 85, 247, 0.18), transparent 16%),
+    radial-gradient(circle at 70% 82%, rgba(244, 114, 182, 0.10), transparent 18%),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 80px),
+    linear-gradient(180deg, rgba(9,13,22,0.96), rgba(18,15,34,0.98));
+}
+body[data-ui-theme="anime-room"] .main-nav,
+body[data-ui-theme="anime-room"] .panel-card,
+body[data-ui-theme="anime-room"] .summary-card,
+body[data-ui-theme="anime-room"] .stat-card,
+body[data-ui-theme="anime-room"] .focus-card,
+body[data-ui-theme="anime-room"] .shop-card,
+body[data-ui-theme="anime-room"] .wallet-board,
+body[data-ui-theme="anime-room"] .pomodoro-clock-wrap,
+body[data-ui-theme="anime-room"] .pomodoro-controls-panel,
+body[data-ui-theme="anime-room"] .filter-box,
+body[data-ui-theme="anime-room"] .toggle-card,
+body[data-ui-theme="anime-room"] .mission-card,
+body[data-ui-theme="anime-room"] .daily-saying-card,
+body[data-ui-theme="anime-room"] .modal-content,
+body[data-ui-theme="rainy-window"] .main-nav,
+body[data-ui-theme="rainy-window"] .panel-card,
+body[data-ui-theme="rainy-window"] .summary-card,
+body[data-ui-theme="rainy-window"] .stat-card,
+body[data-ui-theme="rainy-window"] .focus-card,
+body[data-ui-theme="rainy-window"] .shop-card,
+body[data-ui-theme="rainy-window"] .wallet-board,
+body[data-ui-theme="rainy-window"] .pomodoro-clock-wrap,
+body[data-ui-theme="rainy-window"] .pomodoro-controls-panel,
+body[data-ui-theme="rainy-window"] .filter-box,
+body[data-ui-theme="rainy-window"] .toggle-card,
+body[data-ui-theme="rainy-window"] .mission-card,
+body[data-ui-theme="rainy-window"] .daily-saying-card,
+body[data-ui-theme="rainy-window"] .modal-content,
+body[data-ui-theme="cafe-notes"] .main-nav,
+body[data-ui-theme="cafe-notes"] .panel-card,
+body[data-ui-theme="cafe-notes"] .summary-card,
+body[data-ui-theme="cafe-notes"] .stat-card,
+body[data-ui-theme="cafe-notes"] .focus-card,
+body[data-ui-theme="cafe-notes"] .shop-card,
+body[data-ui-theme="cafe-notes"] .wallet-board,
+body[data-ui-theme="cafe-notes"] .pomodoro-clock-wrap,
+body[data-ui-theme="cafe-notes"] .pomodoro-controls-panel,
+body[data-ui-theme="cafe-notes"] .filter-box,
+body[data-ui-theme="cafe-notes"] .toggle-card,
+body[data-ui-theme="cafe-notes"] .mission-card,
+body[data-ui-theme="cafe-notes"] .daily-saying-card,
+body[data-ui-theme="cafe-notes"] .modal-content,
+body[data-ui-theme="dream-sky"] .main-nav,
+body[data-ui-theme="dream-sky"] .panel-card,
+body[data-ui-theme="dream-sky"] .summary-card,
+body[data-ui-theme="dream-sky"] .stat-card,
+body[data-ui-theme="dream-sky"] .focus-card,
+body[data-ui-theme="dream-sky"] .shop-card,
+body[data-ui-theme="dream-sky"] .wallet-board,
+body[data-ui-theme="dream-sky"] .pomodoro-clock-wrap,
+body[data-ui-theme="dream-sky"] .pomodoro-controls-panel,
+body[data-ui-theme="dream-sky"] .filter-box,
+body[data-ui-theme="dream-sky"] .toggle-card,
+body[data-ui-theme="dream-sky"] .mission-card,
+body[data-ui-theme="dream-sky"] .daily-saying-card,
+body[data-ui-theme="dream-sky"] .modal-content,
+body[data-ui-theme="neon-city"] .main-nav,
+body[data-ui-theme="neon-city"] .panel-card,
+body[data-ui-theme="neon-city"] .summary-card,
+body[data-ui-theme="neon-city"] .stat-card,
+body[data-ui-theme="neon-city"] .focus-card,
+body[data-ui-theme="neon-city"] .shop-card,
+body[data-ui-theme="neon-city"] .wallet-board,
+body[data-ui-theme="neon-city"] .pomodoro-clock-wrap,
+body[data-ui-theme="neon-city"] .pomodoro-controls-panel,
+body[data-ui-theme="neon-city"] .filter-box,
+body[data-ui-theme="neon-city"] .toggle-card,
+body[data-ui-theme="neon-city"] .mission-card,
+body[data-ui-theme="neon-city"] .daily-saying-card,
+body[data-ui-theme="neon-city"] .modal-content {
+  background: linear-gradient(180deg, rgba(12, 16, 25, 0.84), rgba(18, 22, 32, 0.78));
+  backdrop-filter: blur(14px);
+  border-color: rgba(255,255,255,0.10);
+}
+body[data-ui-theme="cafe-notes"] .main-nav,
+body[data-ui-theme="cafe-notes"] .panel-card,
+body[data-ui-theme="cafe-notes"] .summary-card,
+body[data-ui-theme="cafe-notes"] .stat-card,
+body[data-ui-theme="cafe-notes"] .focus-card,
+body[data-ui-theme="cafe-notes"] .shop-card,
+body[data-ui-theme="cafe-notes"] .wallet-board,
+body[data-ui-theme="cafe-notes"] .pomodoro-clock-wrap,
+body[data-ui-theme="cafe-notes"] .pomodoro-controls-panel,
+body[data-ui-theme="cafe-notes"] .filter-box,
+body[data-ui-theme="cafe-notes"] .toggle-card,
+body[data-ui-theme="cafe-notes"] .mission-card,
+body[data-ui-theme="cafe-notes"] .daily-saying-card,
+body[data-ui-theme="cafe-notes"] .modal-content {
+  background: linear-gradient(180deg, rgba(44, 31, 23, 0.88), rgba(35, 26, 20, 0.82));
+}
+body[data-ui-theme="dream-sky"] .main-nav,
+body[data-ui-theme="dream-sky"] .panel-card,
+body[data-ui-theme="dream-sky"] .summary-card,
+body[data-ui-theme="dream-sky"] .stat-card,
+body[data-ui-theme="dream-sky"] .focus-card,
+body[data-ui-theme="dream-sky"] .shop-card,
+body[data-ui-theme="dream-sky"] .wallet-board,
+body[data-ui-theme="dream-sky"] .pomodoro-clock-wrap,
+body[data-ui-theme="dream-sky"] .pomodoro-controls-panel,
+body[data-ui-theme="dream-sky"] .filter-box,
+body[data-ui-theme="dream-sky"] .toggle-card,
+body[data-ui-theme="dream-sky"] .mission-card,
+body[data-ui-theme="dream-sky"] .daily-saying-card,
+body[data-ui-theme="dream-sky"] .modal-content {
+  background: linear-gradient(180deg, rgba(35, 44, 65, 0.80), rgba(28, 35, 52, 0.72));
 }
 
 
@@ -1253,6 +1501,145 @@ body[data-ui-quote-style="film"] .daily-saying-launcher {
   .daily-quote-tools,
   .collections-toolbar,
   .collections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* === Phase Next Full Feature Pack === */
+.daily-lesson-box,
+.memory-path-step,
+.pattern-vault-card,
+.weak-rescue-grid .panel-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+.daily-lesson-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.daily-lesson-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.daily-lesson-card span,
+.memory-path-step span,
+.weak-rescue-label,
+.pattern-vault-card span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.daily-lesson-card strong,
+.memory-path-step strong,
+.pattern-vault-card strong {
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.daily-lesson-card small,
+.memory-path-step small,
+.pattern-vault-card small,
+.pattern-vault-example,
+.weak-rescue-note,
+.weak-rescue-meaning {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.daily-lesson-example {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border-left: 4px solid rgba(255,255,255,0.14);
+  color: #fff;
+}
+
+.memory-path-shell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.memory-path-step {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.memory-path-recall {
+  background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(167,139,250,0.08));
+}
+
+.weak-rescue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.weak-rescue-word {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.15;
+  margin-top: 6px;
+}
+
+.weak-rescue-example {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+.pattern-vault-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.pattern-vault-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.pattern-vault-example {
+  min-height: 56px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+}
+
+body[data-ui-quote-style="liquid"] .daily-lesson-box,
+body[data-ui-card-style="liquid"] .memory-path-step,
+body[data-ui-theme="liquidglass"] .pattern-vault-card,
+body[data-ui-theme="liquidglass"] .weak-rescue-grid .panel-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border-color: rgba(255,255,255,0.14);
+  backdrop-filter: blur(18px);
+}
+
+@media (max-width: 900px) {
+  .daily-lesson-grid,
+  .memory-path-shell,
+  .weak-rescue-grid {
     grid-template-columns: 1fr;
   }
 }

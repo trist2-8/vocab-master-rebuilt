@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "5.0.0",
-  "description": "Vocab Master learning-first bundle with quote-to-vocabulary mode, richer daily sayings, 1-click presets, liquid glass packs, focus room, collections, weekly recap, and preserved classic flow.",
+  "version": "5.5.0",
+  "description": "Vocab Master with preserved learning-first flow, advanced quote lessons, expanded pattern vault, anime-inspired wallpaper packs, collections, weekly recap, and richer optional UI packs.",
   "permissions": [
     "storage"
   ],

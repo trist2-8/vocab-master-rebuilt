@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'midnight', name: 'Midnight Core', price: 0, tag: 'Mặc định ổn định', companion: '📘', previewClass: 'theme-midnight' },
     { id: 'aurora', name: 'Aurora Glass', price: 90, tag: 'Xu hướng glass hiện đại', companion: '✨', previewClass: 'theme-aurora' },
     { id: 'liquidglass', name: 'Liquid Glass', price: 140, tag: 'Liquid glass trong mờ cao cấp', companion: '🫧', previewClass: 'theme-liquidglass' },
+    { id: 'anime-room', name: 'Anime Study Room', price: 165, tag: 'Wallpaper bàn học anime, ấm và mềm', companion: '🌙', previewClass: 'theme-anime-room' },
+    { id: 'rainy-window', name: 'Rainy Window Night', price: 175, tag: 'Cửa sổ mưa đêm, hợp focus room', companion: '🌧️', previewClass: 'theme-rainy-window' },
+    { id: 'cafe-notes', name: 'Cafe Notes', price: 155, tag: 'Quán cà phê anime, hợp note và pattern', companion: '☕', previewClass: 'theme-cafe-notes' },
+    { id: 'dream-sky', name: 'Dream Sky Minimal', price: 150, tag: 'Bầu trời anime nhẹ, ít áp lực thị giác', companion: '☁️', previewClass: 'theme-dream-sky' },
+    { id: 'neon-city', name: 'Neon City Memory', price: 180, tag: 'Phố đêm anime, mạnh và khác biệt', companion: '🌆', previewClass: 'theme-neon-city' },
     { id: 'latte', name: 'Cozy Latte', price: 80, tag: 'Tông ấm, học lâu dễ chịu', companion: '☕', previewClass: 'theme-latte' },
     { id: 'paper', name: 'Paper Minimal', price: 70, tag: 'Sạch, sáng, tập trung', companion: '📝', previewClass: 'theme-paper' },
     { id: 'neon', name: 'Neon Focus', price: 130, tag: 'Đậm tương phản, cá tính', companion: '⚡', previewClass: 'theme-neon' },
@@ -115,6 +120,61 @@ document.addEventListener('DOMContentLoaded', () => {
       theme: 'aurora',
       cardStyle: 'film',
       layoutPack: 'split',
+      fontTone: 'system',
+      quoteStyle: 'film'
+    },
+    {
+      id: 'anime-study-pack',
+      name: 'Anime Study Pack',
+      tag: 'Wallpaper bàn học anime',
+      note: 'Giữ góc học ấm và dễ thương, nhưng chữ chính vẫn rõ để học thật.',
+      theme: 'anime-room',
+      cardStyle: 'postcard',
+      layoutPack: 'stacked',
+      fontTone: 'rounded',
+      quoteStyle: 'letter'
+    },
+    {
+      id: 'rainy-window-pack',
+      name: 'Rainy Window Pack',
+      tag: 'Mưa đêm, yên và rất focus',
+      note: 'Rất hợp Focus Room, Pomodoro và daily sayings dịu.',
+      theme: 'rainy-window',
+      cardStyle: 'liquid',
+      layoutPack: 'spotlight',
+      fontTone: 'system',
+      quoteStyle: 'liquid'
+    },
+    {
+      id: 'cafe-notes-pack',
+      name: 'Cafe Notes Pack',
+      tag: 'Quán cà phê + pattern vault',
+      note: 'Hợp người muốn học qua cấu trúc và các câu ngắn đáng lưu.',
+      theme: 'cafe-notes',
+      cardStyle: 'notebook',
+      layoutPack: 'split',
+      fontTone: 'editorial',
+      quoteStyle: 'postcard'
+    },
+    {
+      id: 'dream-sky-pack',
+      name: 'Dream Sky Pack',
+      tag: 'Bầu trời anime, ít áp lực',
+      note: 'Cho người muốn cảm giác nhẹ đầu nhưng vẫn giữ được tập trung lâu.',
+      theme: 'dream-sky',
+      cardStyle: 'rounded',
+      layoutPack: 'classic',
+      fontTone: 'rounded',
+      quoteStyle: 'soft'
+    },
+    {
+      id: 'neon-city-pack',
+      name: 'Neon City Pack',
+      tag: 'Phố đêm anime, mạnh và mới',
+      note: 'Dành cho người thích giao diện khác biệt hẳn nhưng vẫn học rõ ràng.',
+      theme: 'neon-city',
+      cardStyle: 'film',
+      layoutPack: 'spotlight',
       fontTone: 'system',
       quoteStyle: 'film'
     }
@@ -236,6 +296,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const QUOTE_STOPWORDS = new Set(['a', 'an', 'the', 'to', 'is', 'are', 'am', 'be', 'been', 'being', 'do', 'does', 'did', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'these', 'those', 'with', 'of', 'for', 'at', 'in', 'on', 'by', 'from', 'as', 'it', 'its', 'your', 'you', 'i', 'im', 'me', 'my', 'we', 'our', 'they', 'their', 'he', 'she', 'his', 'her', 'them', 'one', 'can', 'still', 'not', 'have', 'has', 'had', 'while', 'like', 'some', 'what', 'when', 'where', 'will', 'would', 'today', 'tonight']);
 
+  const WORD_LESSON_BANK = {
+    quiet: { collocation: 'quiet room', collocationMeaning: 'căn phòng yên tĩnh', sentence: 'The quiet room helped me focus for twenty minutes.', pattern: 'The ___ room helped me ___.', grammar: 'quiet thường đứng trước danh từ như room, night, place.', speaking: 'Describe a quiet place where you study best.', recall: 'Fill the blank later: The ___ room helped me focus.' },
+    calm: { collocation: 'calm mind', collocationMeaning: 'một tâm trí bình tĩnh', sentence: 'A calm mind remembers difficult words better.', pattern: 'A ___ mind remembers ___ better.', grammar: 'calm thường đi với mind, voice, sea, feeling.', speaking: 'What helps your mind stay calm while studying?', recall: 'Complete: A calm ___ remembers better.' },
+    review: { collocation: 'daily review', collocationMeaning: 'một lượt ôn hằng ngày', sentence: 'A short daily review protects long-term memory.', pattern: 'A short daily ___ protects ___.', grammar: 'review có thể là noun hoặc verb.', speaking: 'How long is your best daily review session?', recall: 'Fill in the missing word: daily ___.' },
+    focus: { collocation: 'focus session', collocationMeaning: 'một phiên tập trung', sentence: 'One focus session can rescue a slow day.', pattern: 'One ___ session can ___.', grammar: 'focus thường đi với on khi là động từ: focus on a task.', speaking: 'What helps you enter a real focus session?', recall: 'Complete: One focus ___ can rescue a slow day.' },
+    progress: { collocation: 'small progress', collocationMeaning: 'tiến bộ nhỏ', sentence: 'Small progress still changes your memory over time.', pattern: 'Small ___ still changes ___.', grammar: 'progress hầu như không dùng ở dạng số nhiều trong ngữ cảnh chung.', speaking: 'What small progress would make you proud this week?', recall: 'Fill the blank: Small ___ still changes your memory.' },
+    memory: { collocation: 'long-term memory', collocationMeaning: 'trí nhớ dài hạn', sentence: 'Long-term memory grows from calm repetition.', pattern: 'Long-term ___ grows from ___.', grammar: 'memory thường đi với long-term, short-term, visual.', speaking: 'What helps your long-term memory most?', recall: 'Complete: long-term ___.' },
+    sentence: { collocation: 'sentence pattern', collocationMeaning: 'mẫu câu', sentence: 'A useful sentence pattern makes vocabulary easier to reuse.', pattern: 'A useful ___ pattern makes ___ easier.', grammar: 'sentence pattern là cụm rất hợp để lưu cấu trúc tiếng Anh.', speaking: 'What sentence pattern do you want to remember this week?', recall: 'Fill in: sentence ___.' },
+    rescue: { collocation: 'rescue line', collocationMeaning: 'một câu cứu mood', sentence: 'Sometimes one rescue line is enough to keep going.', pattern: 'Sometimes one ___ line is enough to ___.', grammar: 'rescue có thể là noun hoặc verb.', speaking: 'What kind of rescue line helps you most?', recall: 'Complete: one rescue ___ is enough.' },
+    gentle: { collocation: 'gentle reminder', collocationMeaning: 'một lời nhắc nhẹ nhàng', sentence: 'A gentle reminder is more useful than harsh pressure.', pattern: 'A gentle ___ is more useful than ___.', grammar: 'gentle thường đi với reminder, voice, smile, touch.', speaking: 'What gentle reminder do you need today?', recall: 'Fill in: gentle ___.' },
+    carry: { collocation: 'carry everything', collocationMeaning: 'gánh tất cả mọi thứ', sentence: 'You do not have to carry everything alone.', pattern: 'You do not have to ___ everything alone.', grammar: 'have to + verb nguyên mẫu.', speaking: 'What are you trying to carry alone right now?', recall: 'Complete: carry ___ alone.' },
+    patience: { collocation: 'with patience', collocationMeaning: 'với sự kiên nhẫn', sentence: 'Review with patience, not panic.', pattern: 'Review with ___, not ___.', grammar: 'with + noun diễn tả cách thức.', speaking: 'How can you study with more patience?', recall: 'Fill the gap: with ___, not panic.' },
+    repeat: { collocation: 'repeat with care', collocationMeaning: 'lặp lại một cách chăm chút', sentence: 'What you repeat with care will stay with you.', pattern: 'What you ___ with care will ___.', grammar: 'mệnh đề What you ... có thể đứng làm chủ ngữ.', speaking: 'What should you repeat with more care?', recall: 'Complete: What you ___ with care...' },
+    breathe: { collocation: 'take a breath', collocationMeaning: 'hít một hơi', sentence: 'Take a breath, then one more step.', pattern: 'Take a ____, then one more ____.', grammar: 'mệnh lệnh ngắn rất hay dùng trong microcopy.', speaking: 'When should you take a breath while studying?', recall: 'Complete: Take a ___.' },
+    room: { collocation: 'study room', collocationMeaning: 'phòng học', sentence: 'A clear study room can reduce noisy thinking.', pattern: 'A clear ___ room can ___.', grammar: 'room thường làm danh từ đếm được.', speaking: 'What kind of room helps you study well?', recall: 'Fill in: study ___.' }
+  };
+
+  const CONFUSION_BANK = {
+    quiet: { compare: 'quiet vs silent', note: 'quiet = yên tĩnh, vẫn có thể còn chút âm thanh; silent = hoàn toàn im lặng.' },
+    calm: { compare: 'calm vs quiet', note: 'calm nói về trạng thái bình tĩnh; quiet nói về ít tiếng ồn.' },
+    review: { compare: 'review vs revise', note: 'review thường là ôn lại/chơi lại nội dung; revise còn có nghĩa sửa đổi.' },
+    memory: { compare: 'memory vs memorize', note: 'memory là danh từ; memorize là động từ ghi nhớ.' },
+    sentence: { compare: 'sentence vs phrase', note: 'sentence có ý hoàn chỉnh; phrase chỉ là cụm từ.' },
+    progress: { compare: 'progress vs process', note: 'progress = tiến bộ/tiến trình đi lên; process = quy trình/xử lý.' },
+    focus: { compare: 'focus vs attention', note: 'focus là sự tập trung có chủ ý vào một điểm; attention rộng hơn.' },
+    gentle: { compare: 'gentle vs soft', note: 'gentle thiên về cách cư xử/giọng điệu nhẹ nhàng; soft thiên về cảm giác mềm.' }
+  };
+
+  const PATTERN_TEMPLATES = [
+    { id: 'need-not-carry', label: 'You do not have to...', pattern: 'You do not have to + verb phrase', grammar: 'have to + động từ nguyên mẫu', example: 'You do not have to carry everything alone.' },
+    { id: 'pretend-actually', label: "I pretend to..., but I'm actually...", pattern: "I pretend to + action, but I'm actually + action", grammar: 'Dùng để đối lập bề ngoài và ý thật.', example: "I pretend to look around, but I'm actually looking for you." },
+    { id: 'small-can', label: 'A small ... can ...', pattern: 'A small + noun + can + verb phrase', grammar: 'Dùng để diễn tả tác động lớn từ điều nhỏ.', example: 'A small talk can actually fix a lot.' },
+    { id: 'even-still', label: 'Even ..., still ...', pattern: 'Even + situation, still + result', grammar: 'Nhấn mạnh kết quả vẫn đúng dù điều kiện khó hơn.', example: 'Even slow learning still becomes fluency.' },
+    { id: 'what-you-repeat', label: 'What you ..., will ...', pattern: 'What you + verb + will + result', grammar: 'Mệnh đề What you ... làm chủ ngữ cho cả ý.', example: 'What you repeat with care will stay with you.' },
+    { id: 'take-a-breath', label: 'Take a breath. Then ...', pattern: 'Take a breath. Then + next step', grammar: 'Hai mệnh lệnh ngắn tạo nhịp rất tự nhiên.', example: 'Take a breath. Then one more step.' },
+    { id: 'trying-to', label: "I'm trying to...", pattern: "I'm trying to + verb phrase", grammar: 'trying to diễn tả nỗ lực đang diễn ra.', example: "I'm trying to build a calmer study routine." },
+    { id: 'tend-to', label: 'I tend to...', pattern: 'I tend to + verb phrase', grammar: 'tend to diễn tả xu hướng thường xảy ra.', example: 'I tend to remember words better at night.' },
+    { id: 'turns-out', label: 'It turns out that...', pattern: 'It turns out that + clause', grammar: 'Dùng khi kết quả thực tế khác kỳ vọng ban đầu.', example: 'It turns out that short reviews work best for me.' },
+    { id: 'ended-up', label: 'I ended up...', pattern: 'I ended up + V-ing / noun', grammar: 'Diễn tả kết quả cuối cùng sau một quá trình.', example: 'I ended up saving the whole sentence pattern.' },
+    { id: 'used-to', label: "I'm used to...", pattern: "I'm used to + noun / V-ing", grammar: 'used to ở đây là quen với việc gì.', example: "I'm used to reviewing five words before bed." },
+    { id: 'feel-like', label: "I don't feel like...", pattern: "I don't feel like + V-ing", grammar: 'feel like + V-ing diễn tả không có hứng làm gì.', example: "I don't feel like rushing through this list." },
+    { id: 'feels-like', label: 'It feels like...', pattern: 'It feels like + noun / clause', grammar: 'Dùng để mô tả cảm giác chủ quan, giàu cảm xúc.', example: 'It feels like this room was made for quiet study.' },
+    { id: 'did-not-expect', label: "I did not expect..., but...", pattern: "I did not expect + noun/clause, but + clause", grammar: 'Tạo tương phản giữa dự đoán và thực tế.', example: "I did not expect this quote, but it stayed with me." },
+    { id: 'there-are-days', label: 'There are days when...', pattern: 'There are days when + clause', grammar: 'Cấu trúc tự nhiên để nói về những ngày đặc biệt.', example: 'There are days when one sentence is enough.' },
+    { id: 'still-remember', label: 'I still remember how...', pattern: 'I still remember how + clause', grammar: 'Dùng để nói về ký ức còn rõ.', example: 'I still remember how that pattern first clicked.' },
+    { id: 'what-i-mean', label: 'What I mean is...', pattern: 'What I mean is + clause', grammar: 'Cách nói rất tự nhiên khi làm rõ ý.', example: 'What I mean is that slow review is still progress.' },
+    { id: 'depends-on', label: 'It depends on...', pattern: 'It depends on + noun / wh-clause', grammar: 'Dùng để nói kết quả thay đổi theo điều kiện.', example: 'It depends on how calm your mind is.' },
+    { id: 'noticed', label: "One thing I've noticed is...", pattern: "One thing I've noticed is + clause", grammar: 'Rất hợp speaking và reflective writing.', example: "One thing I've noticed is that patterns stay longer than isolated words." },
+    { id: 'would-rather', label: "I'd rather...", pattern: "I'd rather + verb", grammar: 'would rather dùng để nói sở thích ưu tiên.', example: "I'd rather review deeply than rush through fifty words." },
+    { id: 'looking-forward', label: "I'm looking forward to...", pattern: "I'm looking forward to + noun / V-ing", grammar: 'to ở đây là giới từ, sau nó dùng danh từ hoặc V-ing.', example: "I'm looking forward to using this sentence in real conversation." },
+    { id: 'hard-but', label: "It's hard to..., but...", pattern: "It's hard to + verb, but + clause", grammar: 'Dùng để cân bằng khó khăn và hy vọng.', example: "It's hard to slow down, but slowing down helps memory." },
+    { id: 'little-goes-long-way', label: 'A little ... goes a long way', pattern: 'A little + noun + goes a long way', grammar: 'Nhấn mạnh một lượng nhỏ nhưng hiệu quả cao.', example: 'A little daily review goes a long way.' },
+    { id: 'the-more-the-easier', label: 'The more..., the easier...', pattern: 'The more + clause, the easier + clause', grammar: 'Cấu trúc so sánh kép rất hữu ích cho writing.', example: 'The more you repeat calmly, the easier recall becomes.' },
+    { id: 'it-takes-time', label: 'It takes time to...', pattern: 'It takes time to + verb', grammar: 'Câu nền rất phổ biến trong khuyên nhủ và tự trấn an.', example: 'It takes time to build long-term memory.' },
+    { id: 'progress-not-always', label: 'Progress does not always...', pattern: 'Progress does not always + verb', grammar: 'Hợp để nói về tiến trình học không tuyến tính.', example: 'Progress does not always look dramatic at first.' },
+    { id: 'one-step-better', label: 'One step today is better than...', pattern: 'One step today is better than + noun phrase', grammar: 'So sánh để khuyến khích hành động nhỏ.', example: 'One step today is better than waiting for a perfect mood.' },
+    { id: 'in-many-cases', label: 'In many cases,...', pattern: 'In many cases, + clause', grammar: 'Mở bài gọn, hợp writing và speaking học thuật.', example: 'In many cases, short repetition works better than cramming.' },
+    { id: 'one-explanation', label: 'One possible explanation is...', pattern: 'One possible explanation is + noun/clause', grammar: 'Dùng để đưa ra lý giải trung tính.', example: 'One possible explanation is that the word lacked context.' },
+    { id: 'this-can-be-seen', label: 'This can be seen in...', pattern: 'This can be seen in + noun phrase', grammar: 'Cấu trúc viết học thuật nhẹ.', example: 'This can be seen in your weekly review patterns.' },
+    { id: 'on-one-hand', label: 'On the one hand..., on the other hand...', pattern: 'On the one hand + clause, on the other hand + clause', grammar: 'Cấu trúc đối chiếu rất quan trọng.', example: 'On the one hand, the UI is richer; on the other hand, the flow stays simple.' },
+    { id: 'key-advantage', label: 'A key advantage is...', pattern: 'A key advantage is + noun phrase', grammar: 'Hợp cho writing, thuyết trình, giải thích lợi ích.', example: 'A key advantage is that patterns help words stay longer.' },
+    { id: 'this-suggests', label: 'This suggests that...', pattern: 'This suggests that + clause', grammar: 'Dùng để rút ra nhận định từ dữ liệu hoặc trải nghiệm.', example: 'This suggests that calm repetition improves recall.' },
+    { id: 'as-a-result', label: 'As a result,...', pattern: 'As a result, + clause', grammar: 'Cấu trúc nối kết quả rất nền.', example: 'As a result, the same weak words appear less often.' }
+  ];
+
   const SHOP_CONFIG = {
     theme: { items: THEMES, activeKey: 'theme', unlockedKey: 'unlockedThemes', label: 'theme' },
     card: { items: CARD_STYLES, activeKey: 'cardStyle', unlockedKey: 'unlockedCardStyles', label: 'card style' },
@@ -269,6 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
       isRunning: false,
       quoteIndex: null,
       selectedQuoteWordKey: '',
+      selectedRescueWordId: '',
+      selectedPatternId: '',
       focusRoomSeed: 0
     }
   };
@@ -283,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     injectUpgradeUi();
     bindEvents();
     await loadState();
+    await ensureWalletConsistency();
     applyUiPreferences();
     syncPomodoroRuntime();
     renderUpgradeLayer();
@@ -298,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.innerHTML = `
         <div id="upgradeRewardBar" class="upgrade-reward-bar panel-card">
           <div class="reward-summary-row">
-            <div class="reward-pill"><span>🟡</span><strong id="walletAvailableCoins">0</strong><small>xu giao diện khả dụng</small></div>
+            <div class="reward-pill"><span>🟡</span><strong id="walletAvailableCoins">0</strong><small>số dư UI khả dụng</small></div>
             <div class="reward-pill"><span>🎨</span><strong id="walletThemeName">Midnight Core</strong><small>giao diện đang dùng</small></div>
             <div class="reward-pill"><span>🍅</span><strong id="walletPomodoroToday">0</strong><small>pomodoro hôm nay</small></div>
             <div class="reward-pill"><span>🪄</span><strong id="walletLayoutName">Classic Layout</strong><small>bố cục đang dùng</small></div>
@@ -310,6 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <button id="openDailySayingBtn" class="secondary-btn">💬 Câu nói mỗi ngày</button>
             <button id="openFocusRoomBtn" class="secondary-btn">🫧 Focus Room</button>
             <button id="openCollectionsBtn" class="secondary-btn">📚 Bộ sưu tập</button>
+            <button id="openMemoryPathBtn" class="secondary-btn">🪜 Memory Path</button>
+            <button id="openWeakRescueBtn" class="secondary-btn">🛟 Cứu từ yếu</button>
+            <button id="openPatternVaultBtn" class="secondary-btn">🧩 Pattern Vault</button>
             <button id="openWeeklyRecapBtn" class="secondary-btn">🗓 Tóm tắt tuần</button>
           </div>
           <div class="reward-mini-note" id="rewardMiniNote">Hoàn thành phiên học, Pomodoro và chuỗi ngày để mở khóa giao diện mới mà không đổi mục tiêu học từ.</div>
@@ -355,10 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <h2>🎨 Tùy biến giao diện ngay trong extension</h2>
             <p class="muted-text">Bản nâng cấp này giữ nguyên luồng học cũ. Mọi thay đổi mới đều nằm trong lớp tùy biến, nên người dùng vẫn có thể giữ mode cổ điển nếu muốn.</p>
             <div class="wallet-board">
-              <div class="wallet-stat"><span>Xu đang có</span><strong id="modalAvailableCoins">0</strong></div>
-              <div class="wallet-stat"><span>Đã kiếm từ học</span><strong id="modalEarnedCoins">0</strong></div>
-              <div class="wallet-stat"><span>Thưởng tập trung</span><strong id="modalBonusCoins">0</strong></div>
-              <div class="wallet-stat"><span>Đã tiêu cho giao diện</span><strong id="modalSpentCoins">0</strong></div>
+              <div class="wallet-stat"><span>Số dư UI khả dụng</span><strong id="modalAvailableCoins">0</strong></div>
+              <div class="wallet-stat"><span>Coin học hiện tại</span><strong id="modalEarnedCoins">0</strong></div>
+              <div class="wallet-stat"><span>Thưởng focus</span><strong id="modalBonusCoins">0</strong></div>
+              <div class="wallet-stat"><span>Đã tiêu cho UI</span><strong id="modalSpentCoins">0</strong></div>
             </div>
 
             <div class="classic-safe-note">
@@ -377,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="customizer-section">
               <div class="section-title-row">
                 <h3>Theme shop</h3>
-                <span class="muted-text">Thay đổi bầu không khí tổng thể.</span>
+                <span class="muted-text">Không chỉ đổi màu: có thêm wallpaper-style packs như Anime Study Room, Rainy Window và Cafe Notes.</span>
               </div>
               <div id="themeShopGrid" class="theme-shop-grid"></div>
             </div>
@@ -521,9 +652,94 @@ document.addEventListener('DOMContentLoaded', () => {
                   <button id="dailyWordSpeakBtn" class="secondary-btn" type="button">🔊 Phát âm</button>
                   <button id="dailyWordSaveBtn" class="primary-btn" type="button">➕ Lưu vào bộ từ</button>
                   <button id="dailyPatternSaveBtn" class="secondary-btn" type="button">🧩 Lưu mẫu câu</button>
+                  <button id="dailyOpenMemoryPathBtn" class="secondary-btn" type="button">🪜 Memory Path</button>
                 </div>
               </div>
             </div>
+            <div class="daily-lesson-box panel-card compact-panel">
+              <div class="section-title-row">
+                <h3>Quote-to-Lesson Card 2.0</h3>
+                <span class="muted-text">Biến câu đẹp thành 1 vi bài học: collocation, pattern, grammar, speaking, recall.</span>
+              </div>
+              <div class="daily-lesson-grid">
+                <div class="daily-lesson-card"><span>Collocation</span><strong id="lessonCollocation">quiet room</strong><small id="lessonCollocationMeaning">căn phòng yên tĩnh</small></div>
+                <div class="daily-lesson-card"><span>Sentence pattern</span><strong id="lessonPattern">You do not have to + verb phrase</strong><small id="lessonPatternGrammar">have to + động từ nguyên mẫu</small></div>
+                <div class="daily-lesson-card"><span>Speaking prompt</span><strong id="lessonSpeaking">What helps your mind stay calm while studying?</strong><small id="lessonRecall">Recall tomorrow: Fill the blank...</small></div>
+              </div>
+              <div class="daily-lesson-example" id="lessonSentence">The quiet room helped me focus for twenty minutes.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="memoryPathModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal memory-path-modal-content">
+            <button class="close-modal" data-close-modal="memoryPathModal" aria-label="Đóng">×</button>
+            <div class="section-title-row">
+              <div>
+                <h2>🪜 Memory Path Mode</h2>
+                <p class="muted-text">Từ → collocation → câu ngắn → delayed recall. Mục tiêu là nhớ sâu hơn mà vẫn rất gọn.</p>
+              </div>
+              <button id="memoryPathRefreshBtn" class="secondary-btn" type="button">Đổi path</button>
+            </div>
+            <div class="memory-path-shell">
+              <div class="memory-path-step"><span>B1 · Word</span><strong id="memoryPathWord">quiet</strong><small id="memoryPathMeaning">yên tĩnh</small></div>
+              <div class="memory-path-step"><span>B2 · Collocation</span><strong id="memoryPathCollocation">quiet room</strong><small id="memoryPathCollocationMeaning">căn phòng yên tĩnh</small></div>
+              <div class="memory-path-step"><span>B3 · Sentence</span><strong id="memoryPathSentence">The quiet room helped me focus for twenty minutes.</strong><small id="memoryPathGrammar">quiet đứng trước room.</small></div>
+              <div class="memory-path-step memory-path-recall"><span>B4 · Delayed recall</span><strong id="memoryPathRecall">Fill the blank later: The ___ room helped me focus.</strong><small id="memoryPathSpeaking">Speaking: Describe a quiet place where you study best.</small></div>
+            </div>
+            <div class="footer-actions">
+              <button id="memoryPathSpeakBtn" class="secondary-btn" type="button">🔊 Đọc từ</button>
+              <button id="memoryPathSaveWordBtn" class="primary-btn" type="button">➕ Lưu từ path</button>
+              <button id="memoryPathSavePatternBtn" class="secondary-btn" type="button">🧩 Lưu pattern path</button>
+              <button id="memoryPathStudyBtn" class="secondary-btn" type="button">▶ Ôn nhóm liên quan</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="weakRescueModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal weak-rescue-modal-content">
+            <button class="close-modal" data-close-modal="weakRescueModal" aria-label="Đóng">×</button>
+            <div class="section-title-row">
+              <div>
+                <h2>🛟 Weak-Word Rescue Engine</h2>
+                <p class="muted-text">Khi từ yếu lặp lại nhiều lần, app sẽ giải thích lại theo kiểu dễ nhớ hơn thay vì chỉ bắt làm lại như cũ.</p>
+              </div>
+              <button id="weakRescueRefreshBtn" class="secondary-btn" type="button">Đổi từ khác</button>
+            </div>
+            <div id="weakRescueChips" class="daily-quote-chip-row"></div>
+            <div class="weak-rescue-grid">
+              <div class="panel-card compact-panel">
+                <div class="weak-rescue-label">Từ đang cứu</div>
+                <div id="weakRescueWord" class="weak-rescue-word">review</div>
+                <div id="weakRescueMeaning" class="weak-rescue-meaning">ôn lại</div>
+                <div id="weakRescueReason" class="weak-rescue-note">Lý do đang yếu sẽ hiện ở đây.</div>
+              </div>
+              <div class="panel-card compact-panel">
+                <div class="weak-rescue-label">Giải thích dễ nhớ hơn</div>
+                <div id="weakRescueSimple" class="weak-rescue-note">Giải thích rút gọn để giảm áp lực khi nhớ lại.</div>
+                <div id="weakRescueCompare" class="weak-rescue-note">Compare pair</div>
+                <div id="weakRescuePhrase" class="weak-rescue-example">Rescue phrase</div>
+              </div>
+            </div>
+            <div class="footer-actions">
+              <button id="weakRescueSpeakBtn" class="secondary-btn" type="button">🔊 Phát âm</button>
+              <button id="weakRescueSaveBtn" class="primary-btn" type="button">⭐ Lưu vào Từ khó</button>
+              <button id="weakRescueStudyBtn" class="secondary-btn" type="button">▶ Ôn từ yếu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="patternVaultModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal pattern-vault-modal-content">
+            <button class="close-modal" data-close-modal="patternVaultModal" aria-label="Đóng">×</button>
+            <div class="section-title-row">
+              <div>
+                <h2>🧩 Sentence Pattern Vault</h2>
+                <p class="muted-text">Lưu cấu trúc tiếng Anh để nhớ cách nói, không chỉ nhớ từng từ riêng lẻ.</p>
+              </div>
+              <button id="patternVaultSaveCurrentBtn" class="secondary-btn" type="button">Lưu pattern hiện tại</button>
+            </div>
+            <div id="patternVaultGrid" class="pattern-vault-grid"></div>
           </div>
         </div>
 
@@ -636,6 +852,18 @@ document.addEventListener('DOMContentLoaded', () => {
       renderCollectionsModal();
       openModal('collectionsModal');
     });
+    byId('openMemoryPathBtn')?.addEventListener('click', () => {
+      renderMemoryPathModal();
+      openModal('memoryPathModal');
+    });
+    byId('openWeakRescueBtn')?.addEventListener('click', () => {
+      renderWeakRescueModal();
+      openModal('weakRescueModal');
+    });
+    byId('openPatternVaultBtn')?.addEventListener('click', () => {
+      renderPatternVaultModal();
+      openModal('patternVaultModal');
+    });
     byId('openWeeklyRecapBtn')?.addEventListener('click', () => {
       renderWeeklyRecapModal();
       openModal('weeklyRecapModal');
@@ -650,6 +878,22 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('dailyWordSpeakBtn')?.addEventListener('click', speakSelectedQuoteWord);
     byId('dailyWordSaveBtn')?.addEventListener('click', saveSelectedQuoteWordToVocabulary);
     byId('dailyPatternSaveBtn')?.addEventListener('click', saveCurrentQuotePattern);
+    byId('dailyOpenMemoryPathBtn')?.addEventListener('click', () => {
+      renderMemoryPathModal();
+      openModal('memoryPathModal');
+    });
+    byId('memoryPathRefreshBtn')?.addEventListener('click', nextMemoryPathSource);
+    byId('memoryPathSpeakBtn')?.addEventListener('click', speakMemoryPathWord);
+    byId('memoryPathSaveWordBtn')?.addEventListener('click', saveMemoryPathWord);
+    byId('memoryPathSavePatternBtn')?.addEventListener('click', saveMemoryPathPattern);
+    byId('memoryPathStudyBtn')?.addEventListener('click', startMemoryPathStudy);
+    byId('weakRescueRefreshBtn')?.addEventListener('click', nextWeakRescueWord);
+    byId('weakRescueChips')?.addEventListener('click', handleWeakRescueChipClick);
+    byId('weakRescueSpeakBtn')?.addEventListener('click', speakWeakRescueWord);
+    byId('weakRescueSaveBtn')?.addEventListener('click', saveWeakRescueWord);
+    byId('weakRescueStudyBtn')?.addEventListener('click', startWeakRescueStudy);
+    byId('patternVaultGrid')?.addEventListener('click', handlePatternVaultClick);
+    byId('patternVaultSaveCurrentBtn')?.addEventListener('click', saveCurrentQuotePattern);
     byId('focusRoomNextBtn')?.addEventListener('click', nextFocusRoomWord);
     byId('focusRoomRevealBtn')?.addEventListener('click', toggleFocusRoomMeaning);
     byId('focusRoomSpeakBtn')?.addEventListener('click', speakCurrentFocusWord);
@@ -668,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
     });
 
-    ['customizationModal', 'pomodoroModal', 'dailySayingModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal'].forEach((modalId) => {
+    ['customizationModal', 'pomodoroModal', 'dailySayingModal', 'memoryPathModal', 'weakRescueModal', 'patternVaultModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal'].forEach((modalId) => {
       const modal = byId(modalId);
       modal?.addEventListener('click', (event) => {
         if (event.target === modal) closeModal(modalId);
@@ -753,7 +997,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
-      if (changes.stats) state.stats = normalizeStats(changes.stats.newValue || {});
+      let walletTouched = false;
+      if (changes.stats) {
+        state.stats = normalizeStats(changes.stats.newValue || {});
+        walletTouched = true;
+      }
       if (changes.vocab) state.vocab = Array.isArray(changes.vocab.newValue) ? changes.vocab.newValue : [];
       if (changes.vm_ui) state.ui = normalizeUiState(changes.vm_ui.newValue || {});
       if (changes.vm_quotes) state.quotes = normalizeQuotesState(changes.vm_quotes.newValue || {});
@@ -762,11 +1010,18 @@ document.addEventListener('DOMContentLoaded', () => {
         syncPomodoroRuntime();
       }
       if (changes.vm_collections) state.collections = normalizeCollectionsState(changes.vm_collections.newValue || {});
-      if (changes.vm_spentCoins) state.spentCoins = Math.max(0, Number(changes.vm_spentCoins.newValue) || 0);
-      if (changes.vm_bonusCoins) state.bonusCoins = Math.max(0, Number(changes.vm_bonusCoins.newValue) || 0);
+      if (changes.vm_spentCoins) {
+        state.spentCoins = Math.max(0, Number(changes.vm_spentCoins.newValue) || 0);
+        walletTouched = true;
+      }
+      if (changes.vm_bonusCoins) {
+        state.bonusCoins = Math.max(0, Number(changes.vm_bonusCoins.newValue) || 0);
+        walletTouched = true;
+      }
       syncSavedQuoteIdsFromCollections();
       applyUiPreferences();
       renderUpgradeLayer();
+      if (walletTouched) void ensureWalletConsistency();
     });
 
     window.setInterval(() => {
@@ -799,17 +1054,45 @@ document.addEventListener('DOMContentLoaded', () => {
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     syncSavedQuoteIdsFromCollections();
     await ensureDailyQuoteFreshness();
+    await ensureWalletConsistency();
   }
 
 
   function normalizeStats(stats = {}) {
+    const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
+    const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
+    const sessionHistory = Array.isArray(stats.sessionHistory)
+      ? stats.sessionHistory
+          .filter((entry) => entry && (typeof entry.dateKey === 'string' || Number(entry.finishedAt) > 0))
+          .map((entry) => ({
+            dateKey: typeof entry.dateKey === 'string' && entry.dateKey ? entry.dateKey : toDateKey(entry.finishedAt || Date.now()),
+            finishedAt: Number(entry.finishedAt) || 0,
+            game: String(entry.game || entry.gameType || 'Study session'),
+            total: Math.max(0, Number(entry.total) || 0),
+            good: Math.max(0, Number(entry.good) || 0),
+            hard: Math.max(0, Number(entry.hard) || 0),
+            again: Math.max(0, Number(entry.again) || 0),
+            strengthened: Math.max(0, Number(entry.strengthened) || 0),
+            durationSeconds: Math.max(0, Number(entry.durationSeconds) || 0)
+          }))
+          .slice(-180)
+      : [];
+
     return {
-      coins: Number(stats.coins) || 0,
+      coins: Math.max(0, Number(stats.coins) || 0),
       dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
-      dailyProgress: stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {},
-      studyLog: Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [],
-      currentStreak: Math.max(0, Number(stats.currentStreak) || 0)
+      dailyProgress,
+      studyLog,
+      sessionHistory,
+      currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
+      bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
+      totalSessions: Math.max(0, Number(stats.totalSessions) || sessionHistory.length || 0)
     };
+  }
+
+  function toDateKey(value) {
+    const date = new Date(Number(value) || Date.now());
+    return date.toISOString().slice(0, 10);
   }
 
   function normalizeUiState(raw = {}) {
@@ -856,19 +1139,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeFocusState(raw = {}) {
     const todayKey = getTodayKey();
-    const sameDay = raw.lastCompletedDate === todayKey;
-    const history = Array.isArray(raw.history)
-      ? raw.history.filter((entry) => entry && typeof entry.dateKey === 'string' && Number(entry.minutes) > 0).slice(-180)
+    const normalizedHistory = Array.isArray(raw.history)
+      ? raw.history
+          .filter((entry) => entry && Number(entry.minutes) > 0)
+          .map((entry) => ({
+            dateKey: typeof entry.dateKey === 'string' && entry.dateKey ? entry.dateKey : toDateKey(entry.completedAt || Date.now()),
+            minutes: Math.max(1, Number(entry.minutes) || 0),
+            completedAt: Number(entry.completedAt) || 0
+          }))
+          .slice(-180)
       : [];
+    const inferredLastDate = typeof raw.lastCompletedDate === 'string' && raw.lastCompletedDate
+      ? raw.lastCompletedDate
+      : (normalizedHistory.at(-1)?.dateKey || '');
+    const sameDay = inferredLastDate === todayKey;
     return {
       preferredMinutes: [15, 25, 40].includes(Number(raw.preferredMinutes)) ? Number(raw.preferredMinutes) : 25,
       autoLaunchRecommended: Boolean(raw.autoLaunchRecommended),
       completedToday: sameDay ? Math.max(0, Number(raw.completedToday) || 0) : 0,
-      totalCompleted: Math.max(0, Number(raw.totalCompleted) || 0),
+      totalCompleted: Math.max(0, Number(raw.totalCompleted) || normalizedHistory.length || 0),
       rewardPerSession: Math.max(5, Number(raw.rewardPerSession) || 12),
-      lastCompletedDate: sameDay ? todayKey : '',
-      lastFinishedAt: Number(raw.lastFinishedAt) || 0,
-      history
+      lastCompletedDate: sameDay ? todayKey : inferredLastDate,
+      lastFinishedAt: Number(raw.lastFinishedAt) || normalizedHistory.at(-1)?.completedAt || 0,
+      history: normalizedHistory
     };
   }
 
@@ -1069,8 +1362,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal(id) {
     byId(id)?.classList.add('hidden');
   }
+  function getWalletSnapshot() {
+    const studyCoins = Math.max(0, Number(state.stats.coins) || 0);
+    const bonusCoins = Math.max(0, Number(state.bonusCoins) || 0);
+    const totalEarned = studyCoins + bonusCoins;
+    const spentCoins = Math.max(0, Math.min(Number(state.spentCoins) || 0, totalEarned));
+    const availableCoins = Math.max(0, totalEarned - spentCoins);
+    return { studyCoins, bonusCoins, totalEarned, spentCoins, availableCoins };
+  }
+
   function getAvailableCoins() {
-    return Math.max(0, (Number(state.stats.coins) || 0) + state.bonusCoins - state.spentCoins);
+    return getWalletSnapshot().availableCoins;
+  }
+
+  async function ensureWalletConsistency() {
+    const wallet = getWalletSnapshot();
+    const spentChanged = wallet.spentCoins !== state.spentCoins;
+    const bonusChanged = wallet.bonusCoins !== state.bonusCoins;
+    if (!spentChanged && !bonusChanged) return;
+    state.spentCoins = wallet.spentCoins;
+    state.bonusCoins = wallet.bonusCoins;
+    await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
   }
 
   function applyUiPreferences() {
@@ -1097,28 +1409,32 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDailySayingModal();
     renderCollectionsModal();
     renderWeeklyRecapModal();
+    renderPatternVaultModal();
+    renderMemoryPathModal();
+    renderWeakRescueModal();
     renderFocusRoomModal();
     renderPomodoroWidgets();
   }
 
   function renderWalletBar() {
-    const available = getAvailableCoins();
+    const wallet = getWalletSnapshot();
     const counts = computeStudyCounts(state.vocab);
-    setText('walletAvailableCoins', String(available));
+    setText('walletAvailableCoins', String(wallet.availableCoins));
     setText('walletThemeName', getMeta('theme', state.ui.theme).name);
     setText('walletPomodoroToday', String(state.focus.completedToday));
     setText('walletLayoutName', getMeta('layout', state.ui.layoutPack).name);
-    setText('modalAvailableCoins', String(available));
-    setText('modalEarnedCoins', String(Number(state.stats.coins) || 0));
-    setText('modalBonusCoins', String(state.bonusCoins));
-    setText('modalSpentCoins', String(state.spentCoins));
+    setText('modalAvailableCoins', String(wallet.availableCoins));
+    setText('modalEarnedCoins', String(wallet.studyCoins));
+    setText('modalBonusCoins', String(wallet.bonusCoins));
+    setText('modalSpentCoins', String(wallet.spentCoins));
 
     const note = byId('rewardMiniNote');
     if (note) {
+      const walletNote = `Coin học hiện tại: ${wallet.studyCoins} • thưởng focus: ${wallet.bonusCoins} • đã tiêu cho UI: ${wallet.spentCoins}.`;
       if (counts.weak) {
-        note.textContent = `Bạn còn ${counts.weak} từ yếu. Có thể giữ classic mode để học như cũ, hoặc mở thêm layout/style mới mà không ảnh hưởng logic ôn tập.`;
+        note.textContent = `Bạn còn ${counts.weak} từ yếu. ${walletNote} Classic mode vẫn được giữ nguyên để học như cũ.`;
       } else {
-        note.textContent = `Classic mode vẫn còn nguyên. Hiện tại bạn đang dùng ${getMeta('theme', state.ui.theme).name} + ${getMeta('layout', state.ui.layoutPack).name}.`;
+        note.textContent = `${walletNote} Hiện tại bạn đang dùng ${getMeta('theme', state.ui.theme).name} + ${getMeta('layout', state.ui.layoutPack).name}.`;
       }
     }
   }
@@ -1538,6 +1854,89 @@ document.addEventListener('DOMContentLoaded', () => {
     return results.slice(0, 4);
   }
 
+
+  function getLessonWordData(rawWord) {
+    if (!rawWord) return null;
+    const wordKey = rawWord.wordKey || normalizeWordKey(rawWord.word || '');
+    const base = WORD_LESSON_BANK[wordKey] || {};
+    const word = rawWord.word || wordKey;
+    const meaning = rawWord.meaning || base.meaning || 'nghĩa nhanh';
+    const collocation = base.collocation || `${word} phrase`;
+    const collocationMeaning = base.collocationMeaning || `cụm với ${word}`;
+    const sentence = base.sentence || `${capitalize(word)} appears in this sentence: ${getCurrentQuote().title}`;
+    const patternData = getBestPatternForQuote(getCurrentQuote(), rawWord);
+    return {
+      wordKey,
+      word,
+      meaning,
+      wordType: rawWord.wordType || 'word',
+      collocation,
+      collocationMeaning,
+      sentence,
+      pattern: base.pattern || patternData.pattern,
+      grammar: base.grammar || patternData.grammar,
+      speaking: base.speaking || `Make one short sentence with “${word}”.`,
+      recall: base.recall || `Recall later: write one sentence with “${word}”.`
+    };
+  }
+
+  function getBestPatternForQuote(quote = getCurrentQuote(), selected = getSelectedQuoteWord()) {
+    const title = String(quote?.title || '');
+    const lower = title.toLowerCase();
+    if (lower.startsWith('you do not have to')) return PATTERN_TEMPLATES.find((item) => item.id === 'need-not-carry');
+    if (lower.startsWith('i pretend to')) return PATTERN_TEMPLATES.find((item) => item.id === 'pretend-actually');
+    if (lower.startsWith('a ') && lower.includes(' can ')) return PATTERN_TEMPLATES.find((item) => item.id === 'small-can');
+    if (lower.startsWith('even ') && lower.includes(' still ')) return PATTERN_TEMPLATES.find((item) => item.id === 'even-still');
+    if (lower.startsWith('what you ')) return PATTERN_TEMPLATES.find((item) => item.id === 'what-you-repeat');
+    if (lower.startsWith('take a breath')) return PATTERN_TEMPLATES.find((item) => item.id === 'take-a-breath');
+    const selectedWord = selected?.word || 'word';
+    return {
+      id: `generated-${normalizeWordKey(title).slice(0, 16) || 'pattern'}`,
+      label: 'Pattern from current quote',
+      pattern: title.replace(new RegExp(selectedWord, 'i'), '___'),
+      grammar: 'Dùng chính câu quote này làm mẫu câu để lặp lại vào hôm sau.',
+      example: title
+    };
+  }
+
+  function capitalize(text) {
+    const value = String(text || '');
+    return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+  }
+
+  function getMemoryPathSourceWord() {
+    const selected = getSelectedQuoteWord();
+    if (selected) return selected;
+    const focusWord = pickFocusRoomWord();
+    if (focusWord) return { wordKey: normalizeWordKey(focusWord.word), word: focusWord.word, meaning: focusWord.meaning, wordType: focusWord.wordType || 'word' };
+    const weak = getWeakWordsLocal(state.vocab)[0];
+    if (weak) return { wordKey: normalizeWordKey(weak.word), word: weak.word, meaning: weak.meaning, wordType: weak.wordType || 'word' };
+    return getQuoteFocusWords()[0] || null;
+  }
+
+  function getSelectedRescueWord() {
+    const weakWords = getWeakWordsLocal(state.vocab)
+      .sort((a, b) => (Number(b?.review?.wrongCount) || 0) - (Number(a?.review?.wrongCount) || 0) || (Number(a?.review?.confidence) || 0) - (Number(b?.review?.confidence) || 0));
+    return weakWords.find((item) => item.id === state.runtime.selectedRescueWordId) || weakWords[0] || null;
+  }
+
+  function getWeakRescueReason(word) {
+    if (!word) return 'Chưa có từ yếu nổi bật để cứu.';
+    const review = word.review || {};
+    const wrong = Number(review.wrongCount) || 0;
+    const seen = Number(review.seenCount) || 0;
+    const confidence = Number(review.confidence) || 0;
+    if (wrong >= 3) return `Từ này đã sai ${wrong} lần nên cần rescue note nhẹ hơn thay vì chỉ lặp máy móc.`;
+    if (confidence <= 1 && seen >= 2) return 'Bạn đã gặp từ này vài lần nhưng mức nhớ vẫn còn thấp.';
+    return 'Từ này vẫn chưa đủ chắc để đi qua spaced repetition một cách yên tâm.';
+  }
+
+  function getWeakRescueSimple(word) {
+    if (!word) return 'Mở thêm một phiên ôn ngắn sẽ giúp rõ hơn.';
+    const simpleMeaning = String(word.meaning || '').split(/[;,]/)[0] || 'nghĩa đơn giản hơn';
+    return `Hiểu nhanh: “${simpleMeaning}”. Hãy nhớ theo kiểu cụm và câu ngắn trước, đừng ép phải nhớ hoàn hảo ngay.`;
+  }
+
   function renderFolderOptions(selectId, folders, activeId) {
     const select = byId(selectId);
     if (!select) return;
@@ -1580,6 +1979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.runtime.selectedQuoteWordKey = words[0].wordKey;
     }
     renderQuoteWordPanel();
+    renderQuoteLessonCard();
   }
 
   function renderQuoteWordPanel() {
@@ -1603,6 +2003,220 @@ document.addEventListener('DOMContentLoaded', () => {
     chipRow?.querySelectorAll('button[data-word-key]').forEach((button) => {
       button.classList.toggle('active', button.dataset.wordKey === selected.wordKey);
     });
+  }
+
+
+  function renderQuoteLessonCard() {
+    const lesson = getLessonWordData(getSelectedQuoteWord() || getMemoryPathSourceWord());
+    if (!lesson) return;
+    setText('lessonCollocation', lesson.collocation);
+    setText('lessonCollocationMeaning', lesson.collocationMeaning);
+    setText('lessonPattern', lesson.pattern);
+    setText('lessonPatternGrammar', lesson.grammar);
+    setText('lessonSpeaking', lesson.speaking);
+    setText('lessonRecall', lesson.recall);
+    setText('lessonSentence', lesson.sentence);
+  }
+
+  function renderMemoryPathModal() {
+    const source = getMemoryPathSourceWord();
+    const lesson = getLessonWordData(source);
+    if (!lesson) return;
+    state.runtime.selectedQuoteWordKey = lesson.wordKey;
+    setText('memoryPathWord', lesson.word);
+    setText('memoryPathMeaning', lesson.meaning);
+    setText('memoryPathCollocation', lesson.collocation);
+    setText('memoryPathCollocationMeaning', lesson.collocationMeaning);
+    setText('memoryPathSentence', lesson.sentence);
+    setText('memoryPathGrammar', lesson.grammar);
+    setText('memoryPathRecall', lesson.recall);
+    setText('memoryPathSpeaking', lesson.speaking);
+  }
+
+  function nextMemoryPathSource() {
+    const words = getQuoteFocusWords();
+    if (words.length > 1) {
+      const currentIndex = words.findIndex((item) => item.wordKey === state.runtime.selectedQuoteWordKey);
+      const next = words[(currentIndex + 1 + words.length) % words.length] || words[0];
+      state.runtime.selectedQuoteWordKey = next.wordKey;
+    } else {
+      state.runtime.focusRoomSeed += 1;
+    }
+    renderMemoryPathModal();
+    renderQuoteWordPanel();
+    renderQuoteLessonCard();
+  }
+
+  function speakMemoryPathWord() {
+    const source = getMemoryPathSourceWord();
+    if (!source) return showToast('Chưa có từ cho memory path.');
+    speakText(source.word);
+  }
+
+  async function saveMemoryPathWord() {
+    const source = getMemoryPathSourceWord();
+    if (!source) return showToast('Chưa có từ để lưu.');
+    await saveSelectedQuoteWordToVocabulary();
+  }
+
+  async function saveMemoryPathPattern() {
+    const lesson = getLessonWordData(getMemoryPathSourceWord());
+    if (!lesson) return showToast('Chưa có pattern để lưu.');
+    const patternId = `memory-path-${lesson.wordKey}`;
+    if (!state.collections.savedPatterns.some((item) => item.patternId === patternId && item.folderId === state.collections.activePatternFolder)) {
+      state.collections.savedPatterns = [
+        { patternId, folderId: state.collections.activePatternFolder, text: lesson.pattern, translation: lesson.sentence, savedAt: Date.now() },
+        ...state.collections.savedPatterns
+      ];
+      await saveCollectionsState();
+    }
+    maybeCelebrate('Đã lưu Memory Path pattern để ôn lại sau.');
+  }
+
+  function startMemoryPathStudy() {
+    closeModal('memoryPathModal');
+    byId('startRecommendedBtn')?.click();
+  }
+
+  function renderWeakRescueModal() {
+    const chips = byId('weakRescueChips');
+    const weakWords = getWeakWordsLocal(state.vocab)
+      .sort((a, b) => (Number(b?.review?.wrongCount) || 0) - (Number(a?.review?.wrongCount) || 0) || (Number(a?.review?.confidence) || 0) - (Number(b?.review?.confidence) || 0))
+      .slice(0, 6);
+    if (chips) {
+      chips.innerHTML = weakWords.length
+        ? weakWords.map((word) => `<button type="button" class="daily-quote-chip ${state.runtime.selectedRescueWordId === word.id ? 'active' : ''}" data-rescue-word-id="${escapeHtml(word.id)}">${escapeHtml(word.word)}</button>`).join('')
+        : '<div class="muted-text">Hiện chưa có từ yếu nổi bật. Đây là tín hiệu tốt cho trí nhớ dài hạn.</div>';
+    }
+    if (!state.runtime.selectedRescueWordId && weakWords[0]) state.runtime.selectedRescueWordId = weakWords[0].id;
+    const selected = getSelectedRescueWord();
+    if (!selected) {
+      setText('weakRescueWord', 'Ổn định');
+      setText('weakRescueMeaning', 'Chưa có từ yếu nổi bật');
+      setText('weakRescueReason', 'Bạn có thể tiếp tục bằng các vòng ôn ngắn và đều.');
+      setText('weakRescueSimple', 'Hiện chưa cần rescue note riêng.');
+      setText('weakRescueCompare', 'Không có cặp dễ nhầm nào cần nhắc ngay.');
+      setText('weakRescuePhrase', 'Hãy giữ nhịp review chậm và đều.');
+      return;
+    }
+    const key = normalizeWordKey(selected.word);
+    const compare = CONFUSION_BANK[key];
+    const lesson = getLessonWordData({ wordKey: key, word: selected.word, meaning: selected.meaning, wordType: selected.wordType || 'word' });
+    setText('weakRescueWord', selected.word);
+    setText('weakRescueMeaning', selected.meaning);
+    setText('weakRescueReason', getWeakRescueReason(selected));
+    setText('weakRescueSimple', getWeakRescueSimple(selected));
+    setText('weakRescueCompare', compare ? `${compare.compare} • ${compare.note}` : `Gợi ý cụm dễ nhớ hơn: ${lesson.collocation} • ${lesson.collocationMeaning}`);
+    setText('weakRescuePhrase', selected.example || lesson.sentence);
+    chips?.querySelectorAll('button[data-rescue-word-id]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.rescueWordId === selected.id);
+    });
+  }
+
+  function handleWeakRescueChipClick(event) {
+    const button = event.target.closest('button[data-rescue-word-id]');
+    if (!button) return;
+    state.runtime.selectedRescueWordId = button.dataset.rescueWordId || '';
+    renderWeakRescueModal();
+  }
+
+  function nextWeakRescueWord() {
+    const weakWords = getWeakWordsLocal(state.vocab)
+      .sort((a, b) => (Number(b?.review?.wrongCount) || 0) - (Number(a?.review?.wrongCount) || 0) || (Number(a?.review?.confidence) || 0) - (Number(b?.review?.confidence) || 0))
+      .slice(0, 6);
+    if (!weakWords.length) return;
+    const currentIndex = weakWords.findIndex((item) => item.id === state.runtime.selectedRescueWordId);
+    state.runtime.selectedRescueWordId = (weakWords[(currentIndex + 1 + weakWords.length) % weakWords.length] || weakWords[0]).id;
+    renderWeakRescueModal();
+  }
+
+  function speakWeakRescueWord() {
+    const selected = getSelectedRescueWord();
+    if (!selected) return showToast('Chưa có từ yếu để phát âm.');
+    speakText(selected.word);
+  }
+
+  async function saveWeakRescueWord() {
+    const selected = getSelectedRescueWord();
+    if (!selected) return showToast('Chưa có từ yếu để lưu.');
+    const wordKey = normalizeWordKey(selected.word);
+    if (!state.collections.savedWords.some((item) => item.wordKey === wordKey && item.folderId === 'difficult')) {
+      state.collections.savedWords = [
+        { wordKey, folderId: 'difficult', word: selected.word, meaning: selected.meaning, example: selected.example || '', savedAt: Date.now() },
+        ...state.collections.savedWords
+      ];
+      await saveCollectionsState();
+    }
+    maybeCelebrate('Đã đưa từ này vào folder Từ khó để rescue sau.');
+  }
+
+  function startWeakRescueStudy() {
+    closeModal('weakRescueModal');
+    byId('startWeakFocusBtn')?.click();
+  }
+
+  function getPatternVaultItems() {
+    const currentPattern = getBestPatternForQuote();
+    const saved = state.collections.savedPatterns.slice(0, 6).map((item) => ({
+      id: item.patternId,
+      source: 'Đã lưu',
+      pattern: item.text,
+      grammar: 'Pattern bạn đã lưu trước đó.',
+      example: item.translation || ''
+    }));
+    const suggested = PATTERN_TEMPLATES.map((item) => ({
+      id: item.id,
+      source: 'Gợi ý',
+      pattern: item.pattern,
+      grammar: item.grammar,
+      example: item.example
+    }));
+    const generated = [{
+      id: currentPattern.id,
+      source: 'Từ quote hôm nay',
+      pattern: currentPattern.pattern,
+      grammar: currentPattern.grammar,
+      example: currentPattern.example
+    }];
+    const merged = [...generated, ...saved, ...suggested];
+    const seen = new Set();
+    return merged.filter((item) => {
+      const key = `${item.pattern}__${item.example}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 24);
+  }
+
+  function renderPatternVaultModal() {
+    const grid = byId('patternVaultGrid');
+    if (!grid) return;
+    const items = getPatternVaultItems();
+    grid.innerHTML = items.map((item) => `
+      <div class="pattern-vault-card">
+        <span>${escapeHtml(item.source)}</span>
+        <strong>${escapeHtml(item.pattern)}</strong>
+        <small>${escapeHtml(item.grammar)}</small>
+        <div class="pattern-vault-example">${escapeHtml(item.example)}</div>
+        <button class="secondary-btn" type="button" data-pattern-text="${escapeHtml(item.pattern)}" data-pattern-example="${escapeHtml(item.example)}">Lưu pattern này</button>
+      </div>
+    `).join('');
+  }
+
+  async function handlePatternVaultClick(event) {
+    const button = event.target.closest('button[data-pattern-text]');
+    if (!button) return;
+    const text = button.dataset.patternText || '';
+    const example = button.dataset.patternExample || '';
+    const patternId = `vault-${normalizeWordKey(text).slice(0, 30)}-${normalizeWordKey(example).slice(0, 12)}`;
+    if (!state.collections.savedPatterns.some((item) => item.patternId === patternId && item.folderId === state.collections.activePatternFolder)) {
+      state.collections.savedPatterns = [
+        { patternId, folderId: state.collections.activePatternFolder, text, translation: example, savedAt: Date.now() },
+        ...state.collections.savedPatterns
+      ];
+      await saveCollectionsState();
+    }
+    maybeCelebrate('Đã lưu sentence pattern vào vault của bạn.');
   }
 
   function shiftQuote(delta) {
@@ -1703,10 +2317,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function saveCurrentQuotePattern() {
     const quote = getCurrentQuote();
+    const pattern = getBestPatternForQuote(quote);
     const patternId = `pattern-${quote.id}`;
     if (!state.collections.savedPatterns.some((item) => item.patternId === patternId && item.folderId === state.collections.activePatternFolder)) {
       state.collections.savedPatterns = [
-        { patternId, folderId: state.collections.activePatternFolder, text: quote.title, translation: quote.translation, savedAt: Date.now() },
+        { patternId, folderId: state.collections.activePatternFolder, text: pattern.pattern, translation: pattern.example || quote.translation, savedAt: Date.now() },
         ...state.collections.savedPatterns
       ];
       await saveCollectionsState();
@@ -1898,17 +2513,39 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Đã tạo ${label} mới.`);
   }
 
+  function getRecentDateKeys(days = 7) {
+    const keys = [];
+    const today = new Date();
+    for (let i = 0; i < days; i += 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      keys.push(date.toISOString().slice(0, 10));
+    }
+    return keys;
+  }
+
+  function summarizeSessionHistory(dateKeys) {
+    const allowed = new Set(dateKeys);
+    const sessions = Array.isArray(state.stats.sessionHistory)
+      ? state.stats.sessionHistory.filter((entry) => allowed.has(entry.dateKey))
+      : [];
+    return sessions.reduce((acc, entry) => {
+      acc.count += 1;
+      acc.totalCards += Math.max(0, Number(entry.total) || 0);
+      acc.durationSeconds += Math.max(0, Number(entry.durationSeconds) || 0);
+      acc.good += Math.max(0, Number(entry.good) || 0);
+      acc.hard += Math.max(0, Number(entry.hard) || 0);
+      acc.again += Math.max(0, Number(entry.again) || 0);
+      acc.strengthened += Math.max(0, Number(entry.strengthened) || 0);
+      return acc;
+    }, { count: 0, totalCards: 0, durationSeconds: 0, good: 0, hard: 0, again: 0, strengthened: 0 });
+  }
+
   function renderWeeklyRecapModal() {
     const grid = byId('weeklyRecapGrid');
     const narrative = byId('weeklyRecapNarrative');
     if (!grid || !narrative) return;
-    const today = new Date();
-    const last7 = [];
-    for (let i = 0; i < 7; i += 1) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      last7.push(date.toISOString().slice(0, 10));
-    }
+    const last7 = getRecentDateKeys(7);
     const weeklyProgress = last7.reduce((acc, key) => {
       const item = state.stats.dailyProgress[key] || { studied: 0, correct: 0, hard: 0, again: 0 };
       acc.studied += Number(item.studied) || 0;
@@ -1919,21 +2556,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { studied: 0, correct: 0, hard: 0, again: 0 });
     const weeklyFocus = (state.focus.history || []).filter((entry) => last7.includes(entry.dateKey));
     const focusMinutes = weeklyFocus.reduce((sum, entry) => sum + Number(entry.minutes || 0), 0);
+    const sessionSummary = summarizeSessionHistory(last7);
     const reviewedWords = state.vocab.filter((word) => Number(word?.review?.lastReviewedAt) >= Date.now() - (7 * 24 * 60 * 60 * 1000)).length;
     const quotesSavedWeek = state.collections.savedQuotes.filter((item) => Number(item.savedAt) >= Date.now() - (7 * 24 * 60 * 60 * 1000)).length;
     const wordsSavedWeek = state.collections.savedWords.filter((item) => Number(item.savedAt) >= Date.now() - (7 * 24 * 60 * 60 * 1000)).length;
     const weakNow = computeStudyCounts(state.vocab).weak;
+    const accuracyBase = weeklyProgress.correct + weeklyProgress.hard + weeklyProgress.again;
+    const weeklyAccuracy = accuracyBase ? Math.round((weeklyProgress.correct / accuracyBase) * 100) : 0;
+    const averageSessionMinutes = sessionSummary.count ? Math.round((sessionSummary.durationSeconds / sessionSummary.count) / 60) : 0;
 
     const cards = [
       { label: 'Lượt học', value: weeklyProgress.studied, note: 'tổng review trong 7 ngày' },
+      { label: 'Phiên học', value: sessionSummary.count, note: `${averageSessionMinutes} phút / phiên trung bình` },
       { label: 'Pomodoro', value: weeklyFocus.length, note: `${focusMinutes} phút tập trung` },
+      { label: 'Độ chính xác', value: `${weeklyAccuracy}%`, note: 'tỉ lệ trả lời đúng trong tuần' },
       { label: 'Từ đã đụng lại', value: reviewedWords, note: 'số từ được review trong tuần' },
       { label: 'Quote / từ đã lưu', value: `${quotesSavedWeek}/${wordsSavedWeek}`, note: 'quote / word saved trong tuần' },
       { label: 'Chuỗi hiện tại', value: state.stats.currentStreak, note: 'ngày giữ nhịp học' },
       { label: 'Từ yếu hiện tại', value: weakNow, note: 'để biết nên ưu tiên củng cố gì tiếp' }
     ];
     grid.innerHTML = cards.map((card) => `<div class="summary-card"><span class="summary-label">${escapeHtml(card.label)}</span><strong>${escapeHtml(String(card.value))}</strong><span class="summary-note">${escapeHtml(card.note)}</span></div>`).join('');
-    narrative.innerHTML = `<strong>Tổng kết nhẹ:</strong><span>Bạn đã có ${weeklyProgress.studied} lượt học và ${focusMinutes} phút tập trung trong 7 ngày gần đây. ${weakNow ? `Hiện vẫn còn ${weakNow} từ yếu cần kéo lên.` : 'Hiện chưa có cụm từ yếu nổi bật.'} Hãy tiếp tục giữ nhịp đơn giản như bây giờ.</span>`;
+    narrative.innerHTML = `<strong>Tổng kết nhẹ:</strong><span>Bạn đã có ${weeklyProgress.studied} lượt học, ${sessionSummary.count} phiên học và ${focusMinutes} phút tập trung trong 7 ngày gần đây. ${sessionSummary.strengthened ? `Có ${sessionSummary.strengthened} lượt kéo mức nhớ lên.` : 'Tuần này vẫn nên tiếp tục ưu tiên các lượt ôn ngắn và đều.'} ${weakNow ? `Hiện còn ${weakNow} từ yếu cần kéo lên.` : 'Hiện chưa có cụm từ yếu nổi bật.'}</span>`;
   }
 
   function normalizeWordKey(word) {
