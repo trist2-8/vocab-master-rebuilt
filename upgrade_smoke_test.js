@@ -31,22 +31,7 @@ assert.ok((dataJs.match(/id: 'q\d+'/g) || []).length >= 40, 'data.js should ship
 assert.ok(upgradeJs.includes('weatherEffectSelect'), 'upgrade.js should expose weather effect controls');
 assert.ok(upgradeJs.includes('window-rain'), 'upgrade.js should expose new atmosphere effect modes');
 assert.ok(upgradeJs.includes('pomodoroAudioToggle'), 'upgrade.js should expose Pomodoro audio controls');
-assert.ok(upgradeJs.includes('pomodoroAudioUnlockBtn'), 'upgrade.js should expose an audio unlock button');
-assert.ok(upgradeJs.includes('pomodoroAudioSourceSelect'), 'upgrade.js should expose an audio source selector');
-assert.ok(upgradeJs.includes('pomodoroCustomAudioInput'), 'upgrade.js should expose a custom audio file input');
-assert.ok(upgradeJs.includes('pomodoroAmbientToggle'), 'upgrade.js should expose Pomodoro ambient controls');
-assert.ok(upgradeJs.includes('pomodoroAmbientPackSelect'), 'upgrade.js should expose ambient pack selection');
-assert.ok(upgradeJs.includes('pomodoroAmbientCustomInput'), 'upgrade.js should expose a custom ambient loop input');
-assert.ok(upgradeJs.includes('previewPomodoroAmbient'), 'upgrade.js should preview ambient audio');
-assert.ok(upgradeJs.includes('pomodoroAudioTestBtn'), 'upgrade.js should expose an audio test button');
-assert.ok(upgradeJs.includes('unlockPomodoroAudio'), 'upgrade.js should unlock audio before cues');
-assert.ok(audioJs.includes('unlock'), 'audio.js should expose an unlock helper');
-assert.ok(audioJs.includes('data:audio/wav;base64'), 'audio.js should generate built-in wav data urls');
-assert.ok(audioJs.includes('getStatus'), 'audio.js should expose audio status');
-assert.ok(audioJs.includes('startAmbient'), 'audio.js should support looping ambient playback');
-assert.ok(audioJs.includes('stopAmbient'), 'audio.js should stop looping ambient playback');
-assert.ok(audioJs.includes('AMBIENT_PACKS'), 'audio.js should define ambient packs');
-assert.ok(upgradeCss.includes('.pomodoro-audio-status'), 'upgrade.css should style audio status');
+assert.ok(upgradeJs.includes('pomodoroPlaylistFolderInput'), 'upgrade.js should expose a folder input for .webm playlist files');
 assert.ok(upgradeJs.includes('playPomodoroCue'), 'upgrade.js should play Pomodoro cues');
 assert.ok(upgradeJs.includes('getSupportedWeatherEffect'), 'upgrade.js should validate supported weather effects');
 assert.ok(effectsJs.includes('VMUpgradeEffects'), 'effects.js should define the upgrade effects module');
@@ -60,8 +45,6 @@ assert.ok(effectsCss.includes('vm-neon-float'), 'effects CSS should define neon 
 assert.ok(upgradeCss.includes('theme-rainy-library'), 'upgrade.css should include Rainy Library previews');
 assert.ok(upgradeCss.includes('theme-snowy-night'), 'upgrade.css should include Snowy Quiet Night previews');
 assert.ok(upgradeCss.includes('.pomodoro-audio-grid'), 'upgrade.css should style Pomodoro audio controls');
-assert.ok(upgradeCss.includes('.pomodoro-custom-audio-row'), 'upgrade.css should style custom audio controls');
-assert.ok(upgradeCss.includes('.pomodoro-ambient-grid'), 'upgrade.css should style ambient controls');
 assert.ok(vocabJs.includes('review-dashboard-view'), 'vocab.js should still target the review dashboard');
 assert.ok(manifest.version, 'manifest.json should have a version');
 

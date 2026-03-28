@@ -1917,58 +1917,29 @@ body[data-ui-theme="film-diary"] .modal-content {
   margin: 4px 0 2px;
 }
 
-.pomodoro-ambient-grid {
-  margin-top: 8px;
-}
-
-.pomodoro-audio-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 2px 0 4px;
-}
-
 .pomodoro-custom-audio-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 12px;
   align-items: center;
-  margin: 8px 0 2px;
+  margin: 10px 0 6px;
 }
-
-.pomodoro-custom-audio-meta {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+.pomodoro-custom-audio-meta { display: grid; gap: 4px; }
+.pomodoro-custom-audio-meta strong { color: #fff; }
+.pomodoro-custom-audio-meta span { color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.pomodoro-audio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 8px;
 }
-
-.pomodoro-custom-audio-meta strong {
-  color: #fff;
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pomodoro-custom-audio-meta span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
 .pomodoro-audio-status {
-  min-height: 22px;
+  margin: 6px 0 0;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
-
-#pomodoroAudioVolumeText {
-  color: var(--text-primary);
-  font-size: 12px;
-  margin-left: 6px;
-}
-
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .pomodoro-custom-audio-row {
     grid-template-columns: 1fr;
   }
