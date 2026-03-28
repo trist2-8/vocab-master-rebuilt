@@ -60,6 +60,13 @@ assert.ok(upgradeCss.includes('body[data-ui-theme="dream-sky"]'), 'upgrade.css s
 assert.ok(upgradeCss.includes('body[data-ui-theme="neon-city"]'), 'upgrade.css should include Neon City Memory wallpaper theme');
 assert.ok((upgradeJs.match(/id: '[^']+'/g) || []).filter(x => x.includes('need-not-carry') || x.includes('trying-to') || x.includes('as-a-result')).length >= 3, 'upgrade.js should include expanded curated sentence patterns');
 
+
+assert.ok(upgradeJs.includes('wallpaperIntensity'), 'upgrade.js should persist wallpaper intensity controls');
+assert.ok(upgradeJs.includes('patternVaultSearchInput'), 'upgrade.js should include Pattern Vault search controls');
+assert.ok(upgradeJs.includes('adminUnlockAllUiBtn'), 'upgrade.js should include admin developer tools');
+assert.ok(upgradeCss.includes('--vm-wallpaper-opacity'), 'upgrade.css should expose wallpaper intensity variables');
+assert.ok(upgradeCss.includes('.pattern-vault-toolbar'), 'upgrade.css should style Pattern Vault controls');
+
 assert.ok(manifest.version, 'manifest.json should have a version');
 
 assert.ok(upgradeJs.includes('getWalletSnapshot'), 'upgrade.js should normalize wallet balance through a shared snapshot');
@@ -72,3 +79,13 @@ assert.ok(upgradeCss.includes('body[data-ui-font-tone] .insight-label'), 'upgrad
 
 new vm.Script(upgradeJs, { filename: 'upgrade.js' });
 console.log('Smoke tests passed.');
+
+assert.ok(upgradeJs.includes('adminModal'), 'upgrade.js should include admin modal');
+assert.ok(upgradeJs.includes('toggleAdminMode'), 'upgrade.js should support toggling admin mode');
+assert.ok(upgradeJs.includes('unlockAllUiPacks'), 'upgrade.js should define unlockAllUiPacks for admin tools');
+assert.ok(upgradeJs.includes('restoreClassicUiMode'), 'upgrade.js should define restoreClassicUiMode for admin tools');
+assert.ok(upgradeJs.includes('resetCosmeticLayer'), 'upgrade.js should define resetCosmeticLayer for admin tools');
+assert.ok(upgradeJs.includes('grantStarterWallet'), 'upgrade.js should define grantStarterWallet for admin tools');
+assert.ok(upgradeJs.includes('applyAdminTargetAvailable'), 'upgrade.js should support setting a target available balance');
+assert.ok(upgradeJs.includes('adjustAdminAvailableBy'), 'upgrade.js should support quick admin balance adjustments');
+assert.ok(upgradeCss.includes('.admin-grid'), 'upgrade.css should style the admin tools layout');

@@ -79,3 +79,36 @@ This bundle keeps the original goal fixed at the top:
 
 ## Design safeguard
 Wallpaper themes stay optional and use dark/glass reading surfaces so the background mood feels richer without making the learning text hard to read.
+
+
+## Admin tools add-on
+- Added an optional admin mode that can be turned on or off.
+- Added an admin wallet modal to directly adjust study coins, focus bonus coins, spent UI coins, or set a target available balance.
+- Added quick +100 / +500 / +1000 / +5000 and subtract actions for fast UI testing.
+- Admin tools are optional and do not replace the normal learning flow.
+
+
+## Next-wave improvements
+- Expanded Sentence Pattern Vault with many more speaking / writing / emotion / study structures
+- Pattern Vault search + category filtering
+- Wallpaper mood controls:
+  - wallpaper on/off
+  - intensity
+  - blur
+  - readability overlay
+- Admin developer tools:
+  - unlock all UI packs
+  - restore classic mode
+  - reset cosmetic layer only
+  - grant starter test wallet
+
+## Core rule preserved
+All of the above remain optional layers. The classic learning flow and old study features stay intact.
+
+
+## Interaction fix revision
+- Fixed review-section tool behavior so upgrade modals do not stack on top of each other.
+- Opening one tool now closes the previous upgrade modal first.
+- Added stronger close behavior for Admin and other review tools: close button, footer close button, overlay click, and Escape key.
+- Turning Admin mode off now closes the Admin panel automatically so it is easier to return to normal flow.
+- Added modal-content click isolation to reduce accidental overlay-close conflicts.

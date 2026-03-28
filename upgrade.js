@@ -325,40 +325,57 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const PATTERN_TEMPLATES = [
-    { id: 'need-not-carry', label: 'You do not have to...', pattern: 'You do not have to + verb phrase', grammar: 'have to + động từ nguyên mẫu', example: 'You do not have to carry everything alone.' },
-    { id: 'pretend-actually', label: "I pretend to..., but I'm actually...", pattern: "I pretend to + action, but I'm actually + action", grammar: 'Dùng để đối lập bề ngoài và ý thật.', example: "I pretend to look around, but I'm actually looking for you." },
-    { id: 'small-can', label: 'A small ... can ...', pattern: 'A small + noun + can + verb phrase', grammar: 'Dùng để diễn tả tác động lớn từ điều nhỏ.', example: 'A small talk can actually fix a lot.' },
-    { id: 'even-still', label: 'Even ..., still ...', pattern: 'Even + situation, still + result', grammar: 'Nhấn mạnh kết quả vẫn đúng dù điều kiện khó hơn.', example: 'Even slow learning still becomes fluency.' },
-    { id: 'what-you-repeat', label: 'What you ..., will ...', pattern: 'What you + verb + will + result', grammar: 'Mệnh đề What you ... làm chủ ngữ cho cả ý.', example: 'What you repeat with care will stay with you.' },
-    { id: 'take-a-breath', label: 'Take a breath. Then ...', pattern: 'Take a breath. Then + next step', grammar: 'Hai mệnh lệnh ngắn tạo nhịp rất tự nhiên.', example: 'Take a breath. Then one more step.' },
-    { id: 'trying-to', label: "I'm trying to...", pattern: "I'm trying to + verb phrase", grammar: 'trying to diễn tả nỗ lực đang diễn ra.', example: "I'm trying to build a calmer study routine." },
-    { id: 'tend-to', label: 'I tend to...', pattern: 'I tend to + verb phrase', grammar: 'tend to diễn tả xu hướng thường xảy ra.', example: 'I tend to remember words better at night.' },
-    { id: 'turns-out', label: 'It turns out that...', pattern: 'It turns out that + clause', grammar: 'Dùng khi kết quả thực tế khác kỳ vọng ban đầu.', example: 'It turns out that short reviews work best for me.' },
-    { id: 'ended-up', label: 'I ended up...', pattern: 'I ended up + V-ing / noun', grammar: 'Diễn tả kết quả cuối cùng sau một quá trình.', example: 'I ended up saving the whole sentence pattern.' },
-    { id: 'used-to', label: "I'm used to...", pattern: "I'm used to + noun / V-ing", grammar: 'used to ở đây là quen với việc gì.', example: "I'm used to reviewing five words before bed." },
-    { id: 'feel-like', label: "I don't feel like...", pattern: "I don't feel like + V-ing", grammar: 'feel like + V-ing diễn tả không có hứng làm gì.', example: "I don't feel like rushing through this list." },
-    { id: 'feels-like', label: 'It feels like...', pattern: 'It feels like + noun / clause', grammar: 'Dùng để mô tả cảm giác chủ quan, giàu cảm xúc.', example: 'It feels like this room was made for quiet study.' },
-    { id: 'did-not-expect', label: "I did not expect..., but...", pattern: "I did not expect + noun/clause, but + clause", grammar: 'Tạo tương phản giữa dự đoán và thực tế.', example: "I did not expect this quote, but it stayed with me." },
-    { id: 'there-are-days', label: 'There are days when...', pattern: 'There are days when + clause', grammar: 'Cấu trúc tự nhiên để nói về những ngày đặc biệt.', example: 'There are days when one sentence is enough.' },
-    { id: 'still-remember', label: 'I still remember how...', pattern: 'I still remember how + clause', grammar: 'Dùng để nói về ký ức còn rõ.', example: 'I still remember how that pattern first clicked.' },
-    { id: 'what-i-mean', label: 'What I mean is...', pattern: 'What I mean is + clause', grammar: 'Cách nói rất tự nhiên khi làm rõ ý.', example: 'What I mean is that slow review is still progress.' },
-    { id: 'depends-on', label: 'It depends on...', pattern: 'It depends on + noun / wh-clause', grammar: 'Dùng để nói kết quả thay đổi theo điều kiện.', example: 'It depends on how calm your mind is.' },
-    { id: 'noticed', label: "One thing I've noticed is...", pattern: "One thing I've noticed is + clause", grammar: 'Rất hợp speaking và reflective writing.', example: "One thing I've noticed is that patterns stay longer than isolated words." },
-    { id: 'would-rather', label: "I'd rather...", pattern: "I'd rather + verb", grammar: 'would rather dùng để nói sở thích ưu tiên.', example: "I'd rather review deeply than rush through fifty words." },
-    { id: 'looking-forward', label: "I'm looking forward to...", pattern: "I'm looking forward to + noun / V-ing", grammar: 'to ở đây là giới từ, sau nó dùng danh từ hoặc V-ing.', example: "I'm looking forward to using this sentence in real conversation." },
-    { id: 'hard-but', label: "It's hard to..., but...", pattern: "It's hard to + verb, but + clause", grammar: 'Dùng để cân bằng khó khăn và hy vọng.', example: "It's hard to slow down, but slowing down helps memory." },
-    { id: 'little-goes-long-way', label: 'A little ... goes a long way', pattern: 'A little + noun + goes a long way', grammar: 'Nhấn mạnh một lượng nhỏ nhưng hiệu quả cao.', example: 'A little daily review goes a long way.' },
-    { id: 'the-more-the-easier', label: 'The more..., the easier...', pattern: 'The more + clause, the easier + clause', grammar: 'Cấu trúc so sánh kép rất hữu ích cho writing.', example: 'The more you repeat calmly, the easier recall becomes.' },
-    { id: 'it-takes-time', label: 'It takes time to...', pattern: 'It takes time to + verb', grammar: 'Câu nền rất phổ biến trong khuyên nhủ và tự trấn an.', example: 'It takes time to build long-term memory.' },
-    { id: 'progress-not-always', label: 'Progress does not always...', pattern: 'Progress does not always + verb', grammar: 'Hợp để nói về tiến trình học không tuyến tính.', example: 'Progress does not always look dramatic at first.' },
-    { id: 'one-step-better', label: 'One step today is better than...', pattern: 'One step today is better than + noun phrase', grammar: 'So sánh để khuyến khích hành động nhỏ.', example: 'One step today is better than waiting for a perfect mood.' },
-    { id: 'in-many-cases', label: 'In many cases,...', pattern: 'In many cases, + clause', grammar: 'Mở bài gọn, hợp writing và speaking học thuật.', example: 'In many cases, short repetition works better than cramming.' },
-    { id: 'one-explanation', label: 'One possible explanation is...', pattern: 'One possible explanation is + noun/clause', grammar: 'Dùng để đưa ra lý giải trung tính.', example: 'One possible explanation is that the word lacked context.' },
-    { id: 'this-can-be-seen', label: 'This can be seen in...', pattern: 'This can be seen in + noun phrase', grammar: 'Cấu trúc viết học thuật nhẹ.', example: 'This can be seen in your weekly review patterns.' },
-    { id: 'on-one-hand', label: 'On the one hand..., on the other hand...', pattern: 'On the one hand + clause, on the other hand + clause', grammar: 'Cấu trúc đối chiếu rất quan trọng.', example: 'On the one hand, the UI is richer; on the other hand, the flow stays simple.' },
-    { id: 'key-advantage', label: 'A key advantage is...', pattern: 'A key advantage is + noun phrase', grammar: 'Hợp cho writing, thuyết trình, giải thích lợi ích.', example: 'A key advantage is that patterns help words stay longer.' },
-    { id: 'this-suggests', label: 'This suggests that...', pattern: 'This suggests that + clause', grammar: 'Dùng để rút ra nhận định từ dữ liệu hoặc trải nghiệm.', example: 'This suggests that calm repetition improves recall.' },
-    { id: 'as-a-result', label: 'As a result,...', pattern: 'As a result, + clause', grammar: 'Cấu trúc nối kết quả rất nền.', example: 'As a result, the same weak words appear less often.' }
+    { id: 'need-not-carry', category: 'daily', label: 'You do not have to...', pattern: 'You do not have to + verb phrase', grammar: 'have to + động từ nguyên mẫu', example: 'You do not have to carry everything alone.' },
+    { id: 'pretend-actually', category: 'emotion', label: "I pretend to..., but I'm actually...", pattern: "I pretend to + action, but I'm actually + action", grammar: 'Dùng để đối lập bề ngoài và ý thật.', example: "I pretend to look around, but I'm actually looking for you." },
+    { id: 'small-can', category: 'daily', label: 'A small ... can ...', pattern: 'A small + noun + can + verb phrase', grammar: 'Dùng để diễn tả tác động lớn từ điều nhỏ.', example: 'A small talk can actually fix a lot.' },
+    { id: 'even-still', category: 'study', label: 'Even ..., still ...', pattern: 'Even + situation, still + result', grammar: 'Nhấn mạnh kết quả vẫn đúng dù điều kiện khó hơn.', example: 'Even slow learning still becomes fluency.' },
+    { id: 'what-you-repeat', category: 'study', label: 'What you ..., will ...', pattern: 'What you + verb + will + result', grammar: 'Mệnh đề What you ... làm chủ ngữ cho cả ý.', example: 'What you repeat with care will stay with you.' },
+    { id: 'take-a-breath', category: 'emotion', label: 'Take a breath. Then ...', pattern: 'Take a breath. Then + next step', grammar: 'Hai mệnh lệnh ngắn tạo nhịp rất tự nhiên.', example: 'Take a breath. Then one more step.' },
+
+    { id: 'trying-to', category: 'speaking', label: "I'm trying to...", pattern: "I'm trying to + verb phrase", grammar: 'Dùng để nói về nỗ lực hiện tại.', example: "I'm trying to build a steady study habit." },
+    { id: 'tend-to', category: 'speaking', label: 'I tend to...', pattern: 'I tend to + verb phrase', grammar: 'Diễn tả xu hướng thường xuyên.', example: 'I tend to remember examples better than definitions.' },
+    { id: 'turns-out', category: 'speaking', label: 'It turns out that...', pattern: 'It turns out that + clause', grammar: 'Dùng khi kết quả khác với điều bạn nghĩ lúc đầu.', example: 'It turns out that short review sessions work best for me.' },
+    { id: 'ended-up', category: 'daily', label: 'I ended up...', pattern: 'I ended up + V-ing / noun', grammar: 'Dùng khi kết quả cuối cùng khác kế hoạch ban đầu.', example: 'I ended up reviewing the difficult words twice.' },
+    { id: 'used-to', category: 'daily', label: "I'm used to...", pattern: "I'm used to + noun / V-ing", grammar: 'used to ở đây mang nghĩa quen với.', example: "I'm used to studying with a timer now." },
+    { id: 'not-ready', category: 'emotion', label: "I'm not ready to...", pattern: "I'm not ready to + verb phrase", grammar: 'Dùng để diễn tả chưa sẵn sàng.', example: "I'm not ready to give up on this word yet." },
+    { id: 'dont-feel-like', category: 'daily', label: "I don't feel like...", pattern: "I don't feel like + V-ing", grammar: 'feel like + V-ing.', example: "I don't feel like rushing through the review today." },
+
+    { id: 'it-feels-like', category: 'emotion', label: 'It feels like...', pattern: 'It feels like + noun / clause', grammar: 'Dùng để mô tả cảm giác rất tự nhiên.', example: 'It feels like this quote was written for tonight.' },
+    { id: 'did-not-expect', category: 'emotion', label: 'I did not expect..., but...', pattern: 'I did not expect + noun/clause, but + clause', grammar: 'Tạo thế đối lập cảm xúc.', example: 'I did not expect this sentence to stay with me, but it did.' },
+    { id: 'some-people', category: 'emotion', label: 'Some people...', pattern: 'Some people + verb / clause', grammar: 'Mở câu giàu hình ảnh hoặc cảm xúc.', example: 'Some people arrive like a sentence you keep rereading.' },
+    { id: 'there-are-days', category: 'emotion', label: 'There are days when...', pattern: 'There are days when + clause', grammar: 'Dùng để diễn tả trạng thái lặp lại theo ngày.', example: 'There are days when one gentle line is enough.' },
+    { id: 'still-remember-how', category: 'emotion', label: 'I still remember how...', pattern: 'I still remember how + clause', grammar: 'Cấu trúc gợi ký ức rất tự nhiên.', example: 'I still remember how that word first started making sense.' },
+    { id: 'maybe-this-is', category: 'emotion', label: 'Maybe this is what ... feels like', pattern: 'Maybe this is what + noun + feels like', grammar: 'Dùng để diễn tả cảm giác đang dần hiểu ra.', example: 'Maybe this is what calm progress feels like.' },
+
+    { id: 'main-reason', category: 'speaking', label: 'The main reason is...', pattern: 'The main reason is + noun / clause', grammar: 'Cấu trúc rất hữu ích cho speaking.', example: 'The main reason is that repetition helps my memory.' },
+    { id: 'what-i-mean', category: 'speaking', label: 'What I mean is...', pattern: 'What I mean is + clause', grammar: 'Dùng để làm rõ ý.', example: 'What I mean is that I need slower review, not less review.' },
+    { id: 'it-depends', category: 'speaking', label: 'It depends on...', pattern: 'It depends on + noun / wh-clause', grammar: 'Câu nền cho speaking linh hoạt.', example: 'It depends on how tired I am after work.' },
+    { id: 'one-thing-noticed', category: 'speaking', label: "One thing I've noticed is...", pattern: "One thing I've noticed is + clause", grammar: 'Rất tự nhiên cho reflective speaking.', example: "One thing I've noticed is that I remember phrases better than isolated words." },
+    { id: 'would-rather', category: 'speaking', label: "I'd rather...", pattern: "I'd rather + verb", grammar: 'would rather + động từ nguyên mẫu.', example: "I'd rather do one careful session than three rushed ones." },
+    { id: 'looking-forward', category: 'speaking', label: "I'm looking forward to...", pattern: "I'm looking forward to + V-ing / noun", grammar: 'to ở đây là giới từ.', example: "I'm looking forward to seeing this word again tomorrow." },
+    { id: 'hard-but', category: 'speaking', label: "It's hard to..., but...", pattern: "It's hard to + verb, but + clause", grammar: 'Dùng để thừa nhận khó khăn nhưng vẫn tiến lên.', example: "It's hard to stay calm, but I can still review one more card." },
+
+    { id: 'little-goes-long-way', category: 'study', label: 'A little ... goes a long way.', pattern: 'A little + noun + goes a long way', grammar: 'Nói về hiệu quả lớn của điều nhỏ.', example: 'A little daily review goes a long way.' },
+    { id: 'more-easier', category: 'study', label: 'The more ..., the easier ...', pattern: 'The more + clause, the easier + clause', grammar: 'Mẫu so sánh kép.', example: 'The more examples you see, the easier recall becomes.' },
+    { id: 'takes-time', category: 'study', label: 'It takes time to...', pattern: 'It takes time to + verb', grammar: 'Câu rất nền cho tự nhắc nhở học lâu dài.', example: 'It takes time to build a strong memory.' },
+    { id: 'progress-not-always', category: 'study', label: 'Progress does not always...', pattern: 'Progress does not always + verb phrase', grammar: 'Cách nói nhẹ nhưng sâu.', example: 'Progress does not always look dramatic.' },
+    { id: 'one-step-better', category: 'study', label: 'One step today is better than...', pattern: 'One step today is better than + noun/gerund', grammar: 'Động viên học từng chút.', example: 'One step today is better than waiting for perfect motivation.' },
+    { id: 'review-with', category: 'study', label: 'Review with..., not...', pattern: 'Review with + noun, not + noun', grammar: 'Cấu trúc ngắn, nhớ lâu.', example: 'Review with patience, not panic.' },
+
+    { id: 'in-many-cases', category: 'writing', label: 'In many cases,...', pattern: 'In many cases, + clause', grammar: 'Mở đoạn writing tự nhiên.', example: 'In many cases, repeated exposure matters more than speed.' },
+    { id: 'one-explanation', category: 'writing', label: 'One possible explanation is...', pattern: 'One possible explanation is + noun / clause', grammar: 'Hữu ích cho essays và explanations.', example: 'One possible explanation is that emotional language is easier to retain.' },
+    { id: 'this-can-be-seen', category: 'writing', label: 'This can be seen in...', pattern: 'This can be seen in + noun / clause', grammar: 'Mở dẫn chứng.', example: 'This can be seen in the way learners remember collocations from quotes.' },
+    { id: 'on-one-hand', category: 'writing', label: 'On the one hand..., on the other hand...', pattern: 'On the one hand, + clause. On the other hand, + clause.', grammar: 'Mẫu đối chiếu kinh điển.', example: 'On the one hand, themes make study pleasant. On the other hand, clarity must stay first.' },
+    { id: 'key-advantage', category: 'writing', label: 'A key advantage is...', pattern: 'A key advantage is + noun / clause', grammar: 'Hữu ích cho task 2 / writing ngắn.', example: 'A key advantage is that the app stays simple while adding motivation.' },
+    { id: 'this-suggests', category: 'writing', label: 'This suggests that...', pattern: 'This suggests that + clause', grammar: 'Dùng để rút ra kết luận nhẹ.', example: 'This suggests that small daily exposure supports retention.' },
+    { id: 'as-a-result', category: 'writing', label: 'As a result,...', pattern: 'As a result, + clause', grammar: 'Mẫu chỉ kết quả.', example: 'As a result, learners return to the app more consistently.' },
+
+    { id: 'there-is-no-need', category: 'daily', label: 'There is no need to...', pattern: 'There is no need to + verb', grammar: 'Câu nhẹ nhàng để giảm áp lực.', example: 'There is no need to finish everything tonight.' },
+    { id: 'i-want-to-keep', category: 'daily', label: 'I want to keep...', pattern: 'I want to keep + noun / V-ing', grammar: 'keep + noun hoặc V-ing.', example: 'I want to keep this sentence in my pattern vault.' },
+    { id: 'this-helps-me', category: 'daily', label: 'This helps me...', pattern: 'This helps me + verb', grammar: 'help + object + verb nguyên mẫu.', example: 'This helps me review without feeling overwhelmed.' },
+    { id: 'what-matters-most', category: 'study', label: 'What matters most is...', pattern: 'What matters most is + noun / clause', grammar: 'Dùng để nhấn trọng tâm.', example: 'What matters most is returning to the words again.' },
+    { id: 'i-would-like-to', category: 'speaking', label: 'I would like to...', pattern: 'I would like to + verb', grammar: 'Mẫu speaking cơ bản nhưng lịch sự.', example: 'I would like to build a stronger daily routine.' },
+    { id: 'it-is-worth', category: 'study', label: 'It is worth...', pattern: 'It is worth + V-ing / noun', grammar: 'worth + V-ing.', example: 'It is worth saving useful patterns for later review.' }
   ];
 
   const SHOP_CONFIG = {
@@ -386,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
     focus: null,
     quotes: null,
     collections: null,
+    admin: null,
     spentCoins: 0,
     bonusCoins: 0,
     runtime: {
@@ -401,6 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const byId = (id) => document.getElementById(id);
+  const UPGRADE_MODAL_IDS = ['customizationModal', 'pomodoroModal', 'dailySayingModal', 'memoryPathModal', 'weakRescueModal', 'patternVaultModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal', 'adminModal'];
 
   init().catch((error) => {
     console.error('Vocab Master upgrade layer failed to initialize', error);
@@ -409,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     injectUpgradeUi();
     bindEvents();
+    setupUpgradeModalUtilities();
     await loadState();
     await ensureWalletConsistency();
     applyUiPreferences();
@@ -433,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="reward-action-row">
             <button id="openCustomizationBtn" class="secondary-btn">🎨 Tùy biến UI</button>
+            <button id="openAdminPanelBtn" class="secondary-btn">🛠 Admin</button>
             <button id="openPomodoroBtn" class="secondary-btn">🍅 Pomodoro</button>
             <button id="openProgressBoosterBtn" class="secondary-btn">🎯 Nhiệm vụ hôm nay</button>
             <button id="openDailySayingBtn" class="secondary-btn">💬 Câu nói mỗi ngày</button>
@@ -497,6 +518,14 @@ document.addEventListener('DOMContentLoaded', () => {
               <span>Bạn chỉ mở thêm style packs, layout packs, font packs và quote packs để giao diện đa dạng hơn mà không ảnh hưởng tính năng học cũ.</span>
             </div>
 
+            <div class="admin-quick-note">
+              <div>
+                <strong id="adminQuickStatus">Admin mode: tắt</strong>
+                <span class="muted-text">Dùng khi bạn cần tự điều chỉnh coin hoặc sửa số dư để thử giao diện. Có thể bật/tắt bất cứ lúc nào.</span>
+              </div>
+              <button id="openAdminFromCustomizationBtn" class="secondary-btn" type="button">🛠 Mở Admin</button>
+            </div>
+
             <div class="customizer-section">
               <div class="section-title-row">
                 <h3>Preset 1 chạm</h3>
@@ -543,6 +572,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="muted-text">Nút “câu nói mỗi ngày” vẫn là nút nhỏ ở home, nhưng có thể đổi cách mở card.</span>
               </div>
               <div id="quoteStyleGrid" class="theme-shop-grid"></div>
+            </div>
+
+            <div class="customizer-section">
+              <div class="section-title-row">
+                <h3>Wallpaper mood controls</h3>
+                <span class="muted-text">Giúp các wallpaper-style packs đẹp hơn nhưng vẫn giữ chữ dễ đọc.</span>
+              </div>
+              <div class="toggle-grid wallpaper-control-grid">
+                <label class="toggle-card"><span>Bật lớp wallpaper</span><input id="wallpaperToggle" type="checkbox"></label>
+                <label class="toggle-card range-card"><span>Độ đậm wallpaper</span><input id="wallpaperIntensityRange" type="range" min="35" max="100" step="5"></label>
+                <label class="toggle-card range-card"><span>Blur wallpaper</span><input id="wallpaperBlurRange" type="range" min="0" max="22" step="1"></label>
+                <label class="toggle-card range-card"><span>Lớp phủ bảo vệ chữ</span><input id="wallpaperOverlayRange" type="range" min="20" max="85" step="5"></label>
+              </div>
             </div>
 
             <div class="customizer-section">
@@ -739,6 +781,19 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <button id="patternVaultSaveCurrentBtn" class="secondary-btn" type="button">Lưu pattern hiện tại</button>
             </div>
+            <div class="pattern-vault-toolbar">
+              <input id="patternVaultSearchInput" class="modern-input" type="text" placeholder="Tìm mẫu câu, ví dụ, grammar...">
+              <select id="patternVaultCategorySelect" class="modern-input">
+                <option value="all">Tất cả nhóm pattern</option>
+                <option value="daily">Daily</option>
+                <option value="emotion">Emotion</option>
+                <option value="study">Study</option>
+                <option value="speaking">Speaking</option>
+                <option value="writing">Writing</option>
+                <option value="saved">Đã lưu</option>
+                <option value="quote">Từ quote hôm nay</option>
+              </select>
+            </div>
             <div id="patternVaultGrid" class="pattern-vault-grid"></div>
           </div>
         </div>
@@ -829,6 +884,78 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
+        <div id="adminModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal admin-modal-content">
+            <button class="close-modal" data-close-modal="adminModal" aria-label="Đóng">×</button>
+            <div class="section-title-row">
+              <div>
+                <h2>🛠 Admin wallet tools</h2>
+                <p class="muted-text">Công cụ này chỉ để bạn tự điều chỉnh coin và test giao diện. Khi tắt admin mode, app quay về trải nghiệm bình thường.</p>
+              </div>
+              <span id="adminModeBadge" class="admin-badge">Admin OFF</span>
+            </div>
+            <div class="admin-toggle-row">
+              <div class="classic-safe-note">
+                <strong>Chế độ quản trị là lớp tùy chọn.</strong>
+                <span>Không thay đổi logic học cũ. Chỉ mở quyền chỉnh coin để test hoặc tự cấp lại xu khi bạn đã tiêu hết.</span>
+              </div>
+              <button id="adminModeToggleBtn" class="primary-btn" type="button">Bật admin mode</button>
+            </div>
+            <div class="admin-grid">
+              <section class="panel-card compact-panel">
+                <div class="section-title-row"><h3>Snapshot hiện tại</h3><span class="muted-text">Tự đồng bộ theo ví UI</span></div>
+                <div class="wallet-board">
+                  <div class="wallet-stat"><span>Coin học</span><strong id="adminStudyCoinsValue">0</strong></div>
+                  <div class="wallet-stat"><span>Thưởng focus</span><strong id="adminBonusCoinsValue">0</strong></div>
+                  <div class="wallet-stat"><span>Đã tiêu UI</span><strong id="adminSpentCoinsValue">0</strong></div>
+                  <div class="wallet-stat"><span>Số dư khả dụng</span><strong id="adminAvailableCoinsValue">0</strong></div>
+                </div>
+              </section>
+              <section class="panel-card compact-panel">
+                <div class="section-title-row"><h3>Chỉnh trực tiếp</h3><span class="muted-text">Bị khóa khi admin tắt</span></div>
+                <div class="admin-control-grid">
+                  <label>Coin học
+                    <input id="adminStudyCoinsInput" class="modern-input" type="number" min="0" step="1">
+                  </label>
+                  <label>Thưởng focus
+                    <input id="adminBonusCoinsInput" class="modern-input" type="number" min="0" step="1">
+                  </label>
+                  <label>Đã tiêu UI
+                    <input id="adminSpentCoinsInput" class="modern-input" type="number" min="0" step="1">
+                  </label>
+                  <label>Số dư mong muốn
+                    <input id="adminTargetAvailableInput" class="modern-input" type="number" min="0" step="1">
+                  </label>
+                </div>
+                <div class="admin-button-grid">
+                  <button id="adminApplyDirectBtn" class="primary-btn" type="button">Lưu số đã nhập</button>
+                  <button id="adminApplyTargetBtn" class="secondary-btn" type="button">Đặt theo số dư mong muốn</button>
+                  <button id="adminResetSpentBtn" class="secondary-btn" type="button">Reset đã tiêu UI</button>
+                  <button id="adminRepairWalletBtn" class="secondary-btn" type="button">Sửa đồng bộ ví</button>
+                </div>
+              </section>
+            </div>
+            <section class="panel-card compact-panel">
+              <div class="section-title-row"><h3>Tác vụ nhanh</h3><span class="muted-text">Dùng để nạp/xả nhanh khi test theme</span></div>
+              <div class="admin-button-grid admin-button-grid-quick">
+                <button class="secondary-btn" data-admin-add="100" type="button">+100</button>
+                <button class="secondary-btn" data-admin-add="500" type="button">+500</button>
+                <button class="secondary-btn" data-admin-add="1000" type="button">+1000</button>
+                <button class="secondary-btn" data-admin-add="5000" type="button">+5000</button>
+                <button class="secondary-btn" data-admin-add="-100" type="button">-100</button>
+                <button class="secondary-btn" data-admin-add="-500" type="button">-500</button>
+              </div>
+              <div class="admin-dev-grid">
+                <button id="adminUnlockAllUiBtn" class="secondary-btn" type="button">🔓 Mở toàn bộ pack UI</button>
+                <button id="adminRestoreClassicBtn" class="secondary-btn" type="button">🪶 Về classic mode</button>
+                <button id="adminResetCosmeticBtn" class="secondary-btn" type="button">♻ Reset lớp cosmetic</button>
+                <button id="adminStarterWalletBtn" class="secondary-btn" type="button">🟡 Nạp ví test 3000</button>
+              </div>
+              <div id="adminHelperNote" class="reward-mini-note">Khi bật admin mode, bạn có thể chuyển qua lại giữa chế độ bình thường và chế độ chỉnh coin mà không mất các tính năng học hiện có.</div>
+            </section>
+          </div>
+        </div>
+
         <div id="celebrationBurst" class="celebration-burst hidden" aria-hidden="true">
           <span>✨</span><span>🎉</span><span>📘</span><span>🍅</span><span>🟡</span>
         </div>
@@ -839,48 +966,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function bindEvents() {
-    byId('openCustomizationBtn')?.addEventListener('click', () => openModal('customizationModal'));
-    byId('openPomodoroBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
-    byId('openProgressBoosterBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openCustomizationBtn')?.addEventListener('click', () => openExclusiveModal('customizationModal'));
+    byId('openAdminPanelBtn')?.addEventListener('click', () => { renderAdminModal(); openExclusiveModal('adminModal'); });
+    byId('openAdminFromCustomizationBtn')?.addEventListener('click', () => { renderAdminModal(); openExclusiveModal('adminModal'); });
+    byId('openPomodoroBtn')?.addEventListener('click', () => openExclusiveModal('pomodoroModal'));
+    byId('openProgressBoosterBtn')?.addEventListener('click', () => openExclusiveModal('pomodoroModal'));
     byId('openDailySayingBtn')?.addEventListener('click', openDailySayingModal);
     byId('dailySayingLauncher')?.addEventListener('click', openDailySayingModal);
     byId('openFocusRoomBtn')?.addEventListener('click', () => {
       renderFocusRoomModal();
-      openModal('focusRoomModal');
+      openExclusiveModal('focusRoomModal');
     });
     byId('openCollectionsBtn')?.addEventListener('click', () => {
       renderCollectionsModal();
-      openModal('collectionsModal');
+      openExclusiveModal('collectionsModal');
     });
     byId('openMemoryPathBtn')?.addEventListener('click', () => {
       renderMemoryPathModal();
-      openModal('memoryPathModal');
+      openExclusiveModal('memoryPathModal');
     });
     byId('openWeakRescueBtn')?.addEventListener('click', () => {
       renderWeakRescueModal();
-      openModal('weakRescueModal');
+      openExclusiveModal('weakRescueModal');
     });
     byId('openPatternVaultBtn')?.addEventListener('click', () => {
       renderPatternVaultModal();
-      openModal('patternVaultModal');
+      openExclusiveModal('patternVaultModal');
     });
     byId('openWeeklyRecapBtn')?.addEventListener('click', () => {
       renderWeeklyRecapModal();
-      openModal('weeklyRecapModal');
+      openExclusiveModal('weeklyRecapModal');
     });
     byId('dailyQuotePrevBtn')?.addEventListener('click', () => shiftQuote(-1));
     byId('dailyQuoteNextBtn')?.addEventListener('click', () => shiftQuote(1));
     byId('saveDailyQuoteBtn')?.addEventListener('click', toggleCurrentQuoteSaved);
     byId('openCollectionsFromQuoteBtn')?.addEventListener('click', () => {
       renderCollectionsModal();
-      openModal('collectionsModal');
+      openExclusiveModal('collectionsModal');
     });
     byId('dailyWordSpeakBtn')?.addEventListener('click', speakSelectedQuoteWord);
     byId('dailyWordSaveBtn')?.addEventListener('click', saveSelectedQuoteWordToVocabulary);
     byId('dailyPatternSaveBtn')?.addEventListener('click', saveCurrentQuotePattern);
     byId('dailyOpenMemoryPathBtn')?.addEventListener('click', () => {
       renderMemoryPathModal();
-      openModal('memoryPathModal');
+      openExclusiveModal('memoryPathModal');
     });
     byId('memoryPathRefreshBtn')?.addEventListener('click', nextMemoryPathSource);
     byId('memoryPathSpeakBtn')?.addEventListener('click', speakMemoryPathWord);
@@ -894,12 +1023,30 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('weakRescueStudyBtn')?.addEventListener('click', startWeakRescueStudy);
     byId('patternVaultGrid')?.addEventListener('click', handlePatternVaultClick);
     byId('patternVaultSaveCurrentBtn')?.addEventListener('click', saveCurrentQuotePattern);
+    byId('patternVaultSearchInput')?.addEventListener('input', renderPatternVaultModal);
+    byId('patternVaultCategorySelect')?.addEventListener('change', renderPatternVaultModal);
     byId('focusRoomNextBtn')?.addEventListener('click', nextFocusRoomWord);
     byId('focusRoomRevealBtn')?.addEventListener('click', toggleFocusRoomMeaning);
     byId('focusRoomSpeakBtn')?.addEventListener('click', speakCurrentFocusWord);
     byId('focusRoomSaveBtn')?.addEventListener('click', saveCurrentFocusWordToCollection);
     byId('focusRoomStudyBtn')?.addEventListener('click', startFocusRoomStudy);
-    byId('focusRoomPomodoroBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('focusRoomPomodoroBtn')?.addEventListener('click', () => openExclusiveModal('pomodoroModal'));
+
+    byId('adminModeToggleBtn')?.addEventListener('click', toggleAdminMode);
+    byId('adminApplyDirectBtn')?.addEventListener('click', applyAdminDirectValues);
+    byId('adminApplyTargetBtn')?.addEventListener('click', applyAdminTargetAvailable);
+    byId('adminResetSpentBtn')?.addEventListener('click', resetAdminSpentCoins);
+    byId('adminRepairWalletBtn')?.addEventListener('click', repairAdminWallet);
+    byId('adminUnlockAllUiBtn')?.addEventListener('click', unlockAllUiPacks);
+    byId('adminRestoreClassicBtn')?.addEventListener('click', restoreClassicUiMode);
+    byId('adminResetCosmeticBtn')?.addEventListener('click', resetCosmeticLayer);
+    byId('adminStarterWalletBtn')?.addEventListener('click', grantStarterWallet);
+    byId('adminModal')?.addEventListener('click', (event) => {
+      const addButton = event.target.closest('[data-admin-add]');
+      if (addButton) {
+        adjustAdminAvailableBy(Number(addButton.dataset.adminAdd) || 0);
+      }
+    });
 
     byId('dailyQuoteWordChips')?.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-word-key]');
@@ -912,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
     });
 
-    ['customizationModal', 'pomodoroModal', 'dailySayingModal', 'memoryPathModal', 'weakRescueModal', 'patternVaultModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal'].forEach((modalId) => {
+    UPGRADE_MODAL_IDS.forEach((modalId) => {
       const modal = byId(modalId);
       modal?.addEventListener('click', (event) => {
         if (event.target === modal) closeModal(modalId);
@@ -933,6 +1080,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     byId('densitySelect')?.addEventListener('change', async (event) => {
       state.ui.density = event.target.value;
+      await saveUiState();
+    });
+    byId('wallpaperToggle')?.addEventListener('change', async (event) => {
+      state.ui.wallpaperEnabled = event.target.checked;
+      await saveUiState();
+    });
+    byId('wallpaperIntensityRange')?.addEventListener('input', async (event) => {
+      state.ui.wallpaperIntensity = clampRange(event.target.value, 35, 100, 90);
+      applyUiPreferences();
+      await saveUiState();
+    });
+    byId('wallpaperBlurRange')?.addEventListener('input', async (event) => {
+      state.ui.wallpaperBlur = clampRange(event.target.value, 0, 22, 6);
+      applyUiPreferences();
+      await saveUiState();
+    });
+    byId('wallpaperOverlayRange')?.addEventListener('input', async (event) => {
+      state.ui.wallpaperOverlay = clampRange(event.target.value, 20, 85, 58);
+      applyUiPreferences();
       await saveUiState();
     });
 
@@ -984,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('pomodoroStartBtn')?.addEventListener('click', startPomodoro);
     byId('pomodoroPauseBtn')?.addEventListener('click', () => pausePomodoro());
     byId('pomodoroResetBtn')?.addEventListener('click', resetPomodoro);
-    byId('pomodoroMiniOpenBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('pomodoroMiniOpenBtn')?.addEventListener('click', () => openExclusiveModal('pomodoroModal'));
     byId('pomodoroMiniToggleBtn')?.addEventListener('click', () => {
       if (state.runtime.isRunning) pausePomodoro(false);
       else startPomodoro();
@@ -1010,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         syncPomodoroRuntime();
       }
       if (changes.vm_collections) state.collections = normalizeCollectionsState(changes.vm_collections.newValue || {});
+      if (changes.vm_admin) state.admin = normalizeAdminState(changes.vm_admin.newValue || {});
       if (changes.vm_spentCoins) {
         state.spentCoins = Math.max(0, Number(changes.vm_spentCoins.newValue) || 0);
         walletTouched = true;
@@ -1040,6 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vm_focus: {},
       vm_quotes: {},
       vm_collections: {},
+      vm_admin: {},
       vm_spentCoins: 0,
       vm_bonusCoins: 0
     });
@@ -1050,6 +1218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.focus = normalizeFocusState(result.vm_focus || {});
     state.quotes = normalizeQuotesState(result.vm_quotes || {});
     state.collections = normalizeCollectionsState(result.vm_collections || {});
+    state.admin = normalizeAdminState(result.vm_admin || {});
     state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     syncSavedQuoteIdsFromCollections();
@@ -1110,7 +1279,11 @@ document.addEventListener('DOMContentLoaded', () => {
       motionEnabled: raw.motionEnabled !== false,
       companionEnabled: raw.companionEnabled !== false,
       autoCelebrate: raw.autoCelebrate !== false,
-      density: ['compact', 'balanced', 'comfortable'].includes(raw.density) ? raw.density : 'balanced'
+      density: ['compact', 'balanced', 'comfortable'].includes(raw.density) ? raw.density : 'balanced',
+      wallpaperEnabled: raw.wallpaperEnabled !== false,
+      wallpaperIntensity: clampRange(raw.wallpaperIntensity, 35, 100, 90),
+      wallpaperBlur: clampRange(raw.wallpaperBlur, 0, 22, 6),
+      wallpaperOverlay: clampRange(raw.wallpaperOverlay, 20, 85, 58)
     };
 
     ensureActiveUnlocked(ui, 'theme', 'unlockedThemes', 'midnight');
@@ -1135,6 +1308,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function ensureActiveUnlocked(ui, activeKey, unlockedKey, fallbackId) {
     if (!ui[unlockedKey].includes(fallbackId)) ui[unlockedKey].unshift(fallbackId);
     if (!ui[unlockedKey].includes(ui[activeKey])) ui[activeKey] = fallbackId;
+  }
+
+  function clampRange(value, min, max, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.min(max, Math.max(min, number));
   }
 
   function normalizeFocusState(raw = {}) {
@@ -1223,6 +1402,13 @@ document.addEventListener('DOMContentLoaded', () => {
       savedQuotes: normalizeSavedItems(raw.savedQuotes, (item) => validQuoteIds.has(item.quoteId), 'quoteId'),
       savedWords: normalizeSavedItems(raw.savedWords, (item) => Boolean(item.wordKey), 'wordKey'),
       savedPatterns: normalizeSavedItems(raw.savedPatterns, (item) => Boolean(item.patternId), 'patternId')
+    };
+  }
+
+  function normalizeAdminState(raw = {}) {
+    return {
+      enabled: Boolean(raw.enabled),
+      lastUpdatedAt: Number(raw.lastUpdatedAt) || 0
     };
   }
 
@@ -1362,6 +1548,53 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal(id) {
     byId(id)?.classList.add('hidden');
   }
+
+  function closeAllUpgradeModals(exceptId = '') {
+    UPGRADE_MODAL_IDS.forEach((modalId) => {
+      if (exceptId && modalId === exceptId) return;
+      closeModal(modalId);
+    });
+  }
+
+  function openExclusiveModal(id) {
+    closeAllUpgradeModals(id);
+    openModal(id);
+  }
+
+  function setupUpgradeModalUtilities() {
+    UPGRADE_MODAL_IDS.forEach((modalId) => {
+      const modal = byId(modalId);
+      const content = modal?.querySelector('.modal-content');
+      if (content) {
+        content.addEventListener('click', (event) => event.stopPropagation());
+      }
+      if (!modal || modal.dataset.enhanced === 'true') return;
+      modal.dataset.enhanced = 'true';
+      const footer = modal.querySelector('.footer-actions');
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'secondary-btn upgrade-close-footer-btn';
+      closeBtn.textContent = 'Đóng';
+      closeBtn.addEventListener('click', () => closeModal(modalId));
+      if (footer) footer.appendChild(closeBtn);
+      else if (content) {
+        const footerWrap = document.createElement('div');
+        footerWrap.className = 'footer-actions upgrade-modal-footer';
+        footerWrap.appendChild(closeBtn);
+        content.appendChild(footerWrap);
+      }
+    });
+
+    if (!document.body.dataset.upgradeEscBound) {
+      document.body.dataset.upgradeEscBound = 'true';
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openId = UPGRADE_MODAL_IDS.find((modalId) => !byId(modalId)?.classList.contains('hidden'));
+        if (openId) closeModal(openId);
+      });
+    }
+  }
+
   function getWalletSnapshot() {
     const studyCoins = Math.max(0, Number(state.stats.coins) || 0);
     const bonusCoins = Math.max(0, Number(state.bonusCoins) || 0);
@@ -1392,6 +1625,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.dataset.uiFontTone = state.ui.fontTone;
     document.body.dataset.uiQuoteStyle = state.ui.quoteStyle;
     document.body.dataset.uiDensity = state.ui.density;
+    document.body.dataset.uiWallpaperEnabled = state.ui.wallpaperEnabled ? 'on' : 'off';
+    document.body.style.setProperty('--vm-wallpaper-opacity', String((state.ui.wallpaperIntensity || 90) / 100));
+    document.body.style.setProperty('--vm-wallpaper-blur', `${state.ui.wallpaperBlur || 0}px`);
+    document.body.style.setProperty('--vm-wallpaper-overlay', String((state.ui.wallpaperOverlay || 58) / 100));
     document.body.classList.toggle('reduced-motion', !state.ui.motionEnabled);
 
     const companion = byId('ambientCompanion');
@@ -1413,6 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMemoryPathModal();
     renderWeakRescueModal();
     renderFocusRoomModal();
+    renderAdminModal();
     renderPomodoroWidgets();
   }
 
@@ -1431,10 +1669,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = byId('rewardMiniNote');
     if (note) {
       const walletNote = `Coin học hiện tại: ${wallet.studyCoins} • thưởng focus: ${wallet.bonusCoins} • đã tiêu cho UI: ${wallet.spentCoins}.`;
+      const adminNote = state.admin?.enabled ? ' Admin mode đang bật.' : '';
       if (counts.weak) {
-        note.textContent = `Bạn còn ${counts.weak} từ yếu. ${walletNote} Classic mode vẫn được giữ nguyên để học như cũ.`;
+        note.textContent = `Bạn còn ${counts.weak} từ yếu. ${walletNote} Classic mode vẫn được giữ nguyên để học như cũ.${adminNote}`;
       } else {
-        note.textContent = `${walletNote} Hiện tại bạn đang dùng ${getMeta('theme', state.ui.theme).name} + ${getMeta('layout', state.ui.layoutPack).name}.`;
+        note.textContent = `${walletNote} Hiện tại bạn đang dùng ${getMeta('theme', state.ui.theme).name} + ${getMeta('layout', state.ui.layoutPack).name}.${adminNote}`;
       }
     }
   }
@@ -1493,6 +1732,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (byId('companionToggle')) byId('companionToggle').checked = state.ui.companionEnabled;
     if (byId('celebrateToggle')) byId('celebrateToggle').checked = state.ui.autoCelebrate;
     if (byId('densitySelect')) byId('densitySelect').value = state.ui.density;
+    if (byId('wallpaperToggle')) byId('wallpaperToggle').checked = state.ui.wallpaperEnabled;
+    if (byId('wallpaperIntensityRange')) byId('wallpaperIntensityRange').value = String(state.ui.wallpaperIntensity);
+    if (byId('wallpaperBlurRange')) byId('wallpaperBlurRange').value = String(state.ui.wallpaperBlur);
+    if (byId('wallpaperOverlayRange')) byId('wallpaperOverlayRange').value = String(state.ui.wallpaperOverlay);
+    const quick = byId('adminQuickStatus');
+    if (quick) quick.textContent = state.admin?.enabled ? 'Admin mode: đang bật' : 'Admin mode: đang tắt';
   }
 
   function renderShopCards(containerId, kind) {
@@ -1733,6 +1978,141 @@ document.addEventListener('DOMContentLoaded', () => {
     await storage.set({ vm_collections: state.collections });
   }
 
+  async function saveAdminState() {
+    renderUpgradeLayer();
+    await storage.set({ vm_admin: state.admin });
+  }
+
+  function renderAdminModal() {
+    if (!state.admin) return;
+    const wallet = getWalletSnapshot();
+    setText('adminModeBadge', state.admin.enabled ? 'Admin ON' : 'Admin OFF');
+    setText('adminStudyCoinsValue', String(wallet.studyCoins));
+    setText('adminBonusCoinsValue', String(wallet.bonusCoins));
+    setText('adminSpentCoinsValue', String(wallet.spentCoins));
+    setText('adminAvailableCoinsValue', String(wallet.availableCoins));
+    const toggleBtn = byId('adminModeToggleBtn');
+    if (toggleBtn) toggleBtn.textContent = state.admin.enabled ? 'Tắt admin mode' : 'Bật admin mode';
+    const helper = byId('adminHelperNote');
+    if (helper) helper.textContent = state.admin.enabled
+      ? 'Admin mode đang bật. Bạn có thể chỉnh coin trực tiếp rồi quay về chế độ bình thường bất cứ lúc nào.'
+      : 'Admin mode đang tắt. Bật lên khi bạn cần tự điều chỉnh coin để test hoặc khôi phục số dư UI.';
+
+    const disabled = !state.admin.enabled;
+    ['adminStudyCoinsInput', 'adminBonusCoinsInput', 'adminSpentCoinsInput', 'adminTargetAvailableInput', 'adminApplyDirectBtn', 'adminApplyTargetBtn', 'adminResetSpentBtn', 'adminUnlockAllUiBtn', 'adminRestoreClassicBtn', 'adminResetCosmeticBtn', 'adminStarterWalletBtn'].forEach((id) => {
+      const el = byId(id);
+      if (el) el.disabled = disabled;
+    });
+    document.querySelectorAll('[data-admin-add]').forEach((el) => { el.disabled = disabled; });
+
+    const studyInput = byId('adminStudyCoinsInput');
+    const bonusInput = byId('adminBonusCoinsInput');
+    const spentInput = byId('adminSpentCoinsInput');
+    const targetInput = byId('adminTargetAvailableInput');
+    if (studyInput && document.activeElement !== studyInput) studyInput.value = String(wallet.studyCoins);
+    if (bonusInput && document.activeElement !== bonusInput) bonusInput.value = String(wallet.bonusCoins);
+    if (spentInput && document.activeElement !== spentInput) spentInput.value = String(wallet.spentCoins);
+    if (targetInput && document.activeElement !== targetInput) targetInput.value = String(wallet.availableCoins);
+  }
+
+  async function toggleAdminMode() {
+    state.admin.enabled = !state.admin.enabled;
+    state.admin.lastUpdatedAt = Date.now();
+    renderAdminModal();
+    await saveAdminState();
+    if (!state.admin.enabled) closeModal('adminModal');
+    showToast(state.admin.enabled ? 'Đã bật admin mode.' : 'Đã tắt admin mode và quay về chế độ bình thường.');
+  }
+
+  async function applyAdminDirectValues() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    const studyCoins = Math.max(0, Number(byId('adminStudyCoinsInput')?.value) || 0);
+    const bonusCoins = Math.max(0, Number(byId('adminBonusCoinsInput')?.value) || 0);
+    const spentCoins = Math.max(0, Number(byId('adminSpentCoinsInput')?.value) || 0);
+    state.stats.coins = studyCoins;
+    state.bonusCoins = bonusCoins;
+    state.spentCoins = spentCoins;
+    await ensureWalletConsistency();
+    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
+    showToast('Đã lưu số coin theo chế độ admin.');
+  }
+
+  async function applyAdminTargetAvailable() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    const target = Math.max(0, Number(byId('adminTargetAvailableInput')?.value) || 0);
+    state.stats.coins = Math.max(0, target + state.spentCoins - state.bonusCoins);
+    await ensureWalletConsistency();
+    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
+    showToast(`Đã đặt số dư khả dụng thành ${target}.`);
+  }
+
+  async function adjustAdminAvailableBy(delta) {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    const wallet = getWalletSnapshot();
+    const target = Math.max(0, wallet.availableCoins + delta);
+    state.stats.coins = Math.max(0, target + state.spentCoins - state.bonusCoins);
+    await ensureWalletConsistency();
+    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
+    showToast(`Đã chỉnh số dư khả dụng ${delta >= 0 ? '+' : ''}${delta}.`);
+  }
+
+  async function resetAdminSpentCoins() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    state.spentCoins = 0;
+    await saveWalletState();
+    showToast('Đã reset số coin đã tiêu cho UI.');
+  }
+
+  async function repairAdminWallet() {
+    await ensureWalletConsistency();
+    await saveWalletState();
+    showToast('Đã sửa và đồng bộ lại ví UI.');
+  }
+
+  async function unlockAllUiPacks() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    state.ui.unlockedThemes = THEMES.map((item) => item.id);
+    state.ui.unlockedCardStyles = CARD_STYLES.map((item) => item.id);
+    state.ui.unlockedLayoutPacks = LAYOUT_PACKS.map((item) => item.id);
+    state.ui.unlockedFontTones = FONT_TONES.map((item) => item.id);
+    state.ui.unlockedQuoteStyles = QUOTE_STYLES.map((item) => item.id);
+    state.ui = normalizeUiState(state.ui);
+    await saveUiState();
+    showToast('Đã mở toàn bộ pack UI cho chế độ admin.');
+  }
+
+  async function restoreClassicUiMode() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    state.ui.theme = 'midnight';
+    state.ui.cardStyle = 'classic';
+    state.ui.layoutPack = 'classic';
+    state.ui.fontTone = 'system';
+    state.ui.quoteStyle = 'soft';
+    state.ui.wallpaperEnabled = false;
+    state.ui = normalizeUiState(state.ui);
+    await saveUiState();
+    showToast('Đã quay về classic mode.');
+  }
+
+  async function resetCosmeticLayer() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    const currentBonus = Math.max(0, Number(state.bonusCoins) || 0);
+    state.ui = normalizeUiState({});
+    state.spentCoins = 0;
+    state.bonusCoins = currentBonus;
+    await Promise.all([saveUiState(), saveWalletState()]);
+    showToast('Đã reset lớp cosmetic mà không ảnh hưởng dữ liệu học.');
+  }
+
+  async function grantStarterWallet() {
+    if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
+    const targetAvailable = 3000;
+    state.stats.coins = Math.max(0, targetAvailable + state.spentCoins - state.bonusCoins);
+    await ensureWalletConsistency();
+    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
+    showToast('Đã nạp ví test 3000 xu khả dụng.');
+  }
+
   function syncPomodoroRuntime(forceReset = false) {
     if (state.runtime.isRunning && !forceReset) return;
     if (forceReset) pausePomodoro(false);
@@ -1839,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openDailySayingModal() {
     state.runtime.quoteIndex = getTodayQuoteIndex();
     renderDailySayingModal();
-    openModal('dailySayingModal');
+    openExclusiveModal('dailySayingModal');
   }
 
   function getQuoteFocusWords(quote = getCurrentQuote()) {
@@ -2157,8 +2537,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getPatternVaultItems() {
     const currentPattern = getBestPatternForQuote();
-    const saved = state.collections.savedPatterns.slice(0, 6).map((item) => ({
+    const saved = state.collections.savedPatterns.slice(0, 10).map((item) => ({
       id: item.patternId,
+      category: 'saved',
       source: 'Đã lưu',
       pattern: item.text,
       grammar: 'Pattern bạn đã lưu trước đó.',
@@ -2166,6 +2547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     const suggested = PATTERN_TEMPLATES.map((item) => ({
       id: item.id,
+      category: item.category || 'daily',
       source: 'Gợi ý',
       pattern: item.pattern,
       grammar: item.grammar,
@@ -2173,6 +2555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     const generated = [{
       id: currentPattern.id,
+      category: 'quote',
       source: 'Từ quote hôm nay',
       pattern: currentPattern.pattern,
       grammar: currentPattern.grammar,
@@ -2180,12 +2563,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }];
     const merged = [...generated, ...saved, ...suggested];
     const seen = new Set();
-    return merged.filter((item) => {
+    const deduped = merged.filter((item) => {
       const key = `${item.pattern}__${item.example}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    }).slice(0, 24);
+    });
+    const query = normalizeWordKey(byId('patternVaultSearchInput')?.value || '');
+    const category = byId('patternVaultCategorySelect')?.value || 'all';
+    return deduped.filter((item) => {
+      const categoryMatch = category === 'all' || item.category === category;
+      if (!categoryMatch) return false;
+      if (!query) return true;
+      return normalizeWordKey(`${item.pattern} ${item.grammar} ${item.example} ${item.source}`).includes(query);
+    }).slice(0, 48);
   }
 
   function renderPatternVaultModal() {
@@ -2194,13 +2585,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const items = getPatternVaultItems();
     grid.innerHTML = items.map((item) => `
       <div class="pattern-vault-card">
-        <span>${escapeHtml(item.source)}</span>
+        <span>${escapeHtml(item.source)} • ${escapeHtml(item.category || 'daily')}</span>
         <strong>${escapeHtml(item.pattern)}</strong>
         <small>${escapeHtml(item.grammar)}</small>
         <div class="pattern-vault-example">${escapeHtml(item.example)}</div>
         <button class="secondary-btn" type="button" data-pattern-text="${escapeHtml(item.pattern)}" data-pattern-example="${escapeHtml(item.example)}">Lưu pattern này</button>
       </div>
     `).join('');
+    if (!items.length) {
+      grid.innerHTML = '<div class="classic-safe-note"><strong>Không tìm thấy pattern phù hợp.</strong><span>Thử đổi từ khóa hoặc nhóm pattern.</span></div>';
+    }
   }
 
   async function handlePatternVaultClick(event) {

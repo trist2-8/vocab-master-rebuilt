@@ -1060,7 +1060,15 @@ body[data-ui-theme="neon-city"]::before {
   inset: 0;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.96;
+  opacity: var(--vm-wallpaper-opacity);
+  filter: blur(var(--vm-wallpaper-blur));
+}
+body[data-ui-wallpaper-enabled="off"][data-ui-theme="anime-room"]::before,
+body[data-ui-wallpaper-enabled="off"][data-ui-theme="rainy-window"]::before,
+body[data-ui-wallpaper-enabled="off"][data-ui-theme="cafe-notes"]::before,
+body[data-ui-wallpaper-enabled="off"][data-ui-theme="dream-sky"]::before,
+body[data-ui-wallpaper-enabled="off"][data-ui-theme="neon-city"]::before {
+  opacity: 0;
 }
 body[data-ui-theme="anime-room"] {
   background:
@@ -1095,6 +1103,80 @@ body[data-ui-theme="rainy-window"]::before {
     linear-gradient(180deg, rgba(15,23,42,0.16), rgba(15,23,42,0.52)),
     linear-gradient(180deg, rgba(7, 12, 22, 0.98), rgba(13, 20, 34, 0.98));
 }
+
+body[data-ui-theme="anime-room"] .main-nav,
+body[data-ui-theme="anime-room"] .panel-card,
+body[data-ui-theme="anime-room"] .summary-card,
+body[data-ui-theme="anime-room"] .stat-card,
+body[data-ui-theme="anime-room"] .focus-card,
+body[data-ui-theme="anime-room"] .shop-card,
+body[data-ui-theme="anime-room"] .wallet-board,
+body[data-ui-theme="anime-room"] .pomodoro-clock-wrap,
+body[data-ui-theme="anime-room"] .pomodoro-controls-panel,
+body[data-ui-theme="anime-room"] .filter-box,
+body[data-ui-theme="anime-room"] .toggle-card,
+body[data-ui-theme="anime-room"] .mission-card,
+body[data-ui-theme="anime-room"] .daily-saying-card,
+body[data-ui-theme="anime-room"] .modal-content,
+body[data-ui-theme="rainy-window"] .main-nav,
+body[data-ui-theme="rainy-window"] .panel-card,
+body[data-ui-theme="rainy-window"] .summary-card,
+body[data-ui-theme="rainy-window"] .stat-card,
+body[data-ui-theme="rainy-window"] .focus-card,
+body[data-ui-theme="rainy-window"] .shop-card,
+body[data-ui-theme="rainy-window"] .wallet-board,
+body[data-ui-theme="rainy-window"] .pomodoro-clock-wrap,
+body[data-ui-theme="rainy-window"] .pomodoro-controls-panel,
+body[data-ui-theme="rainy-window"] .filter-box,
+body[data-ui-theme="rainy-window"] .toggle-card,
+body[data-ui-theme="rainy-window"] .mission-card,
+body[data-ui-theme="rainy-window"] .daily-saying-card,
+body[data-ui-theme="rainy-window"] .modal-content,
+body[data-ui-theme="cafe-notes"] .main-nav,
+body[data-ui-theme="cafe-notes"] .panel-card,
+body[data-ui-theme="cafe-notes"] .summary-card,
+body[data-ui-theme="cafe-notes"] .stat-card,
+body[data-ui-theme="cafe-notes"] .focus-card,
+body[data-ui-theme="cafe-notes"] .shop-card,
+body[data-ui-theme="cafe-notes"] .wallet-board,
+body[data-ui-theme="cafe-notes"] .pomodoro-clock-wrap,
+body[data-ui-theme="cafe-notes"] .pomodoro-controls-panel,
+body[data-ui-theme="cafe-notes"] .filter-box,
+body[data-ui-theme="cafe-notes"] .toggle-card,
+body[data-ui-theme="cafe-notes"] .mission-card,
+body[data-ui-theme="cafe-notes"] .daily-saying-card,
+body[data-ui-theme="cafe-notes"] .modal-content,
+body[data-ui-theme="dream-sky"] .main-nav,
+body[data-ui-theme="dream-sky"] .panel-card,
+body[data-ui-theme="dream-sky"] .summary-card,
+body[data-ui-theme="dream-sky"] .stat-card,
+body[data-ui-theme="dream-sky"] .focus-card,
+body[data-ui-theme="dream-sky"] .shop-card,
+body[data-ui-theme="dream-sky"] .wallet-board,
+body[data-ui-theme="dream-sky"] .pomodoro-clock-wrap,
+body[data-ui-theme="dream-sky"] .pomodoro-controls-panel,
+body[data-ui-theme="dream-sky"] .filter-box,
+body[data-ui-theme="dream-sky"] .toggle-card,
+body[data-ui-theme="dream-sky"] .mission-card,
+body[data-ui-theme="dream-sky"] .daily-saying-card,
+body[data-ui-theme="dream-sky"] .modal-content,
+body[data-ui-theme="neon-city"] .main-nav,
+body[data-ui-theme="neon-city"] .panel-card,
+body[data-ui-theme="neon-city"] .summary-card,
+body[data-ui-theme="neon-city"] .stat-card,
+body[data-ui-theme="neon-city"] .focus-card,
+body[data-ui-theme="neon-city"] .shop-card,
+body[data-ui-theme="neon-city"] .wallet-board,
+body[data-ui-theme="neon-city"] .pomodoro-clock-wrap,
+body[data-ui-theme="neon-city"] .pomodoro-controls-panel,
+body[data-ui-theme="neon-city"] .filter-box,
+body[data-ui-theme="neon-city"] .toggle-card,
+body[data-ui-theme="neon-city"] .mission-card,
+body[data-ui-theme="neon-city"] .daily-saying-card,
+body[data-ui-theme="neon-city"] .modal-content {
+  background: color-mix(in srgb, var(--bg-dark-card) calc(var(--vm-wallpaper-overlay) * 100%), transparent);
+}
+
 body[data-ui-theme="cafe-notes"] {
   background: linear-gradient(180deg, #1f1712 0%, #241b14 100%);
   --bg-dark-nav: rgba(39, 28, 21, 0.84);
@@ -1639,7 +1721,85 @@ body[data-ui-theme="liquidglass"] .weak-rescue-grid .panel-card {
 @media (max-width: 900px) {
   .daily-lesson-grid,
   .memory-path-shell,
-  .weak-rescue-grid {
+  .weak-rescue-grid,
+  .pattern-vault-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.wallpaper-control-grid .range-card input[type="range"] {
+  width: 100%;
+}
+.pattern-vault-toolbar {
+  display: grid;
+  grid-template-columns: 1.4fr minmax(180px, 0.8fr);
+  gap: 12px;
+  margin: 14px 0 16px;
+}
+.admin-dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Admin tools */
+.admin-quick-note {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  font-weight: 800;
+}
+.admin-toggle-row {
+  display: grid;
+  grid-template-columns: 1.2fr auto;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.admin-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.admin-button-grid-quick {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+@media (max-width: 820px) {
+  .admin-grid,
+  .admin-toggle-row,
+  .admin-control-grid {
     grid-template-columns: 1fr;
   }
 }
