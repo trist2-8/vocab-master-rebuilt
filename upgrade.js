@@ -31,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedQuoteWordKey: '',
       selectedRescueWordId: '',
       selectedPatternId: '',
-      focusRoomSeed: 0
+      focusRoomSeed: 0,
+      pomodoroWarningPlayed: false
     }
   };
 
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadState();
     await ensureWalletConsistency();
     applyUiPreferences();
+    window.VMUpgradeAudio?.onStatusChange?.(() => renderPomodoroAudioStatus());
     syncPomodoroRuntime();
     renderUpgradeLayer();
   }
@@ -201,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="muted-text">Thêm mưa hoặc tuyết rất nhẹ phía sau giao diện để tạo mood mà vẫn giữ chữ rõ.</span>
               </div>
               <div class="toggle-grid atmosphere-control-grid">
-                <label class="toggle-card select-card"><span>Hiệu ứng</span><select id="weatherEffectSelect" class="modern-input"><option value="off">Tắt</option><option value="rain">Rain</option><option value="snow">Snow</option></select></label>
+                <label class="toggle-card select-card"><span>Hiệu ứng</span><select id="weatherEffectSelect" class="modern-input"><option value="off">Tắt</option><option value="rain">Mưa mềm</option><option value="window-rain">Mưa kính</option><option value="snow">Tuyết</option><option value="dust">Bụi sáng</option><option value="mist">Sương mờ</option><option value="neon">Phản chiếu neon</option><option value="petals">Cánh hoa</option></select></label>
                 <label class="toggle-card range-card"><span>Mật độ hiệu ứng</span><input id="weatherIntensityRange" type="range" min="20" max="100" step="5"></label>
                 <label class="toggle-card range-card"><span>Tốc độ hiệu ứng</span><input id="weatherSpeedRange" type="range" min="40" max="140" step="5"></label>
               </div>
@@ -242,6 +244,45 @@ document.addEventListener('DOMContentLoaded', () => {
                   </select>
                 </label>
                 <label class="toggle-card inline-toggle"><span>Tự mở lượt học gợi ý sau khi xong</span><input id="pomodoroAutoLaunch" type="checkbox"></label>
+                <div class="pomodoro-audio-grid">
+                  <label class="toggle-card inline-toggle"><span>Bật cue Pomodoro</span><input id="pomodoroAudioToggle" type="checkbox"></label>
+                  <label class="toggle-card select-card"><span>Nguồn cue</span><select id="pomodoroAudioSourceSelect" class="modern-input"><option value="built-in">Âm tích hợp</option><option value="custom">File cue riêng</option></select></label>
+                  <label class="toggle-card select-card"><span>Gói cue</span><select id="pomodoroAudioPackSelect" class="modern-input"><option value="soft-bell">Soft Bell</option><option value="glass-chime">Glass Chime</option><option value="cafe-timer">Cafe Timer</option><option value="night-tone">Night Tone</option></select></label>
+                  <label class="toggle-card select-card"><span>Kiểu cue</span><select id="pomodoroAudioCueModeSelect" class="modern-input"><option value="end-only">Chỉ báo khi hết giờ</option><option value="full">Bắt đầu + cảnh báo + hết giờ</option></select></label>
+                  <label class="toggle-card range-card"><span>Âm lượng cue <strong id="pomodoroAudioVolumeText">65%</strong></span><input id="pomodoroAudioVolumeRange" type="range" min="0" max="100" step="5"></label>
+                </div>
+                <div id="pomodoroCustomAudioRow" class="pomodoro-custom-audio-row hidden">
+                  <input id="pomodoroCustomAudioInput" type="file" accept="audio/*" class="hidden">
+                  <div class="pomodoro-custom-audio-meta">
+                    <strong id="pomodoroCustomAudioName">Chưa có file cue</strong>
+                    <span>File cue chỉ cần rất ngắn. Dùng cho tiếng bắt đầu / cảnh báo / hết giờ.</span>
+                  </div>
+                  <button id="pomodoroCustomAudioPickBtn" class="secondary-btn" type="button">🎵 Chọn file cue</button>
+                  <button id="pomodoroCustomAudioClearBtn" class="secondary-btn" type="button">🗑 Xóa cue</button>
+                </div>
+                <div class="pomodoro-audio-grid pomodoro-ambient-grid">
+                  <label class="toggle-card inline-toggle"><span>Âm nền khi focus</span><input id="pomodoroAmbientToggle" type="checkbox"></label>
+                  <label class="toggle-card select-card"><span>Nguồn ambient</span><select id="pomodoroAmbientSourceSelect" class="modern-input"><option value="built-in">Ambient tích hợp</option><option value="custom-loop">Loop riêng</option></select></label>
+                  <label class="toggle-card select-card"><span>Gói ambient</span><select id="pomodoroAmbientPackSelect" class="modern-input"><option value="rain-soft">Rain Soft</option><option value="cafe-soft">Cafe Soft</option><option value="library-air">Library Air</option><option value="night-lofi">Night Lofi</option></select></label>
+                  <label class="toggle-card range-card"><span>Âm lượng nền <strong id="pomodoroAmbientVolumeText">35%</strong></span><input id="pomodoroAmbientVolumeRange" type="range" min="0" max="100" step="5"></label>
+                </div>
+                <div id="pomodoroAmbientCustomRow" class="pomodoro-custom-audio-row hidden">
+                  <input id="pomodoroAmbientCustomInput" type="file" accept="audio/*" class="hidden">
+                  <div class="pomodoro-custom-audio-meta">
+                    <strong id="pomodoroAmbientCustomName">Chưa có loop riêng</strong>
+                    <span>Chọn loop ngắn 5–30 giây. Extension sẽ tự lặp suốt phiên focus, không cần file 25 phút.</span>
+                  </div>
+                  <button id="pomodoroAmbientCustomPickBtn" class="secondary-btn" type="button">🌧 Chọn loop nền</button>
+                  <button id="pomodoroAmbientCustomClearBtn" class="secondary-btn" type="button">🗑 Xóa loop</button>
+                </div>
+                <div class="pomodoro-audio-actions">
+                  <button id="pomodoroAudioUnlockBtn" class="secondary-btn" type="button">🔓 Kích hoạt âm thanh</button>
+                  <button id="pomodoroAudioTestBtn" class="secondary-btn" type="button">🔔 Nghe thử cue</button>
+                  <button id="pomodoroAmbientTestBtn" class="secondary-btn" type="button">🌧 Nghe thử ambient</button>
+                  <button id="pomodoroAmbientStopBtn" class="secondary-btn" type="button">⏹ Dừng ambient</button>
+                </div>
+                <div id="pomodoroAudioStatus" class="pomodoro-audio-status">Bấm kích hoạt âm thanh để trình duyệt cho phép phát cue Pomodoro.</div>
+                <div id="pomodoroAmbientStatus" class="pomodoro-audio-status">Âm nền đang tắt. Bật nếu bạn muốn nghe ambient suốt phiên focus.</div>
                 <div class="pomodoro-kpi-row">
                   <div class="pomodoro-kpi"><span>Hôm nay</span><strong id="pomodoroTodayKpi">0</strong></div>
                   <div class="pomodoro-kpi"><span>Tổng phiên</span><strong id="pomodoroTotalKpi">0</strong></div>
@@ -678,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await saveUiState();
     });
     byId('weatherEffectSelect')?.addEventListener('change', async (event) => {
-      state.ui.weatherEffect = ['off', 'rain', 'snow'].includes(event.target.value) ? event.target.value : 'off';
+      state.ui.weatherEffect = getSupportedWeatherEffect(event.target.value);
       applyUiPreferences();
       await saveUiState();
     });
@@ -692,6 +733,53 @@ document.addEventListener('DOMContentLoaded', () => {
       applyUiPreferences();
       await saveUiState();
     });
+    byId('pomodoroAudioToggle')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAudioEnabled = event.target.checked;
+      await saveUiState();
+    });
+    byId('pomodoroAudioSourceSelect')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAudioSource = ['built-in', 'custom'].includes(event.target.value) ? event.target.value : 'built-in';
+      await saveUiState();
+    });
+    byId('pomodoroAudioPackSelect')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAudioPack = event.target.value || 'soft-bell';
+      await saveUiState();
+    });
+    byId('pomodoroCustomAudioPickBtn')?.addEventListener('click', () => byId('pomodoroCustomAudioInput')?.click());
+    byId('pomodoroCustomAudioInput')?.addEventListener('change', handlePomodoroCustomAudioPick);
+    byId('pomodoroCustomAudioClearBtn')?.addEventListener('click', clearPomodoroCustomAudio);
+    byId('pomodoroAudioCueModeSelect')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAudioCueMode = ['end-only', 'full'].includes(event.target.value) ? event.target.value : 'end-only';
+      await saveUiState();
+    });
+    byId('pomodoroAudioVolumeRange')?.addEventListener('input', async (event) => {
+      state.ui.pomodoroAudioVolume = clampRange(event.target.value, 0, 100, 65);
+      await saveUiState();
+    });
+    byId('pomodoroAmbientToggle')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAmbientEnabled = event.target.checked;
+      if (!state.ui.pomodoroAmbientEnabled) window.VMUpgradeAudio?.stopAmbient?.();
+      await saveUiState();
+    });
+    byId('pomodoroAmbientSourceSelect')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAmbientSource = ['built-in', 'custom-loop'].includes(event.target.value) ? event.target.value : 'built-in';
+      await saveUiState();
+    });
+    byId('pomodoroAmbientPackSelect')?.addEventListener('change', async (event) => {
+      state.ui.pomodoroAmbientPack = event.target.value || 'rain-soft';
+      await saveUiState();
+    });
+    byId('pomodoroAmbientVolumeRange')?.addEventListener('input', async (event) => {
+      state.ui.pomodoroAmbientVolume = clampRange(event.target.value, 0, 100, 35);
+      await saveUiState();
+    });
+    byId('pomodoroAudioUnlockBtn')?.addEventListener('click', () => unlockPomodoroAudio(true));
+    byId('pomodoroAudioTestBtn')?.addEventListener('click', testPomodoroAudio);
+    byId('pomodoroAmbientCustomPickBtn')?.addEventListener('click', () => byId('pomodoroAmbientCustomInput')?.click());
+    byId('pomodoroAmbientCustomInput')?.addEventListener('change', handlePomodoroAmbientCustomPick);
+    byId('pomodoroAmbientCustomClearBtn')?.addEventListener('click', clearPomodoroAmbientCustomAudio);
+    byId('pomodoroAmbientTestBtn')?.addEventListener('click', previewPomodoroAmbient);
+    byId('pomodoroAmbientStopBtn')?.addEventListener('click', stopPomodoroAmbientPreview);
 
     ['dailyQuoteFolderSelect', 'collectionQuoteFolderSelect'].forEach((id) => {
       byId(id)?.addEventListener('change', async (event) => {
@@ -861,6 +949,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return Math.max(min, Math.min(max, number));
   }
 
+  function getSupportedWeatherEffect(value) {
+    return ['off', 'rain', 'window-rain', 'snow', 'dust', 'mist', 'neon', 'petals'].includes(value) ? value : 'off';
+  }
+
   function ensureUpgradeState() {
     if (!state.ui) state.ui = normalizeUiState({});
     if (!state.focus) state.focus = normalizeFocusState({});
@@ -885,9 +977,22 @@ document.addEventListener('DOMContentLoaded', () => {
       companionEnabled: raw.companionEnabled !== false,
       autoCelebrate: raw.autoCelebrate !== false,
       density: ['compact', 'balanced', 'comfortable'].includes(raw.density) ? raw.density : 'balanced',
-      weatherEffect: ['off', 'rain', 'snow'].includes(raw.weatherEffect) ? raw.weatherEffect : 'off',
+      weatherEffect: getSupportedWeatherEffect(raw.weatherEffect),
       weatherIntensity: clampRange(raw.weatherIntensity, 20, 100, 55),
-      weatherSpeed: clampRange(raw.weatherSpeed, 40, 140, 100)
+      weatherSpeed: clampRange(raw.weatherSpeed, 40, 140, 100),
+      pomodoroAudioEnabled: raw.pomodoroAudioEnabled === true,
+      pomodoroAudioSource: ['built-in', 'custom'].includes(raw.pomodoroAudioSource) ? raw.pomodoroAudioSource : 'built-in',
+      pomodoroAudioPack: ['soft-bell', 'glass-chime', 'cafe-timer', 'night-tone'].includes(raw.pomodoroAudioPack) ? raw.pomodoroAudioPack : 'soft-bell',
+      pomodoroAudioCueMode: ['end-only', 'full'].includes(raw.pomodoroAudioCueMode) ? raw.pomodoroAudioCueMode : 'end-only',
+      pomodoroAudioVolume: clampRange(raw.pomodoroAudioVolume, 0, 100, 65),
+      pomodoroCustomAudioName: typeof raw.pomodoroCustomAudioName === 'string' ? raw.pomodoroCustomAudioName : '',
+      pomodoroCustomAudioDataUrl: typeof raw.pomodoroCustomAudioDataUrl === 'string' ? raw.pomodoroCustomAudioDataUrl : '',
+      pomodoroAmbientEnabled: raw.pomodoroAmbientEnabled === true,
+      pomodoroAmbientSource: ['built-in', 'custom-loop'].includes(raw.pomodoroAmbientSource) ? raw.pomodoroAmbientSource : 'built-in',
+      pomodoroAmbientPack: ['rain-soft', 'cafe-soft', 'library-air', 'night-lofi'].includes(raw.pomodoroAmbientPack) ? raw.pomodoroAmbientPack : 'rain-soft',
+      pomodoroAmbientVolume: clampRange(raw.pomodoroAmbientVolume, 0, 100, 35),
+      pomodoroAmbientCustomName: typeof raw.pomodoroAmbientCustomName === 'string' ? raw.pomodoroAmbientCustomName : '',
+      pomodoroAmbientCustomDataUrl: typeof raw.pomodoroAmbientCustomDataUrl === 'string' ? raw.pomodoroAmbientCustomDataUrl : ''
     };
 
     ensureActiveUnlocked(ui, 'theme', 'unlockedThemes', 'midnight');
@@ -1299,6 +1404,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (byId('weatherEffectSelect')) byId('weatherEffectSelect').value = state.ui.weatherEffect || 'off';
     if (byId('weatherIntensityRange')) byId('weatherIntensityRange').value = String(state.ui.weatherIntensity || 55);
     if (byId('weatherSpeedRange')) byId('weatherSpeedRange').value = String(state.ui.weatherSpeed || 100);
+    if (byId('pomodoroAudioToggle')) byId('pomodoroAudioToggle').checked = Boolean(state.ui.pomodoroAudioEnabled);
+    if (byId('pomodoroAudioSourceSelect')) byId('pomodoroAudioSourceSelect').value = state.ui.pomodoroAudioSource || 'built-in';
+    if (byId('pomodoroAudioPackSelect')) byId('pomodoroAudioPackSelect').value = state.ui.pomodoroAudioPack || 'soft-bell';
+    if (byId('pomodoroAudioCueModeSelect')) byId('pomodoroAudioCueModeSelect').value = state.ui.pomodoroAudioCueMode || 'end-only';
+    if (byId('pomodoroAudioVolumeRange')) byId('pomodoroAudioVolumeRange').value = String(state.ui.pomodoroAudioVolume ?? 65);
+    if (byId('pomodoroAmbientToggle')) byId('pomodoroAmbientToggle').checked = Boolean(state.ui.pomodoroAmbientEnabled);
+    if (byId('pomodoroAmbientSourceSelect')) byId('pomodoroAmbientSourceSelect').value = state.ui.pomodoroAmbientSource || 'built-in';
+    if (byId('pomodoroAmbientPackSelect')) byId('pomodoroAmbientPackSelect').value = state.ui.pomodoroAmbientPack || 'rain-soft';
+    if (byId('pomodoroAmbientVolumeRange')) byId('pomodoroAmbientVolumeRange').value = String(state.ui.pomodoroAmbientVolume ?? 35);
+    updatePomodoroAudioControls();
     const quick = byId('adminQuickStatus');
     if (quick) quick.textContent = state.admin?.enabled ? 'Admin mode: đang bật' : 'Admin mode: đang tắt';
   }
@@ -1630,6 +1745,199 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Đã sửa và đồng bộ lại ví UI.');
   }
 
+  async function handlePomodoroCustomAudioPick(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      showToast('Hãy chọn một file âm thanh hợp lệ.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 600 * 1024) {
+      showToast('File cue nên dưới 600KB vì chỉ dùng cho tiếng báo ngắn.');
+      event.target.value = '';
+      return;
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    state.ui.pomodoroCustomAudioName = file.name;
+    state.ui.pomodoroCustomAudioDataUrl = dataUrl;
+    state.ui.pomodoroAudioSource = 'custom';
+    await saveUiState();
+    showToast(`Đã chọn file cue: ${file.name}`);
+    event.target.value = '';
+  }
+
+  async function handlePomodoroAmbientCustomPick(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      showToast('Hãy chọn một file âm thanh hợp lệ cho ambient.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Loop nền nên dưới 2MB để extension chạy ổn định.');
+      event.target.value = '';
+      return;
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    state.ui.pomodoroAmbientCustomName = file.name;
+    state.ui.pomodoroAmbientCustomDataUrl = dataUrl;
+    state.ui.pomodoroAmbientSource = 'custom-loop';
+    await saveUiState();
+    showToast(`Đã chọn loop nền: ${file.name}`);
+    event.target.value = '';
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('read_failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function clearPomodoroCustomAudio() {
+    state.ui.pomodoroCustomAudioName = '';
+    state.ui.pomodoroCustomAudioDataUrl = '';
+    if (state.ui.pomodoroAudioSource === 'custom') state.ui.pomodoroAudioSource = 'built-in';
+    await saveUiState();
+    showToast('Đã xóa file cue riêng của Pomodoro.');
+  }
+
+  async function clearPomodoroAmbientCustomAudio() {
+    state.ui.pomodoroAmbientCustomName = '';
+    state.ui.pomodoroAmbientCustomDataUrl = '';
+    if (state.ui.pomodoroAmbientSource === 'custom-loop') state.ui.pomodoroAmbientSource = 'built-in';
+    window.VMUpgradeAudio?.stopAmbient?.(true);
+    await saveUiState();
+    showToast('Đã xóa loop nền riêng.');
+  }
+
+  function updatePomodoroAudioControls() {
+    const isCueCustom = (state.ui?.pomodoroAudioSource || 'built-in') === 'custom';
+    const isAmbientCustom = (state.ui?.pomodoroAmbientSource || 'built-in') === 'custom-loop';
+    byId('pomodoroCustomAudioRow')?.classList.toggle('hidden', !isCueCustom);
+    byId('pomodoroAmbientCustomRow')?.classList.toggle('hidden', !isAmbientCustom);
+    const packSelect = byId('pomodoroAudioPackSelect');
+    if (packSelect) packSelect.disabled = isCueCustom;
+    const cuePickBtn = byId('pomodoroCustomAudioPickBtn');
+    if (cuePickBtn) cuePickBtn.disabled = !state.ui?.pomodoroAudioEnabled;
+    const cueClearBtn = byId('pomodoroCustomAudioClearBtn');
+    if (cueClearBtn) cueClearBtn.disabled = !state.ui?.pomodoroCustomAudioDataUrl;
+    const ambientPackSelect = byId('pomodoroAmbientPackSelect');
+    if (ambientPackSelect) ambientPackSelect.disabled = isAmbientCustom;
+    const ambientPickBtn = byId('pomodoroAmbientCustomPickBtn');
+    if (ambientPickBtn) ambientPickBtn.disabled = !state.ui?.pomodoroAmbientEnabled;
+    const ambientClearBtn = byId('pomodoroAmbientCustomClearBtn');
+    if (ambientClearBtn) ambientClearBtn.disabled = !state.ui?.pomodoroAmbientCustomDataUrl;
+    setText('pomodoroCustomAudioName', state.ui?.pomodoroCustomAudioName || 'Chưa có file cue');
+    setText('pomodoroAmbientCustomName', state.ui?.pomodoroAmbientCustomName || 'Chưa có loop riêng');
+  }
+
+  async function unlockPomodoroAudio(showToastNotice = false) {
+    const unlocked = await window.VMUpgradeAudio?.unlock?.({ source: state.ui?.pomodoroAudioSource || 'built-in', customDataUrl: state.ui?.pomodoroCustomAudioDataUrl || '' });
+    renderPomodoroAudioStatus();
+    if (showToastNotice) {
+      showToast(unlocked ? 'Âm thanh Pomodoro đã sẵn sàng.' : 'Trình duyệt chưa cho phát âm thanh. Hãy bấm lại rồi thử nghe thử.');
+    }
+    return Boolean(unlocked);
+  }
+
+  async function testPomodoroAudio() {
+    const unlocked = await unlockPomodoroAudio(false);
+    if (!unlocked) {
+      showToast('Chưa thể phát âm thanh. Hãy bấm Kích hoạt âm thanh trước.');
+      return;
+    }
+    const played = await window.VMUpgradeAudio?.play?.({
+      source: state.ui?.pomodoroAudioSource || 'built-in',
+      customDataUrl: state.ui?.pomodoroCustomAudioDataUrl || '',
+      pack: state.ui?.pomodoroAudioPack || 'soft-bell',
+      cue: 'end',
+      volume: state.ui?.pomodoroAudioVolume ?? 65,
+      enabled: true
+    });
+    renderPomodoroAudioStatus();
+    if (!played) showToast('Trình duyệt chưa cho phát cue Pomodoro.');
+  }
+
+  async function previewPomodoroAmbient() {
+    const unlocked = await unlockPomodoroAudio(false);
+    if (!unlocked) {
+      showToast('Hãy kích hoạt âm thanh trước khi nghe thử ambient.');
+      return;
+    }
+    const played = await window.VMUpgradeAudio?.startAmbient?.({
+      source: state.ui?.pomodoroAmbientSource || 'built-in',
+      customDataUrl: state.ui?.pomodoroAmbientCustomDataUrl || '',
+      pack: state.ui?.pomodoroAmbientPack || 'rain-soft',
+      volume: state.ui?.pomodoroAmbientVolume ?? 35,
+      enabled: true
+    });
+    renderPomodoroAudioStatus();
+    if (!played) showToast('Ambient chưa phát được. Hãy thử gói khác hoặc loop riêng.');
+  }
+
+  function stopPomodoroAmbientPreview() {
+    window.VMUpgradeAudio?.stopAmbient?.();
+    renderPomodoroAudioStatus();
+  }
+
+  function getPomodoroAudioStatusText() {
+    const status = window.VMUpgradeAudio?.getStatus?.() || {};
+    if (!state.ui?.pomodoroAudioEnabled) return 'Cue Pomodoro đang tắt. Bật công tắc nếu bạn muốn nghe tiếng bắt đầu / hết giờ.';
+    if ((state.ui?.pomodoroAudioSource || 'built-in') === 'custom' && !state.ui?.pomodoroCustomAudioDataUrl) return 'Bạn đang chọn File cue riêng nhưng chưa nạp file.';
+    const sourceLabel = (state.ui?.pomodoroAudioSource || 'built-in') === 'custom'
+      ? (state.ui?.pomodoroCustomAudioName || 'File cue riêng')
+      : (state.ui?.pomodoroAudioPack || 'soft-bell');
+    if (status.status === 'ready') return `Cue đã sẵn sàng • ${sourceLabel} • ${state.ui?.pomodoroAudioCueMode || 'end-only'}.`;
+    if (status.status === 'unsupported') return 'Âm thanh tích hợp không được hỗ trợ. Hãy chuyển sang file cue riêng.';
+    return status.message || 'Bấm kích hoạt âm thanh rồi nghe thử để kiểm tra cue Pomodoro.';
+  }
+
+  function getPomodoroAmbientStatusText() {
+    const status = window.VMUpgradeAudio?.getStatus?.() || {};
+    if (!state.ui?.pomodoroAmbientEnabled) return 'Âm nền đang tắt. Bật nếu bạn muốn nghe ambient suốt phiên focus.';
+    if ((state.ui?.pomodoroAmbientSource || 'built-in') === 'custom-loop' && !state.ui?.pomodoroAmbientCustomDataUrl) return 'Bạn đang chọn loop riêng nhưng chưa nạp file nền.';
+    const label = (state.ui?.pomodoroAmbientSource || 'built-in') === 'custom-loop'
+      ? (state.ui?.pomodoroAmbientCustomName || 'Loop riêng')
+      : (state.ui?.pomodoroAmbientPack || 'rain-soft');
+    if (status.ambientPlaying) return `Ambient đang chạy • ${status.ambientLabel || label}. File ngắn sẽ tự lặp suốt phiên focus.`;
+    return `Ambient sẵn sàng • ${label}. Bạn có thể nghe thử trước khi bắt đầu phiên.`;
+  }
+
+  function renderPomodoroAudioStatus() {
+    updatePomodoroAudioControls();
+    setText('pomodoroAudioStatus', getPomodoroAudioStatusText());
+    setText('pomodoroAmbientStatus', getPomodoroAmbientStatusText());
+    setText('pomodoroAudioVolumeText', `${state.ui?.pomodoroAudioVolume ?? 65}%`);
+    setText('pomodoroAmbientVolumeText', `${state.ui?.pomodoroAmbientVolume ?? 35}%`);
+    const unlockBtn = byId('pomodoroAudioUnlockBtn');
+    if (unlockBtn) unlockBtn.disabled = !state.ui?.pomodoroAudioEnabled && !state.ui?.pomodoroAmbientEnabled;
+    const cueCustomMissing = (state.ui?.pomodoroAudioSource || 'built-in') === 'custom' && !state.ui?.pomodoroCustomAudioDataUrl;
+    const ambientCustomMissing = (state.ui?.pomodoroAmbientSource || 'built-in') === 'custom-loop' && !state.ui?.pomodoroAmbientCustomDataUrl;
+    const testBtn = byId('pomodoroAudioTestBtn');
+    if (testBtn) testBtn.disabled = !state.ui?.pomodoroAudioEnabled || cueCustomMissing;
+    const ambientTestBtn = byId('pomodoroAmbientTestBtn');
+    if (ambientTestBtn) ambientTestBtn.disabled = !state.ui?.pomodoroAmbientEnabled || ambientCustomMissing;
+    const ambientStopBtn = byId('pomodoroAmbientStopBtn');
+    if (ambientStopBtn) ambientStopBtn.disabled = !window.VMUpgradeAudio?.isAmbientPlaying?.();
+  }
+
+  function playPomodoroCue(cue) {
+    if (!state.ui?.pomodoroAudioEnabled) return;
+    window.VMUpgradeAudio?.play?.({
+      source: state.ui.pomodoroAudioSource || 'built-in',
+      customDataUrl: state.ui.pomodoroCustomAudioDataUrl || '',
+      pack: state.ui.pomodoroAudioPack || 'soft-bell',
+      cue,
+      volume: state.ui.pomodoroAudioVolume ?? 65,
+      enabled: true
+    });
+  }
+
   function syncPomodoroRuntime(forceReset = false) {
     if (state.runtime.isRunning && !forceReset) return;
     if (forceReset) pausePomodoro(false);
@@ -1637,13 +1945,29 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPomodoroWidgets();
   }
 
-  function startPomodoro() {
+  async function startPomodoro() {
     if (state.runtime.isRunning) return;
     if (state.runtime.remainingSec <= 0) state.runtime.remainingSec = state.focus.preferredMinutes * 60;
+    state.runtime.pomodoroWarningPlayed = false;
     state.runtime.isRunning = true;
+    if (state.ui?.pomodoroAudioEnabled || state.ui?.pomodoroAmbientEnabled) await unlockPomodoroAudio(false);
+    if ((state.ui?.pomodoroAudioCueMode || 'end-only') === 'full') playPomodoroCue('start');
+    if (state.ui?.pomodoroAmbientEnabled) {
+      await window.VMUpgradeAudio?.startAmbient?.({
+        source: state.ui?.pomodoroAmbientSource || 'built-in',
+        customDataUrl: state.ui?.pomodoroAmbientCustomDataUrl || '',
+        pack: state.ui?.pomodoroAmbientPack || 'rain-soft',
+        volume: state.ui?.pomodoroAmbientVolume ?? 35,
+        enabled: true
+      });
+    }
     renderPomodoroWidgets();
     state.runtime.intervalId = window.setInterval(async () => {
       state.runtime.remainingSec -= 1;
+      if ((state.ui?.pomodoroAudioCueMode || 'end-only') === 'full' && !state.runtime.pomodoroWarningPlayed && state.runtime.remainingSec === 5 * 60) {
+        state.runtime.pomodoroWarningPlayed = true;
+        playPomodoroCue('warning');
+      }
       renderPomodoroWidgets();
       if (state.runtime.remainingSec <= 0) await completePomodoroSession();
     }, 1000);
@@ -1654,19 +1978,25 @@ document.addEventListener('DOMContentLoaded', () => {
     state.runtime.intervalId = null;
     const wasRunning = state.runtime.isRunning;
     state.runtime.isRunning = false;
+    window.VMUpgradeAudio?.stopAmbient?.(true);
     renderPomodoroWidgets();
     if (showNotice && wasRunning) showToast('Đã tạm dừng Pomodoro.');
   }
 
   function resetPomodoro() {
     pausePomodoro(false);
+    state.runtime.pomodoroWarningPlayed = false;
     state.runtime.remainingSec = state.focus.preferredMinutes * 60;
+    window.VMUpgradeAudio?.stopAmbient?.(true);
     renderPomodoroWidgets();
     showToast('Đã đặt lại Pomodoro.');
   }
 
   async function completePomodoroSession() {
     pausePomodoro(false);
+    state.runtime.pomodoroWarningPlayed = false;
+    playPomodoroCue('end');
+    window.VMUpgradeAudio?.stopAmbient?.(true);
     state.focus.completedToday += 1;
     state.focus.totalCompleted += 1;
     state.focus.lastCompletedDate = getTodayKey();
@@ -1724,6 +2054,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (byId('pomodoroMinutesSelect')) byId('pomodoroMinutesSelect').value = String(state.focus.preferredMinutes);
     if (byId('pomodoroAutoLaunch')) byId('pomodoroAutoLaunch').checked = state.focus.autoLaunchRecommended;
+    if (byId('pomodoroAudioToggle')) byId('pomodoroAudioToggle').checked = Boolean(state.ui?.pomodoroAudioEnabled);
+    if (byId('pomodoroAudioSourceSelect')) byId('pomodoroAudioSourceSelect').value = state.ui?.pomodoroAudioSource || 'built-in';
+    if (byId('pomodoroAudioPackSelect')) byId('pomodoroAudioPackSelect').value = state.ui?.pomodoroAudioPack || 'soft-bell';
+    if (byId('pomodoroAudioCueModeSelect')) byId('pomodoroAudioCueModeSelect').value = state.ui?.pomodoroAudioCueMode || 'end-only';
+    if (byId('pomodoroAudioVolumeRange')) byId('pomodoroAudioVolumeRange').value = String(state.ui?.pomodoroAudioVolume ?? 65);
+    if (byId('pomodoroAmbientToggle')) byId('pomodoroAmbientToggle').checked = Boolean(state.ui?.pomodoroAmbientEnabled);
+    if (byId('pomodoroAmbientSourceSelect')) byId('pomodoroAmbientSourceSelect').value = state.ui?.pomodoroAmbientSource || 'built-in';
+    if (byId('pomodoroAmbientPackSelect')) byId('pomodoroAmbientPackSelect').value = state.ui?.pomodoroAmbientPack || 'rain-soft';
+    if (byId('pomodoroAmbientVolumeRange')) byId('pomodoroAmbientVolumeRange').value = String(state.ui?.pomodoroAmbientVolume ?? 35);
+    renderPomodoroAudioStatus();
   }
 
   function renderDailySayingLauncher() {

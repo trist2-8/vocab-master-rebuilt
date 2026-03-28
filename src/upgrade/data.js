@@ -5,8 +5,13 @@ const THEMES = [
   { id: 'liquidglass', name: 'Liquid Glass', price: 140, tag: 'Liquid glass trong mờ cao cấp', companion: '🫧', previewClass: 'theme-liquidglass' },
   { id: 'anime-room', name: 'Anime Study Room', price: 165, tag: 'Wallpaper bàn học anime, ấm và mềm', companion: '🌙', previewClass: 'theme-anime-room' },
   { id: 'rainy-window', name: 'Rainy Window Night', price: 175, tag: 'Cửa sổ mưa đêm, hợp focus room', companion: '🌧️', previewClass: 'theme-rainy-window' },
+  { id: 'rainy-library', name: 'Rainy Library', price: 185, tag: 'Thư viện mưa, rất hợp học dài', companion: '📚', previewClass: 'theme-rainy-library' },
+  { id: 'snowy-night', name: 'Snowy Quiet Night', price: 185, tag: 'Đêm tuyết yên, dịu và ít áp lực', companion: '❄️', previewClass: 'theme-snowy-night' },
+  { id: 'moonlight-window', name: 'Moonlight Window', price: 190, tag: 'Khung cửa trăng, êm và cinematic', companion: '🌕', previewClass: 'theme-moonlight-window' },
   { id: 'cafe-notes', name: 'Cafe Notes', price: 155, tag: 'Quán cà phê anime, hợp note và pattern', companion: '☕', previewClass: 'theme-cafe-notes' },
   { id: 'dream-sky', name: 'Dream Sky Minimal', price: 150, tag: 'Bầu trời anime nhẹ, ít áp lực thị giác', companion: '☁️', previewClass: 'theme-dream-sky' },
+  { id: 'sakura-notes', name: 'Sakura Notes', price: 175, tag: 'Cánh hoa nhẹ, dịu và giàu cảm xúc', companion: '🌸', previewClass: 'theme-sakura-notes' },
+  { id: 'film-diary', name: 'Film Diary', price: 190, tag: 'Khung nhật ký điện ảnh, sâu và khác', companion: '🎞️', previewClass: 'theme-film-diary' },
   { id: 'neon-city', name: 'Neon City Memory', price: 180, tag: 'Phố đêm anime, mạnh và khác biệt', companion: '🌆', previewClass: 'theme-neon-city' },
   { id: 'latte', name: 'Cozy Latte', price: 80, tag: 'Tông ấm, học lâu dễ chịu', companion: '☕', previewClass: 'theme-latte' },
   { id: 'paper', name: 'Paper Minimal', price: 70, tag: 'Sạch, sáng, tập trung', companion: '📝', previewClass: 'theme-paper' },
@@ -144,6 +149,39 @@ const PRESETS = [
     quoteStyle: 'liquid'
   },
   {
+    id: 'rainy-library-pack',
+    name: 'Rainy Library Pack',
+    tag: 'Thư viện mưa rất học',
+    note: 'Giữ cảm giác thư viện và chiều sâu đọc, hợp Pattern Vault và review dài hơn.',
+    theme: 'rainy-library',
+    cardStyle: 'liquid',
+    layoutPack: 'split',
+    fontTone: 'editorial',
+    quoteStyle: 'glass'
+  },
+  {
+    id: 'snowy-night-pack',
+    name: 'Snowy Quiet Night Pack',
+    tag: 'Đêm tuyết yên',
+    note: 'Cho người thích không khí mùa đông chậm, sạch và dễ tập trung.',
+    theme: 'snowy-night',
+    cardStyle: 'rounded',
+    layoutPack: 'classic',
+    fontTone: 'rounded',
+    quoteStyle: 'soft'
+  },
+  {
+    id: 'moonlight-window-pack',
+    name: 'Moonlight Window Pack',
+    tag: 'Cửa sổ trăng cinematic',
+    note: 'Rất hợp quote cards, Focus Room và các câu muốn lưu lại.',
+    theme: 'moonlight-window',
+    cardStyle: 'film',
+    layoutPack: 'spotlight',
+    fontTone: 'system',
+    quoteStyle: 'film'
+  },
+  {
     id: 'cafe-notes-pack',
     name: 'Cafe Notes Pack',
     tag: 'Quán cà phê + pattern vault',
@@ -164,6 +202,28 @@ const PRESETS = [
     layoutPack: 'classic',
     fontTone: 'rounded',
     quoteStyle: 'soft'
+  },
+  {
+    id: 'sakura-notes-pack',
+    name: 'Sakura Notes Pack',
+    tag: 'Cánh hoa dịu và mềm',
+    note: 'Hợp Daily Saying, saved patterns và các câu giàu cảm xúc.',
+    theme: 'sakura-notes',
+    cardStyle: 'postcard',
+    layoutPack: 'stacked',
+    fontTone: 'editorial',
+    quoteStyle: 'letter'
+  },
+  {
+    id: 'film-diary-pack',
+    name: 'Film Diary Pack',
+    tag: 'Nhật ký điện ảnh',
+    note: 'Một pack sâu, điện ảnh và nổi bật cho quote + pattern review.',
+    theme: 'film-diary',
+    cardStyle: 'film',
+    layoutPack: 'split',
+    fontTone: 'editorial',
+    quoteStyle: 'film'
   },
   {
     id: 'neon-city-pack',

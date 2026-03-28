@@ -1,35 +1,47 @@
-# Vocab Master Phase Next — Modular Atmosphere Pack
+# Vocab Master — Atmosphere 2.0 + Pomodoro Audio
 
 This pass keeps the original goal fixed at the top:
 - preserve the original purpose
 - keep the extension simple and learning-first
 - strengthen vocabulary retention and long-term memory
 - avoid losing old features
-- keep visual upgrades optional
+- add richer UI only as optional layers
 
-## What changed
-- reorganized the upgrade layer into smaller branches/files
-  - `upgrade.js` = main controller
-  - `src/upgrade/data.js` = themes, presets, quotes, pattern banks
-  - `src/upgrade/effects.js` = dynamic rain/snow atmosphere logic
-  - `styles/upgrade-effects.css` = atmosphere effect styling
-- added optional **Atmosphere effects** inside UI customization
-  - Off
-  - Rain
-  - Snow
-  - effect density slider
-  - effect speed slider
-- kept all old study views and the classic/default flow intact
+## Added
+- Atmosphere 2.0 effects: rain, window-rain, snow, dust, mist, neon reflections, petals
+- New mood UI packs: Rainy Library, Snowy Quiet Night, Moonlight Window, Sakura Notes, Film Diary
+- Optional Pomodoro audio cues
+  - Soft Bell
+  - Glass Chime
+  - Cafe Timer
+  - Night Tone
+- Audio settings
+  - on/off
+  - end-only or full cue mode
+  - volume
+  - sound pack
+- More preset bundles for the new UI modes
+- Modularized audio logic in src/upgrade/audio.js
 
-## Why this is safer
-The core study engine stays where it was. Only the upgrade layer was redistributed, so the structure is cleaner without rewriting the review logic.
+## Preserved
+- Classic/default learning flow
+- Existing vocab/review logic and study modes
+- Previous Pattern Vault, Memory Path, Focus Room, Collections, Admin, and weekly recap layers
 
-## Quick test
-1. Load the extension folder in Chrome
-2. Open Review → Tùy biến UI
-3. Check:
-   - Theme shop still works
-   - Admin still works
-   - New Atmosphere effects section appears
-   - Rain and Snow can be turned on and off
-   - Classic mode still works
+## Main files changed
+- vocab.html
+- manifest.json
+- upgrade.js
+- upgrade.css
+- src/upgrade/data.js
+- src/upgrade/effects.js
+- src/upgrade/audio.js
+- styles/upgrade-effects.css
+- upgrade_smoke_test.js
+
+
+## Revision 2
+- Replaced the Pomodoro audio direction with a more reliable hybrid approach.
+- Built-in cues now use generated WAV playback instead of depending only on browser tone synthesis.
+- Added an optional custom audio file input for Pomodoro when built-in cues do not work well on a device/browser.
+- Added audio source selection, file clear action, and clearer status text.

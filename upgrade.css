@@ -1704,3 +1704,272 @@ body[data-ui-theme="liquidglass"] .weak-rescue-grid .panel-card {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Atmosphere 2.0 additions ===== */
+.theme-rainy-library { background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(22,101,52,0.16), rgba(15,23,42,0.18)); }
+.theme-snowy-night { background: linear-gradient(135deg, rgba(186,230,253,0.18), rgba(148,163,184,0.14), rgba(15,23,42,0.18)); }
+.theme-moonlight-window { background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(226,232,240,0.10), rgba(30,41,59,0.18)); }
+.theme-sakura-notes { background: linear-gradient(135deg, rgba(255, 214, 230, 0.22), rgba(253, 164, 175, 0.14), rgba(251, 207, 232, 0.12)); }
+.theme-film-diary { background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(120,113,108,0.16), rgba(15,23,42,0.18)); }
+
+body[data-ui-theme="rainy-library"],
+body[data-ui-theme="snowy-night"],
+body[data-ui-theme="moonlight-window"],
+body[data-ui-theme="sakura-notes"],
+body[data-ui-theme="film-diary"] {
+  position: relative;
+}
+
+body[data-ui-theme="rainy-library"]::before,
+body[data-ui-theme="snowy-night"]::before,
+body[data-ui-theme="moonlight-window"]::before,
+body[data-ui-theme="sakura-notes"]::before,
+body[data-ui-theme="film-diary"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.72;
+  background-size: cover;
+  background-position: center;
+}
+
+body[data-ui-theme="rainy-library"] {
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 22%),
+    linear-gradient(180deg, #0b1220 0%, #111827 100%);
+}
+body[data-ui-theme="rainy-library"]::before {
+  background-image:
+    linear-gradient(135deg, rgba(12, 24, 34, 0.85), rgba(20, 35, 48, 0.45)),
+    radial-gradient(circle at 18% 30%, rgba(150, 205, 255, 0.18), transparent 18%),
+    linear-gradient(90deg, rgba(17,24,39,0.35) 0 16%, rgba(73, 87, 99, 0.20) 16% 18%, transparent 18% 82%, rgba(73,87,99,0.20) 82% 84%, rgba(17,24,39,0.35) 84% 100%),
+    linear-gradient(180deg, rgba(26, 43, 58, 0.9), rgba(14, 25, 37, 0.92));
+}
+
+body[data-ui-theme="snowy-night"] {
+  background:
+    radial-gradient(circle at top right, rgba(226,232,240,0.16), transparent 22%),
+    linear-gradient(180deg, #0b1120 0%, #111827 100%);
+}
+body[data-ui-theme="snowy-night"]::before {
+  background-image:
+    linear-gradient(180deg, rgba(7, 12, 24, 0.72), rgba(11,17,32,0.92)),
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,0.16), transparent 18%),
+    linear-gradient(180deg, rgba(148,163,184,0.18), transparent 22%),
+    linear-gradient(180deg, rgba(12, 18, 35, 0.9), rgba(17, 24, 39, 0.98));
+}
+
+body[data-ui-theme="moonlight-window"] {
+  background:
+    radial-gradient(circle at top right, rgba(191,219,254,0.18), transparent 20%),
+    linear-gradient(180deg, #0a1020 0%, #0f172a 100%);
+}
+body[data-ui-theme="moonlight-window"]::before {
+  background-image:
+    linear-gradient(135deg, rgba(8, 15, 31, 0.82), rgba(15, 23, 42, 0.54)),
+    radial-gradient(circle at 72% 24%, rgba(255,255,255,0.20), transparent 9%),
+    radial-gradient(circle at 72% 24%, rgba(255, 245, 206, 0.22), transparent 16%),
+    linear-gradient(90deg, transparent 0 66%, rgba(226,232,240,0.06) 66% 67%, transparent 67% 100%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.98));
+}
+
+body[data-ui-theme="sakura-notes"] {
+  background:
+    radial-gradient(circle at top left, rgba(255, 214, 230, 0.22), transparent 24%),
+    linear-gradient(180deg, #1b1120 0%, #211827 100%);
+}
+body[data-ui-theme="sakura-notes"]::before {
+  background-image:
+    linear-gradient(180deg, rgba(32, 21, 34, 0.84), rgba(24, 16, 29, 0.92)),
+    radial-gradient(circle at 24% 22%, rgba(255, 233, 241, 0.18), transparent 22%),
+    linear-gradient(180deg, rgba(251, 207, 232, 0.10), transparent 26%),
+    linear-gradient(180deg, rgba(35, 20, 31, 0.96), rgba(29, 17, 27, 0.98));
+}
+
+body[data-ui-theme="film-diary"] {
+  background:
+    radial-gradient(circle at top left, rgba(251,191,36,0.08), transparent 20%),
+    linear-gradient(180deg, #120f12 0%, #1c1917 100%);
+}
+body[data-ui-theme="film-diary"]::before {
+  background-image:
+    linear-gradient(180deg, rgba(17, 14, 11, 0.84), rgba(28, 25, 23, 0.92)),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 0 4%, transparent 4% 96%, rgba(255,255,255,0.03) 96% 100%),
+    radial-gradient(circle at 50% 18%, rgba(251,191,36,0.10), transparent 16%),
+    linear-gradient(180deg, rgba(28, 25, 23, 0.96), rgba(17, 14, 11, 0.98));
+}
+
+body[data-ui-theme="rainy-library"] .main-nav,
+body[data-ui-theme="rainy-library"] .panel-card,
+body[data-ui-theme="rainy-library"] .summary-card,
+body[data-ui-theme="rainy-library"] .stat-card,
+body[data-ui-theme="rainy-library"] .focus-card,
+body[data-ui-theme="rainy-library"] .shop-card,
+body[data-ui-theme="rainy-library"] .wallet-board,
+body[data-ui-theme="rainy-library"] .pomodoro-clock-wrap,
+body[data-ui-theme="rainy-library"] .pomodoro-controls-panel,
+body[data-ui-theme="rainy-library"] .filter-box,
+body[data-ui-theme="rainy-library"] .toggle-card,
+body[data-ui-theme="rainy-library"] .mission-card,
+body[data-ui-theme="rainy-library"] .daily-saying-card,
+body[data-ui-theme="rainy-library"] .modal-content,
+body[data-ui-theme="snowy-night"] .main-nav,
+body[data-ui-theme="snowy-night"] .panel-card,
+body[data-ui-theme="snowy-night"] .summary-card,
+body[data-ui-theme="snowy-night"] .stat-card,
+body[data-ui-theme="snowy-night"] .focus-card,
+body[data-ui-theme="snowy-night"] .shop-card,
+body[data-ui-theme="snowy-night"] .wallet-board,
+body[data-ui-theme="snowy-night"] .pomodoro-clock-wrap,
+body[data-ui-theme="snowy-night"] .pomodoro-controls-panel,
+body[data-ui-theme="snowy-night"] .filter-box,
+body[data-ui-theme="snowy-night"] .toggle-card,
+body[data-ui-theme="snowy-night"] .mission-card,
+body[data-ui-theme="snowy-night"] .daily-saying-card,
+body[data-ui-theme="snowy-night"] .modal-content,
+body[data-ui-theme="moonlight-window"] .main-nav,
+body[data-ui-theme="moonlight-window"] .panel-card,
+body[data-ui-theme="moonlight-window"] .summary-card,
+body[data-ui-theme="moonlight-window"] .stat-card,
+body[data-ui-theme="moonlight-window"] .focus-card,
+body[data-ui-theme="moonlight-window"] .shop-card,
+body[data-ui-theme="moonlight-window"] .wallet-board,
+body[data-ui-theme="moonlight-window"] .pomodoro-clock-wrap,
+body[data-ui-theme="moonlight-window"] .pomodoro-controls-panel,
+body[data-ui-theme="moonlight-window"] .filter-box,
+body[data-ui-theme="moonlight-window"] .toggle-card,
+body[data-ui-theme="moonlight-window"] .mission-card,
+body[data-ui-theme="moonlight-window"] .daily-saying-card,
+body[data-ui-theme="moonlight-window"] .modal-content,
+body[data-ui-theme="sakura-notes"] .main-nav,
+body[data-ui-theme="sakura-notes"] .panel-card,
+body[data-ui-theme="sakura-notes"] .summary-card,
+body[data-ui-theme="sakura-notes"] .stat-card,
+body[data-ui-theme="sakura-notes"] .focus-card,
+body[data-ui-theme="sakura-notes"] .shop-card,
+body[data-ui-theme="sakura-notes"] .wallet-board,
+body[data-ui-theme="sakura-notes"] .pomodoro-clock-wrap,
+body[data-ui-theme="sakura-notes"] .pomodoro-controls-panel,
+body[data-ui-theme="sakura-notes"] .filter-box,
+body[data-ui-theme="sakura-notes"] .toggle-card,
+body[data-ui-theme="sakura-notes"] .mission-card,
+body[data-ui-theme="sakura-notes"] .daily-saying-card,
+body[data-ui-theme="sakura-notes"] .modal-content,
+body[data-ui-theme="film-diary"] .main-nav,
+body[data-ui-theme="film-diary"] .panel-card,
+body[data-ui-theme="film-diary"] .summary-card,
+body[data-ui-theme="film-diary"] .stat-card,
+body[data-ui-theme="film-diary"] .focus-card,
+body[data-ui-theme="film-diary"] .shop-card,
+body[data-ui-theme="film-diary"] .wallet-board,
+body[data-ui-theme="film-diary"] .pomodoro-clock-wrap,
+body[data-ui-theme="film-diary"] .pomodoro-controls-panel,
+body[data-ui-theme="film-diary"] .filter-box,
+body[data-ui-theme="film-diary"] .toggle-card,
+body[data-ui-theme="film-diary"] .mission-card,
+body[data-ui-theme="film-diary"] .daily-saying-card,
+body[data-ui-theme="film-diary"] .modal-content {
+  background: linear-gradient(180deg, rgba(18, 26, 38, 0.82), rgba(13, 19, 29, 0.90));
+  backdrop-filter: blur(18px);
+  border-color: rgba(255,255,255,0.10);
+}
+
+body[data-ui-theme="sakura-notes"] .main-nav,
+body[data-ui-theme="sakura-notes"] .panel-card,
+body[data-ui-theme="sakura-notes"] .summary-card,
+body[data-ui-theme="sakura-notes"] .stat-card,
+body[data-ui-theme="sakura-notes"] .focus-card,
+body[data-ui-theme="sakura-notes"] .shop-card,
+body[data-ui-theme="sakura-notes"] .wallet-board,
+body[data-ui-theme="sakura-notes"] .pomodoro-clock-wrap,
+body[data-ui-theme="sakura-notes"] .pomodoro-controls-panel,
+body[data-ui-theme="sakura-notes"] .filter-box,
+body[data-ui-theme="sakura-notes"] .toggle-card,
+body[data-ui-theme="sakura-notes"] .mission-card,
+body[data-ui-theme="sakura-notes"] .daily-saying-card,
+body[data-ui-theme="sakura-notes"] .modal-content {
+  background: linear-gradient(180deg, rgba(49, 29, 41, 0.82), rgba(28, 18, 30, 0.92));
+}
+
+body[data-ui-theme="film-diary"] .main-nav,
+body[data-ui-theme="film-diary"] .panel-card,
+body[data-ui-theme="film-diary"] .summary-card,
+body[data-ui-theme="film-diary"] .stat-card,
+body[data-ui-theme="film-diary"] .focus-card,
+body[data-ui-theme="film-diary"] .shop-card,
+body[data-ui-theme="film-diary"] .wallet-board,
+body[data-ui-theme="film-diary"] .pomodoro-clock-wrap,
+body[data-ui-theme="film-diary"] .pomodoro-controls-panel,
+body[data-ui-theme="film-diary"] .filter-box,
+body[data-ui-theme="film-diary"] .toggle-card,
+body[data-ui-theme="film-diary"] .mission-card,
+body[data-ui-theme="film-diary"] .daily-saying-card,
+body[data-ui-theme="film-diary"] .modal-content {
+  background: linear-gradient(180deg, rgba(32, 26, 23, 0.84), rgba(18, 14, 11, 0.92));
+}
+
+.pomodoro-audio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+
+.pomodoro-ambient-grid {
+  margin-top: 8px;
+}
+
+.pomodoro-audio-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 2px 0 4px;
+}
+
+.pomodoro-custom-audio-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0 2px;
+}
+
+.pomodoro-custom-audio-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pomodoro-custom-audio-meta strong {
+  color: #fff;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pomodoro-custom-audio-meta span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.pomodoro-audio-status {
+  min-height: 22px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#pomodoroAudioVolumeText {
+  color: var(--text-primary);
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+@media (max-width: 760px) {
+  .pomodoro-custom-audio-row {
+    grid-template-columns: 1fr;
+  }
+}
