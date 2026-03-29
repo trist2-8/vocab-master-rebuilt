@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sessionStats: null,
     pendingFailureReason: '',
     smartSuggestions: [],
+    smartSuggestionMeta: { byScope: {}, currentScope: 'all' },
     studySupport: null,
     optimizerReport: null
   };
@@ -110,7 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     byId('saveWordsBtn').addEventListener('click', savePreviewWords);
     byId('saveQuickWordBtn').addEventListener('click', saveQuickWord);
-    byId('refreshSuggestionsBtn')?.addEventListener('click', renderSmartSuggestions);
+    byId('wordsetDropdown')?.addEventListener('change', () => renderSmartSuggestions({ resetCycle: true }));
+    byId('refreshSuggestionsBtn')?.addEventListener('click', refreshSmartSuggestions);
     byId('smartSuggestionGrid')?.addEventListener('click', handleSuggestionAction);
     byId('exportBackupBtn')?.addEventListener('click', exportBackup);
     byId('importBackupBtn')?.addEventListener('click', () => byId('fileInputBackup').click());
@@ -282,10 +284,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadState() {
-    const result = await storage.get({ vocab: [], stats: { coins: 0 } });
+    const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null });
     let changed = false;
 
-    state.vocab = result.vocab.map((item, index) => {
+    if (Array.isArray(result.vocab) && result.vocab.length) {
+      await storage.set({
+        recoveryVault: {
+          savedAt: new Date().toISOString(),
+          source: 'pre-normalize-load',
+          vocab: result.vocab,
+          stats: result.stats || {}
+        }
+      });
+    }
+
+    const primaryVocab = Array.isArray(result.vocab) ? result.vocab : [];
+    const recoveryVocab = Array.isArray(result.recoveryVault?.vocab) ? result.recoveryVault.vocab : [];
+    const rawVocab = primaryVocab.length ? primaryVocab : recoveryVocab;
+    changed = changed || (!primaryVocab.length && recoveryVocab.length);
+
+    state.vocab = rawVocab.map((item, index) => {
       const normalized = normalizeWord(item, index);
       changed = changed || JSON.stringify(item || {}) !== JSON.stringify(normalized);
       return normalized;
@@ -1327,13 +1345,66 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  function renderSmartSuggestions() {
+  function getSuggestionScopeKey() {
+    const selected = byId('wordsetDropdown')?.value || 'all';
+    return selected || 'all';
+  }
+
+  function refreshSmartSuggestions() {
+    renderSmartSuggestions({ forceRotate: true });
+  }
+
+  function renderSmartSuggestions({ resetCycle = false, forceRotate = false } = {}) {
     const grid = byId('smartSuggestionGrid');
+    const contextNote = byId('suggestionContextNote');
+    const refreshBtn = byId('refreshSuggestionsBtn');
     if (!grid) return;
 
-    const suggestions = getSmartSuggestions(6);
+    const scopeKey = getSuggestionScopeKey();
+    state.smartSuggestionMeta.currentScope = scopeKey;
+    let bucket = state.smartSuggestionMeta.byScope[scopeKey];
+
+    if (!bucket || resetCycle) {
+      const candidates = buildSmartSuggestionPool(scopeKey);
+      bucket = {
+        candidates,
+        cursor: 0,
+        pageSize: 6,
+        cycle: 1
+      };
+      state.smartSuggestionMeta.byScope[scopeKey] = bucket;
+    } else if (forceRotate) {
+      const step = Math.max(1, bucket.pageSize || 6);
+      if (bucket.candidates.length > step) {
+        bucket.cursor = (bucket.cursor + step) % bucket.candidates.length;
+        if (bucket.cursor === 0) bucket.cycle = (bucket.cycle || 1) + 1;
+      } else {
+        bucket.candidates = rotateSuggestionPool(bucket.candidates, scopeKey, bucket.cycle || 1);
+        bucket.cursor = 0;
+        bucket.cycle = (bucket.cycle || 1) + 1;
+      }
+    }
+
+    const suggestions = sliceSuggestionDeck(bucket.candidates, bucket.cursor || 0, bucket.pageSize || 6);
+    const scopeLabel = scopeKey === 'all' ? 'toàn bộ thư viện' : `bộ “${scopeKey}”`;
+
+    if (contextNote) {
+      if (bucket.candidates.length) {
+        const hiddenCount = Math.max(0, bucket.candidates.length - suggestions.length);
+        contextNote.textContent = `Gợi ý đang bám theo ${scopeLabel}. Hệ thống xoay vòng theo nhóm liên quan, từ dễ nhầm và khoảng trống để tránh lặp. ${hiddenCount ? `Còn ${hiddenCount} gợi ý khác trong hàng chờ.` : 'Đây là nhóm gợi ý tốt nhất hiện tại.'}`;
+      } else {
+        contextNote.textContent = `Chưa có đủ tín hiệu từ ${scopeLabel} để đề xuất thêm. Hãy thêm vài từ hoặc đổi bộ từ khác.`;
+      }
+    }
+
+    if (refreshBtn) {
+      refreshBtn.disabled = !bucket.candidates.length;
+      refreshBtn.textContent = bucket.candidates.length > (bucket.pageSize || 6) ? 'Đổi nhóm gợi ý' : 'Làm mới gợi ý';
+    }
+
     if (!suggestions.length) {
-      grid.innerHTML = '<div class="suggestion-empty">Hãy thêm vài từ trước. Khi đã có dữ liệu, hệ thống sẽ đề xuất từ tiếp theo để mở rộng mà không lặp quá gần.</div>';
+      grid.innerHTML = '<div class="suggestion-empty">Hãy thêm vài từ trước. Khi đã có dữ liệu, hệ thống sẽ đề xuất từ tiếp theo theo bộ đang chọn, ưu tiên từ bù khoảng trống và tránh lặp quá gần.</div>';
+      state.smartSuggestions = [];
       return;
     }
 
@@ -1359,128 +1430,278 @@ document.addEventListener('DOMContentLoaded', () => {
     state.smartSuggestions = suggestions;
   }
 
+  function rotateSuggestionPool(candidates = [], scopeKey = 'all', cycle = 1) {
+    const pool = [...(candidates || [])];
+    if (pool.length <= 1) return pool;
+    const offset = Math.max(1, (String(scopeKey).length + cycle) % pool.length);
+    return pool.slice(offset).concat(pool.slice(0, offset));
+  }
+
+  function sliceSuggestionDeck(candidates = [], cursor = 0, pageSize = 6) {
+    const limit = Math.max(1, pageSize);
+    if (!candidates.length) return [];
+    if (candidates.length <= limit) return candidates.slice(0, limit);
+    const deck = [];
+    for (let i = 0; i < limit; i += 1) {
+      deck.push(candidates[(cursor + i) % candidates.length]);
+    }
+    return deck;
+  }
+
+  function buildSmartSuggestionPool(scopeKey = 'all') {
+    const scopedWords = getWordsForSet(scopeKey).filter(Boolean);
+    const fullLibrary = (state.vocab || []).filter(Boolean);
+    const baseWords = scopedWords.length ? scopedWords : fullLibrary;
+    const scopeLabel = scopeKey === 'all' ? 'toàn bộ thư viện' : `bộ “${scopeKey}”`;
+    const existingKeys = new Set(fullLibrary.map(word => normalizeAnswer(word?.word || '')).filter(Boolean));
+    const scopeKeys = new Set(scopedWords.map(word => normalizeAnswer(word?.word || '')).filter(Boolean));
+    const upgradeData = window.VMUpgradeData || {};
+    const lessonBank = upgradeData.WORD_LESSON_BANK || {};
+    const confusionBank = upgradeData.CONFUSION_BANK || {};
+    const patternBank = upgradeData.PATTERN_TEMPLATES || [];
+    const candidates = [];
+    const seenCandidateKeys = new Set();
+    const focusWords = getAtRiskWords(baseWords, Math.min(10, Math.max(4, baseWords.length)));
+    const topicPool = getSuggestionTopicPool(baseWords, scopeKey);
+
+    const pushCandidate = (item) => {
+      if (!item?.word) return;
+      const normalizedWord = normalizeAnswer(item.word);
+      if (!normalizedWord || existingKeys.has(normalizedWord) || scopeKeys.has(normalizedWord) || seenCandidateKeys.has(normalizedWord)) return;
+      const prepared = {
+        key: `${scopeKey}__${normalizedWord}__${candidates.length}`,
+        word: String(item.word || '').trim(),
+        entryType: item.entryType || 'word',
+        sourceLabel: item.sourceLabel || 'Gợi ý hệ thống',
+        meaning: item.meaning || 'Bổ sung nền nghĩa mới',
+        note: item.note || '',
+        reason: item.reason || `Từ này giúp mở rộng ${scopeLabel} mà không đè lặp cùng một vùng nhớ.`,
+        wordType: item.wordType || (item.entryType === 'pattern' ? 'pattern' : 'core word'),
+        example: item.example || '',
+        phonetic: item.phonetic || '',
+        topicTags: Array.isArray(item.topicTags) ? item.topicTags : [],
+        score: Number(item.score) || 0,
+        linkedWord: item.linkedWord || ''
+      };
+      seenCandidateKeys.add(normalizedWord);
+      candidates.push(prepared);
+    };
+
+    focusWords.forEach(word => {
+      const confusion = confusionBank[normalizeAnswer(word.word)];
+      if (!confusion?.compare) return;
+      extractCompareCandidates(confusion.compare).forEach((candidateWord, index) => {
+        const normalizedCandidate = normalizeAnswer(candidateWord);
+        if (!normalizedCandidate || normalizedCandidate === normalizeAnswer(word.word)) return;
+        pushCandidate({
+          word: candidateWord,
+          meaning: `Bổ sung để phân biệt với ${word.word}`,
+          wordType: 'confusion pair',
+          sourceLabel: 'Cặp dễ nhầm',
+          reason: `Bạn đang ôn ${word.word} trong ${scopeLabel}. Thêm ${candidateWord} sẽ giúp sửa lỗi nhầm lẫn ngay trong cùng vùng học.`,
+          note: confusion.note,
+          topicTags: mergeUniqueTopicTags(word.topicTags || [], [scopeKey]),
+          linkedWord: word.word,
+          score: 92 - index * 4 + Math.round((word._riskScore || calculateForgettingRisk(word)) / 4)
+        });
+      });
+    });
+
+    Object.entries(lessonBank).forEach(([key, lesson]) => {
+      const normalizedKey = normalizeAnswer(key);
+      if (existingKeys.has(normalizedKey) || scopeKeys.has(normalizedKey)) return;
+      const lexicalMatch = focusWords.reduce((best, word) => Math.max(best, getWordSimilarityScore(word, { word: key, meaning: lesson.collocationMeaning || lesson.sentence || '', entryType: 'word' })), 0);
+      const topicHit = topicPool.some(token => tokenizeSuggestionText(`${key} ${lesson.collocation || ''} ${lesson.collocationMeaning || ''} ${lesson.sentence || ''} ${lesson.pattern || ''}`).includes(token));
+      const tagHit = focusWords.some(word => (word.topicTags || []).some(tag => normalizeAnswer(`${lesson.sentence || ''} ${lesson.collocationMeaning || ''}`).includes(normalizeAnswer(tag))));
+      if (!topicHit && !tagHit && lexicalMatch < 0.16 && candidates.length >= 10) return;
+      const linkedWord = focusWords
+        .map(word => ({ word, sim: getWordSimilarityScore(word, { word: key, meaning: lesson.collocationMeaning || lesson.sentence || '', entryType: 'word' }) }))
+        .sort((a, b) => b.sim - a.sim)[0]?.word;
+      pushCandidate({
+        word: key,
+        meaning: lesson.collocationMeaning || lesson.sentence || 'Bổ sung nền nghĩa quan trọng',
+        wordType: 'core bridge',
+        sourceLabel: topicHit || tagHit ? 'Theo chủ đề bộ từ' : 'Lấp khoảng trống',
+        reason: topicHit || tagHit
+          ? `Từ này bám sát chủ đề hiện có trong ${scopeLabel}, giúp bộ từ liền mạch hơn thay vì dàn trải.`
+          : `Từ này nằm gần vùng bạn đang học và phù hợp để nối các mục riêng lẻ thành một cụm nhớ rõ ràng hơn.`,
+        note: lesson.grammar || lesson.recall || '',
+        example: lesson.sentence || '',
+        topicTags: mergeUniqueTopicTags(linkedWord?.topicTags || [], [scopeKey, 'smart-bridge']),
+        linkedWord: linkedWord?.word || '',
+        score: 58 + Math.round(lexicalMatch * 100) + (topicHit ? 20 : 0) + (tagHit ? 12 : 0)
+      });
+    });
+
+    if (baseWords.some(word => word.entryType === 'pattern' || word.entryType === 'phrase')) {
+      patternBank.forEach((pattern, index) => {
+        const normalizedLabel = normalizeAnswer(pattern.label || pattern.pattern || '');
+        if (!normalizedLabel || seenCandidateKeys.has(normalizedLabel) || candidates.length >= 18) return;
+        const topicHit = topicPool.some(token => tokenizeSuggestionText(`${pattern.label || ''} ${pattern.pattern || ''} ${pattern.example || ''}`).includes(token));
+        const anchorWord = focusWords.find(word => tokenizeSuggestionText(`${pattern.example || ''} ${pattern.pattern || ''}`).some(token => tokenizeSuggestionText(`${word.word} ${word.meaning}`).includes(token)));
+        if (!topicHit && !anchorWord && index > 6) return;
+        pushCandidate({
+          word: pattern.label || pattern.pattern,
+          entryType: 'pattern',
+          meaning: pattern.pattern || 'Mẫu câu gợi ý để tái sử dụng từ vựng',
+          wordType: 'pattern',
+          sourceLabel: 'Mẫu nối câu',
+          reason: `Bộ ${scopeLabel} đã có dấu hiệu học qua cụm và mẫu câu. Thêm mẫu này sẽ giúp dùng lại từ thay vì chỉ nhớ nghĩa đơn lẻ.`,
+          note: pattern.grammar || '',
+          example: pattern.example || '',
+          topicTags: mergeUniqueTopicTags(anchorWord?.topicTags || [], [scopeKey, 'pattern-bridge']),
+          linkedWord: anchorWord?.word || '',
+          score: 44 + (topicHit ? 16 : 0) + (anchorWord ? 12 : 0)
+        });
+      });
+    }
+
+    return candidates
+      .filter(item => item && typeof item === 'object' && String(item.word || '').trim())
+      .sort((a, b) => {
+        const scoreDiff = (Number(b?.score) || 0) - (Number(a?.score) || 0);
+        if (scoreDiff) return scoreDiff;
+        return String(a?.word || '').localeCompare(String(b?.word || ''));
+      })
+      .slice(0, 24);
+  }
+
+  function getSuggestionTopicPool(words, scopeKey = 'all') {
+    const tokens = new Set();
+    const addTokens = (text) => {
+      tokenizeSuggestionText(text).forEach(token => {
+        if (token.length >= 3) tokens.add(token);
+      });
+    };
+    addTokens(scopeKey === 'all' ? '' : scopeKey);
+    words.filter(Boolean).slice(0, 18).forEach(word => {
+      addTokens(word.word || '');
+      addTokens(word.wordType || '');
+      addTokens(word.meaning || '');
+      (Array.isArray(word.topicTags) ? word.topicTags : []).forEach(addTokens);
+    });
+    return Array.from(tokens).slice(0, 28);
+  }
+
+  function extractCompareCandidates(text = '') {
+    return String(text || '')
+      .split(/vs|,/i)
+      .map(part => part.trim())
+      .filter(Boolean)
+      .reduce((list, part) => {
+        const candidate = part.replace(/^compare\s+/i, '').trim();
+        if (!candidate) return list;
+        if (!list.some(item => normalizeAnswer(item) === normalizeAnswer(candidate))) list.push(candidate);
+        return list;
+      }, []);
+  }
+
+  function getSmartSuggestions(limit = 6) {
+    const scopeKey = getSuggestionScopeKey();
+    const bucket = state.smartSuggestionMeta.byScope[scopeKey] || { candidates: buildSmartSuggestionPool(scopeKey), cursor: 0, pageSize: limit };
+    return sliceSuggestionDeck(bucket.candidates || [], bucket.cursor || 0, limit);
+  }
+
+  function findSmartSuggestionByKey(key) {
+    if (!key) return null;
+    const currentMatch = (state.smartSuggestions || []).find(item => item?.key === key);
+    if (currentMatch) return currentMatch;
+    const scopeKey = state.smartSuggestionMeta.currentScope || getSuggestionScopeKey();
+    const bucket = state.smartSuggestionMeta.byScope[scopeKey];
+    return (bucket?.candidates || []).find(item => item?.key === key) || null;
+  }
+
+  function removeSmartSuggestion(key, scopeKey = null) {
+    const targetScope = scopeKey || state.smartSuggestionMeta.currentScope || getSuggestionScopeKey();
+    const bucket = state.smartSuggestionMeta.byScope[targetScope];
+    if (bucket?.candidates?.length) {
+      bucket.candidates = bucket.candidates.filter(item => item?.key !== key);
+      if (bucket.cursor >= bucket.candidates.length) bucket.cursor = 0;
+    }
+    state.smartSuggestions = (state.smartSuggestions || []).filter(item => item?.key !== key);
+  }
+
+  function appendSuggestionToInput(item) {
+    const bulkInput = byId('bulkInput');
+    if (!bulkInput || !item?.word) return false;
+    const line = [
+      item.word,
+      item.phonetic || '',
+      item.wordType || '',
+      item.meaning || '',
+      item.example || '',
+      item.note || ''
+    ].join(' | ');
+    const normalizedLine = normalizeAnswer(line);
+    const existingLines = String(bulkInput.value || '').split(/\r?\n/).map(part => normalizeAnswer(part));
+    if (existingLines.includes(normalizedLine)) {
+      bulkInput.focus();
+      return false;
+    }
+    bulkInput.value = bulkInput.value.trim() ? `${bulkInput.value.trim()}\n${line}` : line;
+    bulkInput.focus();
+    bulkInput.setSelectionRange(bulkInput.value.length, bulkInput.value.length);
+    return true;
+  }
+
+  async function saveSmartSuggestion(item) {
+    if (!item?.word) return false;
+    const scopeKey = state.smartSuggestionMeta.currentScope || getSuggestionScopeKey();
+    const linkedWord = state.vocab.find(word => normalizeAnswer(word?.word) === normalizeAnswer(item.linkedWord || ''));
+    const targetSet = scopeKey !== 'all'
+      ? scopeKey
+      : linkedWord?.wordset || byId('wordsetDropdown')?.value || 'Chưa phân loại';
+
+    const result = upsertWords([{
+      word: item.word,
+      phonetic: item.phonetic || '',
+      meaning: item.meaning || '',
+      wordType: item.wordType || '',
+      example: item.example || '',
+      notes: item.note || '',
+      wordset: targetSet,
+      entryType: item.entryType || 'word',
+      topicTags: item.topicTags || [],
+      createdAt: Date.now()
+    }], targetSet);
+
+    removeSmartSuggestion(item.key, scopeKey);
+    await saveAndRefresh();
+    renderSmartSuggestions({ resetCycle: true });
+    showToast(result.added ? `Đã lưu ${item.word} vào bộ “${targetSet}”.` : result.merged ? `Đã gộp ${item.word} với dữ liệu cũ trong bộ “${targetSet}”.` : `${item.word} đã có sẵn trong bộ “${targetSet}”.`);
+    return result.added > 0 || result.merged > 0;
+  }
+
   async function handleSuggestionAction(event) {
     const button = event.target.closest('[data-suggestion-action]');
     if (!button) return;
-    const action = button.dataset.suggestionAction;
-    const suggestionKey = button.dataset.suggestionKey;
-    const suggestion = (state.smartSuggestions || []).find(item => item.key === suggestionKey);
-    if (!suggestion) return;
+    const item = findSmartSuggestionByKey(button.dataset.suggestionKey || '');
+    if (!item) {
+      showToast('Không tìm thấy gợi ý này nữa. Hãy làm mới danh sách gợi ý.');
+      return;
+    }
 
+    const action = button.dataset.suggestionAction;
     if (action === 'append') {
-      const input = byId('bulkInput');
-      const suggestionLine = [suggestion.word, suggestion.phonetic || '', suggestion.wordType || '', suggestion.meaning || '', suggestion.example || '', suggestion.note || ''].join(' | ');
-      input.value = input.value.trim() ? `${input.value.trim()}
-${suggestionLine}` : suggestionLine;
-      showToast(`Đã dán gợi ý ${suggestion.word} vào ô nhập.`);
-      showView('main-view');
-      input.focus();
+      const appended = appendSuggestionToInput(item);
+      showToast(appended ? `Đã dán ${item.word} vào ô nhập.` : `${item.word} đã có trong ô nhập rồi.`);
       return;
     }
 
     if (action === 'save') {
-      const targetSet = byId('wordsetDropdown')?.value || getUniqueWordsets()[0] || 'Chưa phân loại';
-      const result = upsertWords([{
-        word: suggestion.word,
-        phonetic: suggestion.phonetic || '',
-        meaning: suggestion.meaning || '',
-        wordType: suggestion.wordType || '',
-        example: suggestion.example || '',
-        notes: suggestion.note || '',
-        wordset: targetSet,
-        entryType: suggestion.entryType || 'word',
-        topicTags: suggestion.topicTags || [],
-        createdAt: Date.now()
-      }], targetSet);
-      await saveAndRefresh();
-      showToast(result.added ? `Đã lưu nhanh gợi ý ${suggestion.word}.` : result.merged ? `Đã gộp gợi ý ${suggestion.word} vào mục có sẵn.` : `Từ ${suggestion.word} đã có trong bộ hiện tại.`);
+      button.disabled = true;
+      try {
+        await saveSmartSuggestion(item);
+      } finally {
+        button.disabled = false;
+      }
     }
   }
 
-  function getSmartSuggestions(limit = 6) {
-    const existingKeys = new Set(state.vocab.map(word => normalizeAnswer(word.word)));
-    const meaningSeen = state.vocab.map(word => ({ word, risk: calculateForgettingRisk(word) }))
-      .sort((a, b) => b.risk - a.risk)
-      .map(item => item.word)
-      .slice(0, 8);
-
-    const upgradeData = window.VMUpgradeData || {};
-    const lessonBank = upgradeData.WORD_LESSON_BANK || {};
-    const confusionBank = upgradeData.CONFUSION_BANK || {};
-    const suggestions = [];
-
-    const pushSuggestion = (item) => {
-      if (!item?.word) return;
-      const normalizedWord = normalizeAnswer(item.word);
-      if (!normalizedWord || existingKeys.has(normalizedWord)) return;
-      const duplicate = suggestions.some(existing => normalizeAnswer(existing.word) === normalizedWord);
-      if (duplicate) return;
-      suggestions.push({
-        key: `${normalizedWord}__${suggestions.length}`,
-        entryType: 'word',
-        sourceLabel: item.sourceLabel || 'Gợi ý hệ thống',
-        ...item
-      });
-    };
-
-    meaningSeen.forEach(word => {
-      const confusion = confusionBank[normalizeAnswer(word.word)];
-      if (confusion?.compare) {
-        const candidate = confusion.compare.split(/\s+vs\s+/i)[1]?.trim();
-        if (candidate && !existingKeys.has(normalizeAnswer(candidate))) {
-          pushSuggestion({
-            word: candidate,
-            meaning: `Bổ sung để phân biệt với ${word.word}`,
-            wordType: 'word pair',
-            sourceLabel: 'Cặp dễ nhầm',
-            reason: `Bạn đã có ${word.word}. Thêm ${candidate} sẽ giúp tránh nhầm lẫn lặp lại trong lúc recall.`,
-            note: confusion.note,
-            topicTags: word.topicTags || []
-          });
-        }
-      }
-    });
-
-    Object.entries(lessonBank).forEach(([key, lesson]) => {
-      if (existingKeys.has(normalizeAnswer(key))) return;
-      const related = meaningSeen.some(word => getWordSimilarityScore(word, { word: key, meaning: lesson.collocationMeaning || lesson.sentence || '', entryType: 'word' }) >= 0.18)
-        || meaningSeen.some(word => (word.topicTags || []).some(tag => (lesson.sentence || '').toLowerCase().includes(String(tag).toLowerCase())));
-      if (related || suggestions.length < 3) {
-        pushSuggestion({
-          word: key,
-          meaning: lesson.collocationMeaning || lesson.sentence || 'Bổ sung nền nghĩa quan trọng',
-          wordType: 'core word',
-          sourceLabel: 'Lấp khoảng trống',
-          reason: related
-            ? 'Từ này nằm gần vùng bạn đang học nhưng chưa xuất hiện trong bộ từ, nên rất hợp để mở rộng không bị trùng.'
-            : 'Đây là từ nền có thể dùng làm trục để nhớ collocation và pattern tốt hơn.',
-          note: lesson.grammar || lesson.recall || '',
-          example: lesson.sentence || '',
-          topicTags: ['core-memory']
-        });
-      }
-    });
-
-    return suggestions
-      .sort((a, b) => {
-        const sourceWeight = { 'Cặp dễ nhầm': 3, 'Lấp khoảng trống': 2, 'Gợi ý hệ thống': 1 };
-        return (sourceWeight[b.sourceLabel] || 0) - (sourceWeight[a.sourceLabel] || 0);
-      })
-      .slice(0, Math.max(1, limit));
-  }
-
-  function escapeHtml(text = '') {
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
 
   function initMainView() {
     populateSetDropdown(byId('wordsetDropdown'));
-    renderSmartSuggestions();
+    renderSmartSuggestions({ resetCycle: true });
   }
 
   function initManagementView() {

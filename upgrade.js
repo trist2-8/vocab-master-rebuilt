@@ -60,15 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function injectUpgradeUi() {
-    const reviewView = byId('review-dashboard-view');
-    if (reviewView && !byId('upgradeHub')) {
-      const anchor = byId('dailyFocusGrid') || reviewView.firstElementChild;
+    const studioView = byId('management-view');
+    if (studioView && !byId('upgradeHub')) {
+      const anchor = byId('managementSummary') || studioView.firstElementChild;
       const wrapper = document.createElement('div');
       wrapper.id = 'upgradeHub';
       wrapper.innerHTML = `
         <div id="upgradeRewardBar" class="upgrade-reward-bar panel-card">
           <div class="reward-bar-head">
-            <strong>Core upgrades</strong>
+            <strong>Studio & Rewards</strong>
             <button id="toggleUpgradeHubBtn" class="secondary-btn slim-btn" type="button">Thu gọn</button>
           </div>
           <div class="reward-summary-row">
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button id="openPatternVaultBtn" class="secondary-btn">🧩 Pattern Vault</button>
             <button id="openWeeklyRecapBtn" class="secondary-btn">🗓 Tóm tắt tuần</button>
           </div>
-          <div class="reward-mini-note" id="rewardMiniNote">Hoàn thành phiên học, Pomodoro và chuỗi ngày để mở khóa giao diện mới mà không đổi mục tiêu học từ.</div>
+          <div class="reward-mini-note" id="rewardMiniNote">Khu này dành cho UI, coin và focus tools. Phần ôn tập giờ được giữ riêng để màn học sạch hơn và ít bị phân tâm hơn.</div>
         </div>
         <button id="dailySayingLauncher" class="daily-saying-launcher" type="button" aria-haspopup="dialog" aria-controls="dailySayingModal">
           <span class="daily-launcher-copy">

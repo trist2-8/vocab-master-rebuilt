@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "6.6.0",
-  "description": "Vocab Master optimized: duplicate cleanup, smarter coverage queue, merged suggestions, and a decluttered upgrade hub.",
+  "version": "6.7.1",
+  "description": "Vocab Master optimized: smart suggestion hotfix with safer recovery, working suggestion actions, and more resilient data handling.",
   "permissions": [
     "storage"
   ],
