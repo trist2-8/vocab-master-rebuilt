@@ -1,13 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-<<<<<<< HEAD
   "version": "6.5.0",
   "description": "Vocab Master with redesigned learning lab, Rescue Lane word suggestions, smarter next-word guidance, and learning-first memory rescue.",
-=======
-  "version": "6.3.0",
-  "description": "Vocab Master with learning-first memory rescue, mistake journal, tonight review, tomorrow rescue, rich UI upgrades, and preserved core study flow.",
->>>>>>> 4b4113425982a608b432c80425a3534372648bf6
   "permissions": [
     "storage"
   ],
