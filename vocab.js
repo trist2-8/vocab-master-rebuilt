@@ -44,10 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDetailsSet: null,
     currentPlanTitle: '',
     currentPlanReason: '',
-    sessionStats: null,
-    pendingFailureReason: '',
-    smartSuggestions: [],
-    studySupport: null
+    sessionStats: null
   };
 
   const storage = {
@@ -944,19 +941,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRecommendedQueue(words, limit = 20) {
-    const prioritized = [...words]
-      .map(word => ({
-        word,
-        score: calculateForgettingRisk(word)
-          + (isDueWord(word) ? 30 : 0)
-          + (isWeakWord(word) ? 18 : 0)
-          + (isNewWord(word) ? 10 : 0)
-          + (word.entryType === 'pattern' ? 4 : 0)
-      }))
-      .sort((a, b) => b.score - a.score || (a.word.review?.dueAt || Number.MAX_SAFE_INTEGER) - (b.word.review?.dueAt || Number.MAX_SAFE_INTEGER))
-      .map(item => item.word);
-
-    return diversifyStudyQueue(prioritized, Math.max(1, limit));
+    const due = words.filter(isDueWord).sort((a, b) => (a.review.dueAt || 0) - (b.review.dueAt || 0) || getConfidenceValue(a) - getConfidenceValue(b));
+    const weak = words.filter(word => isWeakWord(word) && !due.some(item => item.id === word.id))
+      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || b.review.wrongCount - a.review.wrongCount || a.review.streak - b.review.streak);
+    const fresh = words.filter(word => isNewWord(word) && !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id));
+    const building = words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && getConfidenceValue(word) < 4)
+      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || (a.review.dueAt || Number.MAX_SAFE_INTEGER) - (b.review.dueAt || Number.MAX_SAFE_INTEGER));
+    const mastered = shuffle(words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && !building.some(item => item.id === word.id)));
+    return [...due, ...weak, ...fresh, ...building, ...mastered].slice(0, Math.max(1, limit));
   }
 
   function getSessionQueue(words, gameType) {
@@ -2368,8 +2360,6 @@ ${suggestionLine}` : suggestionLine;
       byId('activeFlashcard').classList.add('flipped');
       showToast('Khớp nghĩa. Bấm “Nhớ rồi” để ghi nhận tiến độ.');
     } else {
-      state.pendingFailureReason = 'meaning';
-      renderStudySupportForWord(card, 'meaning', { autoQueue: false, trigger: 'meaning-check' });
       showToast(`Chưa khớp. Gợi ý đúng: ${card.meaning}`);
       byId('fcTypingInput').classList.add('shake-error');
       setTimeout(() => byId('fcTypingInput').classList.remove('shake-error'), 350);
@@ -2440,8 +2430,7 @@ ${suggestionLine}` : suggestionLine;
           const failureReason = state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
           button.classList.add('wrong');
           correctButton?.classList.add('correct');
-          renderStudySupportForWord(card, failureReason, { autoQueue: true, trigger: 'quiz-wrong' });
-          await recordWordResult(card.id, 'again', 0, true, { failureReason });
+          await recordWordResult(card.id, 'again', 0);
           requeueCurrentCard(2);
           setTimeout(renderQuiz, 900);
         }
@@ -2493,14 +2482,12 @@ ${suggestionLine}` : suggestionLine;
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 500);
     } else if (verdict === 'hard') {
-      renderStudySupportForWord(card, 'spelling', { autoQueue: false, trigger: 'typing-hard' });
-      await recordWordResult(card.id, 'hard', 5, true, { failureReason: 'spelling' });
+      await recordWordResult(card.id, 'hard', 5);
       showToast(`Gần đúng. Đáp án chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 700);
     } else {
-      renderStudySupportForWord(card, 'spelling', { autoQueue: true, trigger: 'typing-again' });
-      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'spelling' });
+      await recordWordResult(card.id, 'again', 0);
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Chưa đúng. Đáp án là “${card.word}”.`);
@@ -2538,14 +2525,12 @@ ${suggestionLine}` : suggestionLine;
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 650);
     } else if (verdict === 'hard') {
-      renderStudySupportForWord(card, 'listening', { autoQueue: false, trigger: 'dictation-hard' });
-      await recordWordResult(card.id, 'hard', 6, true, { failureReason: 'listening' });
+      await recordWordResult(card.id, 'hard', 6);
       showToast(`Bạn gõ rất gần đúng. Từ chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 750);
     } else {
-      renderStudySupportForWord(card, 'listening', { autoQueue: true, trigger: 'dictation-again' });
-      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'listening' });
+      await recordWordResult(card.id, 'again', 0);
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Sai rồi. Từ đúng là “${card.word}”.`);
