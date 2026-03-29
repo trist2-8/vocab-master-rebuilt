@@ -44,7 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDetailsSet: null,
     currentPlanTitle: '',
     currentPlanReason: '',
-    sessionStats: null
+    sessionStats: null,
+    pendingFailureReason: '',
+    smartSuggestions: [],
+    studySupport: null,
+    optimizerReport: null
   };
 
   const storage = {
@@ -287,6 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return normalized;
     });
 
+    const optimization = optimizeVocabularySystem(state.vocab);
+    state.vocab = optimization.vocab;
+    state.optimizerReport = optimization.report;
+    changed = changed || optimization.changed;
+
     state.stats = normalizeStats(result.stats || {});
     updateStreakStats();
     changed = changed || JSON.stringify(result.stats || {}) !== JSON.stringify(state.stats);
@@ -343,6 +352,178 @@ document.addEventListener('DOMContentLoaded', () => {
       ...base,
       entryType: String(item?.entryType || inferEntryType(base)).trim() || 'word',
       topicTags: normalizeTopicTags(item?.topicTags, base)
+    };
+  }
+
+  function getTextRichnessScore(text = '') {
+    return String(text || '').trim().replace(/\s+/g, ' ').length;
+  }
+
+  function pickRicherText(...values) {
+    return values
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+      .sort((a, b) => getTextRichnessScore(b) - getTextRichnessScore(a))[0] || '';
+  }
+
+  function mergeUniqueTopicTags(...groups) {
+    const merged = [];
+    groups.flat().forEach(tag => {
+      const clean = String(tag || '').trim();
+      if (!clean) return;
+      const exists = merged.some(item => normalizeAnswer(item) === normalizeAnswer(clean));
+      if (!exists) merged.push(clean);
+    });
+    return merged.slice(0, 8);
+  }
+
+  function buildSetWordKey(wordset, word) {
+    return `${normalizeAnswer(wordset || 'chua phan loai')}__${normalizeAnswer(word)}`;
+  }
+
+  function isMeaningNear(a, b) {
+    const left = normalizeAnswer(a || '');
+    const right = normalizeAnswer(b || '');
+    if (!left || !right) return !left || !right;
+    if (left === right || left.includes(right) || right.includes(left)) return true;
+    return getTokenOverlap(tokenizeSuggestionText(left), tokenizeSuggestionText(right)) >= 0.72;
+  }
+
+  function mergeReviewState(primaryReview = {}, incomingReview = {}) {
+    const primary = { ...REVIEW_DEFAULTS, ...(primaryReview || {}) };
+    const incoming = { ...REVIEW_DEFAULTS, ...(incomingReview || {}) };
+    const latestFailureSource = (incoming.lastFailureAt || 0) >= (primary.lastFailureAt || 0) ? incoming : primary;
+    const latestSeenSource = (incoming.lastReviewedAt || 0) >= (primary.lastReviewedAt || 0) ? incoming : primary;
+    const next = {
+      ...REVIEW_DEFAULTS,
+      seenCount: Math.max(0, Number(primary.seenCount) || 0) + Math.max(0, Number(incoming.seenCount) || 0),
+      correctCount: Math.max(0, Number(primary.correctCount) || 0) + Math.max(0, Number(incoming.correctCount) || 0),
+      wrongCount: Math.max(0, Number(primary.wrongCount) || 0) + Math.max(0, Number(incoming.wrongCount) || 0),
+      hardCount: Math.max(0, Number(primary.hardCount) || 0) + Math.max(0, Number(incoming.hardCount) || 0),
+      lapseCount: Math.max(0, Number(primary.lapseCount) || 0) + Math.max(0, Number(incoming.lapseCount) || 0),
+      streak: Math.max(Math.max(0, Number(primary.streak) || 0), Math.max(0, Number(incoming.streak) || 0)),
+      confidence: clampConfidence(Math.max(
+        deriveConfidenceValue(primary, false),
+        deriveConfidenceValue(incoming, false),
+        Math.max(0, Number(primary.confidence) || 0),
+        Math.max(0, Number(incoming.confidence) || 0)
+      )),
+      dueAt: [primary.dueAt, incoming.dueAt].filter(value => Number(value) > 0).sort((a, b) => a - b)[0] || 0,
+      lastReviewedAt: Math.max(0, Number(primary.lastReviewedAt) || 0, Number(incoming.lastReviewedAt) || 0),
+      lastFailureAt: Math.max(0, Number(primary.lastFailureAt) || 0, Number(incoming.lastFailureAt) || 0),
+      lastFailureReason: latestFailureSource.lastFailureReason || '',
+      lastSeenGame: latestSeenSource.lastSeenGame || ''
+    };
+    return next;
+  }
+
+  function mergeWordRecords(primaryWord, incomingWord) {
+    const mergedReview = mergeReviewState(primaryWord?.review, incomingWord?.review);
+    const entryTypeCandidates = [primaryWord?.entryType, incomingWord?.entryType].filter(Boolean);
+    const strongerEntryType = entryTypeCandidates.find(type => type && type !== 'word') || entryTypeCandidates[0] || 'word';
+    return normalizeWord({
+      ...(primaryWord || {}),
+      ...(incomingWord || {}),
+      id: primaryWord?.id || incomingWord?.id,
+      word: pickRicherText(primaryWord?.word, incomingWord?.word),
+      phonetic: pickRicherText(primaryWord?.phonetic, incomingWord?.phonetic),
+      meaning: pickRicherText(primaryWord?.meaning, incomingWord?.meaning),
+      wordType: pickRicherText(primaryWord?.wordType, incomingWord?.wordType),
+      example: pickRicherText(primaryWord?.example, incomingWord?.example),
+      notes: pickRicherText(primaryWord?.notes, incomingWord?.notes),
+      wordset: pickRicherText(primaryWord?.wordset, incomingWord?.wordset) || 'Chưa phân loại',
+      entryType: strongerEntryType,
+      topicTags: mergeUniqueTopicTags(primaryWord?.topicTags || [], incomingWord?.topicTags || []),
+      createdAt: Math.min(Number(primaryWord?.createdAt) || Date.now(), Number(incomingWord?.createdAt) || Date.now()),
+      isLearned: Boolean(primaryWord?.isLearned || incomingWord?.isLearned || mergedReview.confidence >= 4),
+      review: mergedReview
+    });
+  }
+
+  function optimizeVocabularySystem(vocab = []) {
+    const buckets = new Map();
+    let removedInvalid = 0;
+    let mergedDuplicates = 0;
+    let changed = false;
+
+    vocab.forEach((rawWord, index) => {
+      const word = normalizeWord(rawWord, index);
+      if (!word.word || !word.meaning) {
+        removedInvalid += 1;
+        changed = true;
+        return;
+      }
+
+      const bucketKey = buildSetWordKey(word.wordset, word.word);
+      const bucket = buckets.get(bucketKey) || [];
+      const duplicateIndex = bucket.findIndex(existing => isMeaningNear(existing.meaning, word.meaning));
+      if (duplicateIndex === -1) {
+        bucket.push(word);
+      } else {
+        bucket[duplicateIndex] = mergeWordRecords(bucket[duplicateIndex], word);
+        mergedDuplicates += 1;
+        changed = true;
+      }
+      buckets.set(bucketKey, bucket);
+    });
+
+    const optimized = Array.from(buckets.values())
+      .flat()
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    return {
+      vocab: optimized,
+      changed: changed || optimized.length !== vocab.length,
+      report: {
+        totalBefore: Array.isArray(vocab) ? vocab.length : 0,
+        totalAfter: optimized.length,
+        removedInvalid,
+        mergedDuplicates
+      }
+    };
+  }
+
+  function upsertWords(entries, fallbackWordset = '') {
+    const working = [...state.vocab];
+    let added = 0;
+    let merged = 0;
+    let skipped = 0;
+
+    entries.forEach((entry, index) => {
+      const normalized = normalizeWord({
+        ...entry,
+        wordset: entry?.wordset || fallbackWordset || 'Chưa phân loại',
+        createdAt: Number(entry?.createdAt) || Date.now()
+      }, index);
+      if (!normalized.word || !normalized.meaning) {
+        skipped += 1;
+        return;
+      }
+
+      const duplicateIndex = working.findIndex(existing => (
+        buildSetWordKey(existing.wordset, existing.word) === buildSetWordKey(normalized.wordset, normalized.word)
+        && isMeaningNear(existing.meaning, normalized.meaning)
+      ));
+
+      if (duplicateIndex === -1) {
+        working.unshift(normalized);
+        added += 1;
+      } else {
+        const before = JSON.stringify(working[duplicateIndex]);
+        working[duplicateIndex] = mergeWordRecords(working[duplicateIndex], normalized);
+        if (JSON.stringify(working[duplicateIndex]) === before) skipped += 1;
+        else merged += 1;
+      }
+    });
+
+    const optimization = optimizeVocabularySystem(working);
+    state.vocab = optimization.vocab;
+    state.optimizerReport = optimization.report;
+
+    return {
+      added,
+      merged: merged + optimization.report.mergedDuplicates,
+      skipped: skipped + optimization.report.removedInvalid
     };
   }
 
@@ -940,21 +1121,83 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function getConceptFamilyKey(word) {
+    if (!word) return 'family:none';
+    const upgradeData = window.VMUpgradeData || {};
+    const confusionBank = upgradeData.CONFUSION_BANK || {};
+    const normalizedWord = normalizeAnswer(word.word || '');
+    const compareCandidates = extractCompareCandidates(confusionBank[normalizedWord]?.compare || '');
+    const tag = (word.topicTags || []).map(item => normalizeAnswer(item)).find(Boolean);
+    if (compareCandidates.length) {
+      return `conf:${[normalizedWord, ...compareCandidates].filter(Boolean).sort().join('|')}`;
+    }
+    if (tag) return `tag:${tag}`;
+    const root = normalizedWord.split(' ').slice(0, 2).join(' ');
+    if (root) return `root:${root}`;
+    const meaningAnchor = tokenizeSuggestionText(word.meaning || '').find(token => token.length > 3);
+    return `meaning:${meaningAnchor || 'general'}`;
+  }
+
+  function getQueuePriorityScore(word, profile = 'balanced') {
+    const risk = calculateForgettingRisk(word);
+    let score = risk;
+    if (isDueWord(word)) score += profile === 'rescue' ? 38 : 28;
+    if (isWeakWord(word)) score += profile === 'drill' ? 32 : 18;
+    if (isNewWord(word)) score += profile === 'warmup' ? 18 : 10;
+    if (word.entryType === 'pattern') score += 6;
+    if (word.review?.lastFailureAt && Date.now() - word.review.lastFailureAt < DAY_MS * 2) score += 8;
+    return score;
+  }
+
+  function buildCoverageQueue(words, limit = 20, profile = 'balanced') {
+    const pool = [...words].filter(Boolean);
+    const target = Math.max(1, Math.min(limit, pool.length));
+    const selected = [];
+    const used = new Set();
+    const recentFamilies = [];
+    const recentTypes = [];
+
+    while (selected.length < target) {
+      let best = null;
+      let bestAdjusted = -Infinity;
+
+      pool.forEach(word => {
+        if (!word?.id || used.has(word.id)) return;
+        let adjusted = getQueuePriorityScore(word, profile);
+        const familyKey = getConceptFamilyKey(word);
+        const entryType = word.entryType || 'word';
+        if (recentFamilies.includes(familyKey)) adjusted -= 22;
+        if (recentTypes.filter(type => type === entryType).length >= 2) adjusted -= 10;
+        if (selected.slice(-2).some(existing => getWordSimilarityScore(existing, word) >= 0.7)) adjusted -= 14;
+        if (selected.some(existing => existing.id === word.id)) adjusted -= 100;
+        if (best === null || adjusted > bestAdjusted) {
+          best = word;
+          bestAdjusted = adjusted;
+        }
+      });
+
+      if (!best) break;
+      used.add(best.id);
+      selected.push(best);
+      recentFamilies.push(getConceptFamilyKey(best));
+      recentTypes.push(best.entryType || 'word');
+      if (recentFamilies.length > 2) recentFamilies.shift();
+      if (recentTypes.length > 3) recentTypes.shift();
+    }
+
+    return selected;
+  }
+
   function getRecommendedQueue(words, limit = 20) {
-    const due = words.filter(isDueWord).sort((a, b) => (a.review.dueAt || 0) - (b.review.dueAt || 0) || getConfidenceValue(a) - getConfidenceValue(b));
-    const weak = words.filter(word => isWeakWord(word) && !due.some(item => item.id === word.id))
-      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || b.review.wrongCount - a.review.wrongCount || a.review.streak - b.review.streak);
-    const fresh = words.filter(word => isNewWord(word) && !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id));
-    const building = words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && getConfidenceValue(word) < 4)
-      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || (a.review.dueAt || Number.MAX_SAFE_INTEGER) - (b.review.dueAt || Number.MAX_SAFE_INTEGER));
-    const mastered = shuffle(words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && !building.some(item => item.id === word.id)));
-    return [...due, ...weak, ...fresh, ...building, ...mastered].slice(0, Math.max(1, limit));
+    return buildCoverageQueue(words, Math.max(1, limit), 'rescue');
   }
 
   function getSessionQueue(words, gameType) {
     const maxItems = gameType === 'matching' ? 18 : 20;
     if (gameType === 'srs') return getRecommendedQueue(words, 20);
-    return diversifyStudyQueue(shuffle([...words]), Math.min(words.length, maxItems));
+    if (gameType === 'typing' || gameType === 'dictation') return buildCoverageQueue(words, Math.min(words.length, 12), 'drill');
+    if (gameType === 'flashcard') return buildCoverageQueue(words, Math.min(words.length, maxItems), 'warmup');
+    return buildCoverageQueue(shuffle([...words]), Math.min(words.length, maxItems), 'balanced');
   }
 
   function diversifyStudyQueue(words, limit = 20) {
@@ -1137,12 +1380,7 @@ ${suggestionLine}` : suggestionLine;
 
     if (action === 'save') {
       const targetSet = byId('wordsetDropdown')?.value || getUniqueWordsets()[0] || 'Chưa phân loại';
-      const duplicate = state.vocab.some(word => buildDedupKey(word.word, word.meaning) === buildDedupKey(suggestion.word, suggestion.meaning));
-      if (duplicate) {
-        showToast(`Từ ${suggestion.word} đã có trong bộ hiện tại.`);
-        return;
-      }
-      state.vocab = [normalizeWord({
+      const result = upsertWords([{
         word: suggestion.word,
         phonetic: suggestion.phonetic || '',
         meaning: suggestion.meaning || '',
@@ -1153,9 +1391,9 @@ ${suggestionLine}` : suggestionLine;
         entryType: suggestion.entryType || 'word',
         topicTags: suggestion.topicTags || [],
         createdAt: Date.now()
-      }), ...state.vocab];
+      }], targetSet);
       await saveAndRefresh();
-      showToast(`Đã lưu nhanh gợi ý ${suggestion.word}.`);
+      showToast(result.added ? `Đã lưu nhanh gợi ý ${suggestion.word}.` : result.merged ? `Đã gộp gợi ý ${suggestion.word} vào mục có sẵn.` : `Từ ${suggestion.word} đã có trong bộ hiện tại.`);
     }
   }
 
@@ -1297,7 +1535,7 @@ ${suggestionLine}` : suggestionLine;
     summary.innerHTML = '';
 
     [
-      { label: 'Tổng số mục', value: stats.total, note: buildEntryTypeSummary(state.vocab) },
+      { label: 'Tổng số mục', value: stats.total, note: state.optimizerReport?.mergedDuplicates ? `${buildEntryTypeSummary(state.vocab)} • đã gộp ${state.optimizerReport.mergedDuplicates} mục trùng` : buildEntryTypeSummary(state.vocab) },
       { label: 'Bộ từ', value: sets.length, note: 'Dễ chia theo chủ đề hoặc bối cảnh học' },
       { label: 'Đến hạn hôm nay', value: stats.due, note: 'Nên ôn sớm để không quên' },
       { label: 'Tiến độ hôm nay', value: `${today.studied}/${state.stats.dailyGoal}`, note: `Chuỗi học ${state.stats.currentStreak} ngày` }
@@ -1434,7 +1672,9 @@ ${suggestionLine}` : suggestionLine;
       .map(word => ({ ...word, wordset: state.currentDetailsSet }));
 
     const otherWords = state.vocab.filter(word => word.wordset !== state.currentDetailsSet);
-    state.vocab = [...otherWords, ...updatedWords].map((word, index) => normalizeWord(word, index));
+    const optimized = optimizeVocabularySystem([...otherWords, ...updatedWords].map((word, index) => normalizeWord(word, index)));
+    state.vocab = optimized.vocab;
+    state.optimizerReport = optimized.report;
     await saveAndRefresh({ showManagement: true });
     showToast('Đã lưu thay đổi của bộ từ.');
   }
@@ -1577,13 +1817,12 @@ ${suggestionLine}` : suggestionLine;
     }
 
     const wordset = byId('wordsetDropdown').value || 'Chưa phân loại';
-    const newWord = normalizeWord({ word, phonetic, wordType, meaning, example, notes, wordset, createdAt: Date.now() });
-    state.vocab.unshift(newWord);
+    const result = upsertWords([{ word, phonetic, wordType, meaning, example, notes, wordset, createdAt: Date.now() }], wordset);
     await saveAndRefresh();
     closeModal('quickAddModal');
     ['quickWord', 'quickPhonetic', 'quickType', 'quickMeaning', 'quickExample', 'quickNotes'].forEach(id => { byId(id).value = ''; });
     byId('wordsetDropdown').value = wordset;
-    showToast('Đã thêm từ mới.');
+    showToast(result.added ? 'Đã thêm từ mới.' : result.merged ? 'Đã gộp với mục trùng và giữ bản giàu thông tin hơn.' : 'Mục này đã có sẵn, không cần lưu lại.');
   }
 
   async function handleCsvImport(event) {
@@ -1913,7 +2152,9 @@ ${suggestionLine}` : suggestionLine;
       const raw = JSON.parse(await file.text());
       const importedWords = Array.isArray(raw.vocab) ? raw.vocab.map((item, index) => normalizeWord(item, index)) : [];
       if (!importedWords.length) throw new Error('EMPTY');
-      state.vocab = importedWords;
+      const optimized = optimizeVocabularySystem(importedWords);
+      state.vocab = optimized.vocab;
+      state.optimizerReport = optimized.report;
       state.stats = normalizeStats(raw.stats || {});
       await saveAndRefresh();
       showToast(`Đã nhập backup với ${importedWords.length} từ.`);
@@ -1927,36 +2168,23 @@ ${suggestionLine}` : suggestionLine;
   async function savePreviewWords() {
     const editedWords = collectEditedWordsFromTable('previewTableContainer');
     const wordset = byId('wordsetDropdown').value || 'Chưa phân loại';
-    const existingKeys = new Set(
-      state.vocab
-        .filter(word => word.wordset === wordset)
-        .map(word => buildDedupKey(word.word, word.meaning))
-    );
+    const result = upsertWords(editedWords.map(word => ({ ...word, wordset, createdAt: Date.now() })), wordset);
 
-    let duplicates = 0;
-    const newWords = [];
-    editedWords.forEach(word => {
-      const dedupKey = buildDedupKey(word.word, word.meaning);
-      if (existingKeys.has(dedupKey)) {
-        duplicates += 1;
-        return;
-      }
-      existingKeys.add(dedupKey);
-      newWords.push(normalizeWord({ ...word, wordset, createdAt: Date.now() }));
-    });
-
-    if (!newWords.length) {
-      return showToast(duplicates ? 'Tất cả dòng đều trùng với dữ liệu hiện có.' : 'Không có dòng hợp lệ để lưu.');
+    if (!result.added && !result.merged) {
+      return showToast('Không có dòng mới hợp lệ để lưu.');
     }
 
-    state.vocab = [...newWords, ...state.vocab];
     await saveAndRefresh();
     byId('bulkInput').value = '';
     byId('preview-view').classList.add('hidden');
     byId('input-view').classList.remove('hidden');
     state.parsedWords = [];
     state.parseMeta = null;
-    showToast(`Đã lưu ${newWords.length} từ${duplicates ? ` • bỏ qua ${duplicates} dòng trùng` : ''}.`);
+    const parts = [];
+    if (result.added) parts.push(`thêm ${result.added} mục`);
+    if (result.merged) parts.push(`gộp ${result.merged} mục trùng`);
+    if (result.skipped) parts.push(`bỏ qua ${result.skipped} dòng không cần thiết`);
+    showToast(`Đã lưu xong: ${parts.join(' • ')}.`);
   }
 
   function buildDedupKey(word, meaning) {
@@ -2099,29 +2327,37 @@ ${suggestionLine}` : suggestionLine;
     const targetWord = state.optionPool.find(item => item.id === wordId) || state.vocab.find(item => item.id === wordId);
     if (!targetWord) return false;
 
-    const nearIndex = state.studyQueue.findIndex((item, idx) => idx > state.currentCardIdx && idx <= state.currentCardIdx + gap + 1 && item.id === wordId);
+    const nearIndex = state.studyQueue.findIndex((item, idx) => idx > state.currentCardIdx && idx <= state.currentCardIdx + gap + 2 && item.id === wordId);
     if (nearIndex !== -1) return true;
 
+    const familyKey = getConceptFamilyKey(targetWord);
+    const findSafeInsertIndex = () => {
+      let insertAt = Math.min(state.currentCardIdx + gap, state.studyQueue.length);
+      while (insertAt < state.studyQueue.length) {
+        const neighbors = state.studyQueue.slice(Math.max(0, insertAt - 1), Math.min(state.studyQueue.length, insertAt + 2));
+        const crowded = neighbors.some(item => item?.id !== targetWord.id && (getConceptFamilyKey(item) === familyKey || getWordSimilarityScore(item, targetWord) >= 0.72));
+        if (!crowded) break;
+        insertAt += 1;
+      }
+      return insertAt;
+    };
+
     const laterIndex = state.studyQueue.findIndex((item, idx) => idx > state.currentCardIdx + gap + 1 && item.id === wordId);
+    const insertAt = findSafeInsertIndex();
     if (laterIndex !== -1) {
       const [existing] = state.studyQueue.splice(laterIndex, 1);
-      state.studyQueue.splice(Math.min(state.currentCardIdx + gap, state.studyQueue.length), 0, existing);
+      state.studyQueue.splice(Math.min(insertAt, state.studyQueue.length), 0, existing);
       return true;
     }
 
-    state.studyQueue.splice(Math.min(state.currentCardIdx + gap, state.studyQueue.length), 0, targetWord);
+    state.studyQueue.splice(Math.min(insertAt, state.studyQueue.length), 0, targetWord);
     return true;
   }
 
   async function saveSupportSuggestion(item) {
     if (!item?.word) return false;
     const targetSet = state.activeSet === 'all' ? (state.studyQueue[state.currentCardIdx]?.wordset || byId('wordsetDropdown')?.value || 'Chưa phân loại') : (state.activeSet || 'Chưa phân loại');
-    const duplicate = state.vocab.some(word => buildDedupKey(word.word, word.meaning) === buildDedupKey(item.word, item.meaning || ''));
-    if (duplicate) {
-      showToast(`Từ ${item.word} đã có trong bộ từ.`);
-      return false;
-    }
-    const newWord = normalizeWord({
+    const result = upsertWords([{
       word: item.word,
       phonetic: item.phonetic || '',
       meaning: item.meaning || '',
@@ -2132,13 +2368,15 @@ ${suggestionLine}` : suggestionLine;
       entryType: item.entryType || 'word',
       topicTags: item.topicTags || [],
       createdAt: Date.now()
-    });
-    state.vocab = [newWord, ...state.vocab];
-    state.optionPool = [newWord, ...state.optionPool];
-    queueRelatedWordNearCurrent(newWord.id, 1);
+    }], targetSet);
+    const savedWord = state.vocab.find(word => buildSetWordKey(word.wordset, word.word) === buildSetWordKey(targetSet, item.word) && isMeaningNear(word.meaning, item.meaning || ''));
+    if (savedWord) {
+      state.optionPool = [savedWord, ...state.optionPool.filter(entry => entry.id !== savedWord.id)];
+      queueRelatedWordNearCurrent(savedWord.id, 1);
+    }
     await persistState();
-    showToast(`Đã lưu và đưa ${newWord.word} vào làn ôn gần tiếp theo.`);
-    return true;
+    showToast(result.added ? `Đã lưu và đưa ${item.word} vào làn ôn gần tiếp theo.` : result.merged ? `Đã gộp ${item.word} với mục cũ rồi kéo nó vào hàng ôn.` : `Từ ${item.word} đã có trong bộ từ.`);
+    return result.added > 0 || result.merged > 0;
   }
 
   function handleStudySupportPrimaryAction() {
@@ -2360,6 +2598,8 @@ ${suggestionLine}` : suggestionLine;
       byId('activeFlashcard').classList.add('flipped');
       showToast('Khớp nghĩa. Bấm “Nhớ rồi” để ghi nhận tiến độ.');
     } else {
+      state.pendingFailureReason = 'meaning';
+      renderStudySupportForWord(card, 'meaning', { autoQueue: false, trigger: 'meaning-check' });
       showToast(`Chưa khớp. Gợi ý đúng: ${card.meaning}`);
       byId('fcTypingInput').classList.add('shake-error');
       setTimeout(() => byId('fcTypingInput').classList.remove('shake-error'), 350);
@@ -2430,7 +2670,8 @@ ${suggestionLine}` : suggestionLine;
           const failureReason = state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
           button.classList.add('wrong');
           correctButton?.classList.add('correct');
-          await recordWordResult(card.id, 'again', 0);
+          renderStudySupportForWord(card, failureReason, { autoQueue: true, trigger: 'quiz-wrong' });
+          await recordWordResult(card.id, 'again', 0, true, { failureReason });
           requeueCurrentCard(2);
           setTimeout(renderQuiz, 900);
         }
@@ -2482,12 +2723,14 @@ ${suggestionLine}` : suggestionLine;
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 500);
     } else if (verdict === 'hard') {
-      await recordWordResult(card.id, 'hard', 5);
+      renderStudySupportForWord(card, 'spelling', { autoQueue: false, trigger: 'typing-hard' });
+      await recordWordResult(card.id, 'hard', 5, true, { failureReason: 'spelling' });
       showToast(`Gần đúng. Đáp án chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 700);
     } else {
-      await recordWordResult(card.id, 'again', 0);
+      renderStudySupportForWord(card, 'spelling', { autoQueue: true, trigger: 'typing-again' });
+      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'spelling' });
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Chưa đúng. Đáp án là “${card.word}”.`);
@@ -2525,12 +2768,14 @@ ${suggestionLine}` : suggestionLine;
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 650);
     } else if (verdict === 'hard') {
-      await recordWordResult(card.id, 'hard', 6);
+      renderStudySupportForWord(card, 'listening', { autoQueue: false, trigger: 'dictation-hard' });
+      await recordWordResult(card.id, 'hard', 6, true, { failureReason: 'listening' });
       showToast(`Bạn gõ rất gần đúng. Từ chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 750);
     } else {
-      await recordWordResult(card.id, 'again', 0);
+      renderStudySupportForWord(card, 'listening', { autoQueue: true, trigger: 'dictation-again' });
+      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'listening' });
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Sai rồi. Từ đúng là “${card.word}”.`);

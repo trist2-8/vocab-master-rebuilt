@@ -360,6 +360,27 @@ body[data-ui-layout="compact"] #review-dashboard-view .daily-saying-launcher {
   display: grid;
   gap: 12px;
 }
+.reward-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.slim-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+#upgradeHub.hub-collapsed #upgradeRewardBar .reward-action-row,
+#upgradeHub.hub-collapsed #upgradeRewardBar .reward-mini-note,
+#upgradeHub.hub-collapsed #missionStrip,
+#upgradeHub.hub-collapsed #dailySayingLauncher {
+  display: none;
+}
+#upgradeHub.hub-collapsed #upgradeRewardBar {
+  margin-bottom: 0;
+}
+
 .reward-summary-row {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
@@ -872,8 +893,10 @@ body[data-ui-quote-style="spotlight"] .daily-saying-image {
 .pomodoro-mini-widget.study-dock {
   left: auto;
   right: 20px;
-  top: 86px;
+  top: 20px;
   bottom: auto;
+  transform: scale(0.92);
+  transform-origin: top right;
 }
 .pomodoro-mini-widget.study-dock .pomodoro-mini-main {
   padding: 10px 14px;

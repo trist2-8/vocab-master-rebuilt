@@ -67,6 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.id = 'upgradeHub';
       wrapper.innerHTML = `
         <div id="upgradeRewardBar" class="upgrade-reward-bar panel-card">
+          <div class="reward-bar-head">
+            <strong>Core upgrades</strong>
+            <button id="toggleUpgradeHubBtn" class="secondary-btn slim-btn" type="button">Thu gọn</button>
+          </div>
           <div class="reward-summary-row">
             <div class="reward-pill"><span>🟡</span><strong id="walletAvailableCoins">0</strong><small>số dư UI khả dụng</small></div>
             <div class="reward-pill"><span>🎨</span><strong id="walletThemeName">Midnight Core</strong><small>giao diện đang dùng</small></div>
@@ -626,6 +630,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderWeeklyRecapModal();
       openModal('weeklyRecapModal');
     });
+    byId('toggleUpgradeHubBtn')?.addEventListener('click', async () => {
+      state.ui.upgradeHubCollapsed = !state.ui.upgradeHubCollapsed;
+      renderUpgradeHubState();
+      await saveUiState();
+    });
     byId('dailyQuotePrevBtn')?.addEventListener('click', () => shiftQuote(-1));
     byId('dailyQuoteNextBtn')?.addEventListener('click', () => shiftQuote(1));
     byId('saveDailyQuoteBtn')?.addEventListener('click', toggleCurrentQuoteSaved);
@@ -960,7 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
       pomodoroCompletionPlaylistEnabled: raw.pomodoroCompletionPlaylistEnabled === true,
       pomodoroCompletionPlaylistVolume: clampRange(raw.pomodoroCompletionPlaylistVolume, 0, 100, 70),
       pomodoroCompletionPlaylistFolderName: typeof raw.pomodoroCompletionPlaylistFolderName === 'string' ? raw.pomodoroCompletionPlaylistFolderName : '',
-      pomodoroCompletionPlaylistTrackCount: Math.max(0, Number(raw.pomodoroCompletionPlaylistTrackCount) || 0)
+      pomodoroCompletionPlaylistTrackCount: Math.max(0, Number(raw.pomodoroCompletionPlaylistTrackCount) || 0),
+      upgradeHubCollapsed: raw.upgradeHubCollapsed !== false
     };
 
     ensureActiveUnlocked(ui, 'theme', 'unlockedThemes', 'midnight');
@@ -1287,6 +1297,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderFocusRoomModal();
     renderAdminModal();
     renderPomodoroWidgets();
+    renderUpgradeHubState();
+  }
+
+  function renderUpgradeHubState() {
+    const hub = byId('upgradeHub');
+    const launcher = byId('toggleUpgradeHubBtn');
+    if (!hub) return;
+    const collapsed = Boolean(state.ui?.upgradeHubCollapsed);
+    hub.classList.toggle('hub-collapsed', collapsed);
+    if (launcher) launcher.textContent = collapsed ? 'Mở rộng' : 'Thu gọn';
   }
 
   function renderWalletBar() {
