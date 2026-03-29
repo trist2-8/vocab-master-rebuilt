@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "6.2.0",
-  "description": "Vocab Master with learning-first core, modular upgrade layer, Atmosphere 2.0 effects, optional Pomodoro audio cues, and preserved legacy study flow.",
+  "version": "6.3.0",
+  "description": "Vocab Master with learning-first memory rescue, mistake journal, tonight review, tomorrow rescue, rich UI upgrades, and preserved core study flow.",
   "permissions": [
     "storage"
   ],
