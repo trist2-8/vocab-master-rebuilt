@@ -811,6 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(renderUpgradeLayer, 80);
     }));
     byId('reviewSetDropdown')?.addEventListener('change', () => window.setTimeout(renderUpgradeLayer, 80));
+    window.addEventListener('vm:viewchange', () => window.setTimeout(renderPomodoroWidgets, 10));
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
@@ -1833,6 +1834,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+  function isStudyLikeViewActive() {
+    return ['study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view']
+      .some((id) => {
+        const node = byId(id);
+        return node && !node.classList.contains('hidden');
+      });
+  }
+
   function renderPomodoroWidgets() {
     const total = state.focus.preferredMinutes * 60;
     const remaining = Math.max(0, state.runtime.remainingSec);
@@ -1867,7 +1876,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const miniToggle = byId('pomodoroMiniToggleBtn');
     if (miniToggle) miniToggle.textContent = state.runtime.isRunning ? '❚❚' : '▶';
+    const studyLikeView = isStudyLikeViewActive();
     byId('pomodoroMiniWidget')?.classList.toggle('running', state.runtime.isRunning);
+    byId('pomodoroMiniWidget')?.classList.toggle('study-dock', studyLikeView);
+    byId('ambientCompanion')?.classList.toggle('study-hidden', studyLikeView);
 
     if (byId('pomodoroMinutesSelect')) byId('pomodoroMinutesSelect').value = String(state.focus.preferredMinutes);
     if (byId('pomodoroAutoLaunch')) byId('pomodoroAutoLaunch').checked = state.focus.autoLaunchRecommended;

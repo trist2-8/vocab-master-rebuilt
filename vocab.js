@@ -9,7 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
     lapseCount: 0,
     dueAt: 0,
     lastReviewedAt: 0,
-    confidence: 0
+    confidence: 0,
+    lastFailureAt: 0,
+    lastFailureReason: '',
+    lastSeenGame: ''
   };
 
   const MEMORY_STAGES = [
@@ -41,7 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDetailsSet: null,
     currentPlanTitle: '',
     currentPlanReason: '',
-    sessionStats: null
+    sessionStats: null,
+    pendingFailureReason: '',
+    smartSuggestions: [],
+    studySupport: null
   };
 
   const storage = {
@@ -62,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     bindStaticEvents();
     setupModals();
+    ensureAdvancedReviewPanels();
     await loadState();
     showView('main-view');
     renderAll();
@@ -102,6 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     byId('saveWordsBtn').addEventListener('click', savePreviewWords);
     byId('saveQuickWordBtn').addEventListener('click', saveQuickWord);
+    byId('refreshSuggestionsBtn')?.addEventListener('click', renderSmartSuggestions);
+    byId('smartSuggestionGrid')?.addEventListener('click', handleSuggestionAction);
     byId('exportBackupBtn')?.addEventListener('click', exportBackup);
     byId('importBackupBtn')?.addEventListener('click', () => byId('fileInputBackup').click());
     byId('fileInputBackup')?.addEventListener('change', handleBackupImport);
@@ -121,11 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('startDueFocusBtn')?.addEventListener('click', () => startTargetedFocus('due'));
     byId('startWeakFocusBtn')?.addEventListener('click', () => startTargetedFocus('weak'));
     byId('startNewFocusBtn')?.addEventListener('click', () => startTargetedFocus('new'));
-    document.querySelectorAll('.vibrant-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const gameType = card.dataset.game;
-        startGame(gameType, byId('reviewSetDropdown').value);
-      });
+    byId('review-dashboard-view')?.addEventListener('click', (event) => {
+      const card = event.target.closest('[data-game]');
+      if (!card || !byId('review-dashboard-view').contains(card)) return;
+      const gameType = card.dataset.game;
+      if (!gameType) return;
+      startGame(gameType, byId('reviewSetDropdown').value);
     });
 
     document.querySelectorAll('.exit-game-btn').forEach(btn => {
@@ -154,14 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('btnAlmostLearned')?.addEventListener('click', () => handleFlashcardOutcome('hard'));
     byId('btnLearned').addEventListener('click', () => handleFlashcardOutcome('good'));
     byId('fcCheckBtn').addEventListener('click', handleFlashcardMeaningCheck);
+    byId('fcHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('recall', { autoQueue: false, manual: true }));
+    byId('fcHintInlineBtn')?.addEventListener('click', () => openStudySupportForCurrent('meaning', { autoQueue: false, manual: true }));
     byId('fcTypingInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleFlashcardMeaningCheck();
     });
 
+    byId('typingHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('spelling', { autoQueue: false, manual: true }));
     byId('typingSubmitBtn').addEventListener('click', handleTypingSubmit);
     byId('typingInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleTypingSubmit();
     });
+    byId('dictationHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('listening', { autoQueue: false, manual: true }));
     byId('dictationSubmitBtn').addEventListener('click', handleDictationSubmit);
     byId('dictationInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleDictationSubmit();
@@ -170,6 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = state.studyQueue[state.currentCardIdx];
       if (card) playWordAudio(card.word);
     });
+    byId('quizHintBtn')?.addEventListener('click', () => openStudySupportForCurrent(state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning', { autoQueue: false, manual: true }));
+    byId('studySupportCloseBtn')?.addEventListener('click', hideStudySupport);
+    byId('studySupportQueueBtn')?.addEventListener('click', handleStudySupportPrimaryAction);
+    byId('studySupportGrid')?.addEventListener('click', handleStudySupportAction);
 
     document.addEventListener('keydown', flashcardKeyHandler);
   }
@@ -202,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshPromptOutput();
     byId('openStrategyBtn').addEventListener('click', () => openModal('strategyModal'));
     byId('startRecommendedBtn').addEventListener('click', startRecommendedStudy);
+    byId('spotlightLaunchBtn')?.addEventListener('click', startRecommendedStudy);
     byId('closeSessionSummaryBtn')?.addEventListener('click', () => closeModal('sessionSummaryModal'));
     byId('repeatRecommendedBtn')?.addEventListener('click', () => {
       closeModal('sessionSummaryModal');
@@ -283,6 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function normalizeStats(stats = {}) {
     const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
     const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
+    const baseMistakeJournal = { meaning: 0, spelling: 0, listening: 0, recall: 0, confusion: 0 };
+    const mistakeJournal = stats.mistakeJournal && typeof stats.mistakeJournal === 'object'
+      ? { ...baseMistakeJournal, ...stats.mistakeJournal }
+      : baseMistakeJournal;
+    const recentFailures = Array.isArray(stats.recentFailures) ? stats.recentFailures.slice(0, 24) : [];
+
     return {
       coins: Number(stats.coins) || 0,
       dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
@@ -290,7 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
       currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
       bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
       totalSessions: Math.max(0, Number(stats.totalSessions) || 0),
-      studyLog
+      studyLog,
+      mistakeJournal,
+      recentFailures
     };
   }
 
@@ -301,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     review.confidence = deriveConfidenceValue(review, Boolean(item?.isLearned));
 
-    return {
+    const base = {
       id: item?.id || `${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
       word: String(item?.word || '').trim(),
       phonetic: String(item?.phonetic || '').trim(),
@@ -313,6 +340,12 @@ document.addEventListener('DOMContentLoaded', () => {
       createdAt: Number(item?.createdAt) || Date.now(),
       isLearned: Boolean(item?.isLearned) || review.confidence >= 4,
       review
+    };
+
+    return {
+      ...base,
+      entryType: String(item?.entryType || inferEntryType(base)).trim() || 'word',
+      topicTags: normalizeTopicTags(item?.topicTags, base)
     };
   }
 
@@ -332,6 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'].includes(viewIdToShow)) {
       byId('navReviewBtn').classList.add('active');
     }
+    if (!['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view'].includes(viewIdToShow)) {
+      hideStudySupport();
+    }
+    window.dispatchEvent(new CustomEvent('vm:viewchange', { detail: { viewId: viewIdToShow } }));
   }
 
   function openModal(modalId) {
@@ -605,6 +642,264 @@ document.addEventListener('DOMContentLoaded', () => {
     return counts.map(stage => `${stage.label}: ${stage.count}`).join(' • ');
   }
 
+  function getDateKeyFromTimestamp(timestamp) {
+    if (!timestamp) return '';
+    return new Date(timestamp).toISOString().slice(0, 10);
+  }
+
+  function inferEntryType(item = {}) {
+    const word = String(item.word || '').trim();
+    const type = normalizeAnswer(item.wordType || '');
+    const notes = normalizeAnswer(item.notes || '');
+    if (type.includes('tip') || notes.startsWith('tip ') || notes.startsWith('meo ') || notes.includes('ghi nho')) return 'tip';
+    if (type.includes('pattern') || type.includes('structure') || notes.includes('pattern') || notes.includes('cau truc')) return 'pattern';
+    if (type.includes('phrase') || type.includes('idiom') || type.includes('phrasal') || word.split(/\s+/).length >= 2) return 'phrase';
+    return 'word';
+  }
+
+  function normalizeTopicTags(rawTags, item = {}) {
+    if (Array.isArray(rawTags)) {
+      return rawTags.map(tag => String(tag || '').trim()).filter(Boolean).slice(0, 8);
+    }
+    const notes = String(item.notes || '');
+    const noteTags = Array.from(notes.matchAll(/#([\p{L}\p{N}\-_]+)/gu)).map(match => match[1]);
+    const setTags = String(item.wordset || '').split(/[\/,&]/).map(part => part.trim()).filter(Boolean);
+    return Array.from(new Set([...noteTags, ...setTags])).slice(0, 8);
+  }
+
+  function getEntryTypeLabel(word) {
+    const labels = {
+      word: 'Từ',
+      phrase: 'Cụm',
+      pattern: 'Mẫu câu',
+      tip: 'Ghi chú'
+    };
+    return labels[word?.entryType] || 'Từ';
+  }
+
+  function getEntryTypeStats(words) {
+    const counts = { word: 0, phrase: 0, pattern: 0, tip: 0 };
+    words.forEach(word => {
+      const key = word.entryType || inferEntryType(word);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function buildEntryTypeSummary(words) {
+    const counts = getEntryTypeStats(words);
+    return [
+      counts.word ? `${counts.word} từ` : '',
+      counts.phrase ? `${counts.phrase} cụm` : '',
+      counts.pattern ? `${counts.pattern} mẫu` : '',
+      counts.tip ? `${counts.tip} ghi chú` : ''
+    ].filter(Boolean).join(' • ') || 'Chưa có phân loại học liệu';
+  }
+
+  function calculateForgettingRisk(word) {
+    const confidence = getConfidenceValue(word);
+    let risk = Math.max(0, 52 - confidence * 10);
+    if (isNewWord(word)) risk += 18;
+    if (isWeakWord(word)) risk += 20;
+    if (isDueWord(word)) risk += 26;
+    risk += Math.min(18, (word.review?.wrongCount || 0) * 3);
+    risk += Math.min(14, (word.review?.lapseCount || 0) * 4);
+    if (word.review?.lastFailureAt && getDateKeyFromTimestamp(word.review.lastFailureAt) === getTodayKey()) risk += 14;
+    if (word.review?.dueAt) {
+      const overdueDays = Math.max(0, (Date.now() - word.review.dueAt) / DAY_MS);
+      risk += Math.min(24, overdueDays * 8);
+      const dueInHours = (word.review.dueAt - Date.now()) / (60 * 60 * 1000);
+      if (dueInHours > 0 && dueInHours <= 24) risk += Math.max(0, 12 - dueInHours / 2);
+    }
+    return Math.max(0, Math.min(100, Math.round(risk)));
+  }
+
+  function getRiskLabel(risk) {
+    if (risk >= 80) return 'Rất dễ rơi';
+    if (risk >= 65) return 'Cần cứu sớm';
+    if (risk >= 45) return 'Nên nhắc lại';
+    return 'Khá ổn';
+  }
+
+  function getAtRiskWords(words, limit = 8) {
+    return [...words]
+      .map(word => {
+        word._riskScore = calculateForgettingRisk(word);
+        return word;
+      })
+      .sort((a, b) => b._riskScore - a._riskScore || (a.review?.dueAt || Number.MAX_SAFE_INTEGER) - (b.review?.dueAt || Number.MAX_SAFE_INTEGER))
+      .slice(0, Math.max(1, limit));
+  }
+
+  function getTonightReviewQueue(words, limit = 6) {
+    const todayKey = getTodayKey();
+    const todayNew = words.filter(word => getDateKeyFromTimestamp(word.createdAt) === todayKey);
+    const todayFailed = words.filter(word => getDateKeyFromTimestamp(word.review?.lastFailureAt) === todayKey);
+    const dueTonight = words.filter(word => isDueWord(word) || calculateForgettingRisk(word) >= 65);
+    const combined = [];
+    const seen = new Set();
+    [todayFailed, dueTonight, todayNew].forEach(group => {
+      group.forEach(word => {
+        if (seen.has(word.id)) return;
+        seen.add(word.id);
+        combined.push(word);
+      });
+    });
+    return combined.slice(0, Math.max(1, limit));
+  }
+
+  function getTomorrowRescueQueue(words, limit = 6) {
+    const tomorrowEnd = new Date();
+    tomorrowEnd.setHours(23, 59, 59, 999);
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+    return getAtRiskWords(words, limit * 2)
+      .filter(word => !word.review?.dueAt || word.review.dueAt <= tomorrowEnd.getTime() || word._riskScore >= 70)
+      .slice(0, Math.max(1, limit));
+  }
+
+  function summarizeMistakeJournal() {
+    const journal = state.stats.mistakeJournal || {};
+    return Object.entries(journal)
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count)
+      .filter(item => item.count > 0);
+  }
+
+  function getMistakeReasonLabel(reason) {
+    const labels = {
+      meaning: 'Sai nghĩa',
+      spelling: 'Sai chính tả',
+      listening: 'Nghe chưa chắc',
+      recall: 'Gọi lại chưa ra',
+      confusion: 'Dễ nhầm lẫn'
+    };
+    return labels[reason] || 'Lỗi khác';
+  }
+
+  function inferFailureReasonFromGame(gameType) {
+    if (gameType === 'dictation') return 'listening';
+    if (gameType === 'typing') return 'spelling';
+    if (gameType === 'matching') return 'confusion';
+    if (gameType === 'quiz') return state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
+    return 'recall';
+  }
+
+  function recordFailureReason(reason, word, gameType = state.currentGame) {
+    const safeReason = reason || inferFailureReasonFromGame(gameType);
+    state.stats.mistakeJournal[safeReason] = (state.stats.mistakeJournal[safeReason] || 0) + 1;
+    state.stats.recentFailures = [
+      {
+        wordId: word.id,
+        word: word.word,
+        meaning: word.meaning,
+        reason: safeReason,
+        gameType,
+        at: Date.now()
+      },
+      ...(state.stats.recentFailures || [])
+    ].slice(0, 24);
+  }
+
+  function startCustomQueue(queue, gameType, planTitle, planReason) {
+    if (!queue.length) return showToast('Nhóm này hiện chưa có mục phù hợp để mở nhanh.');
+    startGame(gameType, byId('reviewSetDropdown').value || 'all', { queue, planTitle, planReason });
+  }
+
+  function ensureAdvancedReviewPanels() {
+    const reviewView = byId('review-dashboard-view');
+    if (!reviewView || byId('advancedReviewGrid')) return;
+    const wrapper = document.createElement('div');
+    wrapper.id = 'advancedReviewGrid';
+    wrapper.className = 'advanced-review-grid';
+    wrapper.innerHTML = `
+      <div id="tonightReviewCard" class="panel-card review-queue-card"></div>
+      <div id="tomorrowRescueCard" class="panel-card review-queue-card"></div>
+      <div id="mistakeJournalCard" class="panel-card review-queue-card"></div>
+    `;
+    const insightPanel = byId('reviewInsightPanel');
+    if (insightPanel?.parentNode) insightPanel.insertAdjacentElement('afterend', wrapper);
+    else reviewView.appendChild(wrapper);
+  }
+
+  function renderAdvancedReviewPanels(words) {
+    ensureAdvancedReviewPanels();
+    const tonightCard = byId('tonightReviewCard');
+    const tomorrowCard = byId('tomorrowRescueCard');
+    const mistakesCard = byId('mistakeJournalCard');
+    if (!tonightCard || !tomorrowCard || !mistakesCard) return;
+
+    const tonight = getTonightReviewQueue(words, 6);
+    const tomorrow = getTomorrowRescueQueue(words, 6);
+    const mistakes = summarizeMistakeJournal();
+    const recentFailures = (state.stats.recentFailures || []).slice(0, 4);
+
+    tonightCard.innerHTML = `
+      <div class="queue-card-top">
+        <div>
+          <div class="insight-label">Tonight Review</div>
+          <div class="insight-note">Ôn ngắn trước khi nghỉ để khóa lại từ mới, từ vừa sai và từ có nguy cơ rơi.</div>
+        </div>
+        <span class="queue-badge">${tonight.length}</span>
+      </div>
+      <ul class="queue-list">
+        ${tonight.length ? tonight.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getEntryTypeLabel(word))} • ${escapeHtml(getWordStatusLabel(word))}</span></li>`).join('') : '<li>Chưa có mục nào thật sự cần ôn tối nay.</li>'}
+      </ul>
+      <div class="queue-actions">
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="tonight">Ôn tối nay</button>
+      </div>
+    `;
+
+    tomorrowCard.innerHTML = `
+      <div class="queue-card-top">
+        <div>
+          <div class="insight-label">Tomorrow Rescue</div>
+          <div class="insight-note">Những mục nên cứu trong vòng 24 giờ tới để tránh tụt trí nhớ dài hạn.</div>
+        </div>
+        <span class="queue-badge risk-badge">${tomorrow.length}</span>
+      </div>
+      <ul class="queue-list">
+        ${tomorrow.length ? tomorrow.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getRiskLabel(word._riskScore || calculateForgettingRisk(word)))} • risk ${(word._riskScore || calculateForgettingRisk(word))}%</span></li>`).join('') : '<li>Ngày mai hiện khá nhẹ, chưa có mục cần cứu gấp.</li>'}
+      </ul>
+      <div class="queue-actions">
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="rescue">Mở Memory Rescue</button>
+      </div>
+    `;
+
+    mistakesCard.innerHTML = `
+      <div class="queue-card-top">
+        <div>
+          <div class="insight-label">Nhật ký lỗi</div>
+          <div class="insight-note">Theo dõi kiểu sai nổi bật để chuyển từ xem lại sang chữa đúng điểm yếu.</div>
+        </div>
+        <span class="queue-badge">${recentFailures.length}</span>
+      </div>
+      <div class="mistake-summary-row">
+        ${(mistakes.length ? mistakes.slice(0, 3) : [{ key: 'recall', count: 0 }]).map(item => `<span class="mistake-chip">${escapeHtml(getMistakeReasonLabel(item.key))}: <strong>${item.count}</strong></span>`).join('')}
+      </div>
+      <ul class="queue-list compact-list">
+        ${recentFailures.length ? recentFailures.map(item => `<li><strong>${escapeHtml(item.word)}</strong><span>${escapeHtml(getMistakeReasonLabel(item.reason))} • ${escapeHtml(item.gameType || 'study')}</span></li>`).join('') : '<li>Chưa có lỗi gần đây để ghi vào journal.</li>'}
+      </ul>
+      <div class="queue-actions">
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="mistakes">Luyện theo lỗi</button>
+      </div>
+    `;
+
+    document.querySelectorAll('.queue-action-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.queueAction;
+        if (action === 'tonight') {
+          startCustomQueue(tonight, 'flashcard', 'Tonight Review', 'Khóa lại từ mới và lỗi vừa xảy ra trước khi kết thúc ngày học.');
+        } else if (action === 'rescue') {
+          startCustomQueue(tomorrow, 'srs', 'Memory Rescue', 'Ưu tiên các mục có nguy cơ rơi trí nhớ trong 24 giờ tới.');
+        } else if (action === 'mistakes') {
+          const wordIds = new Set((state.stats.recentFailures || []).slice(0, 10).map(item => item.wordId));
+          const queue = words.filter(word => wordIds.has(word.id));
+          startCustomQueue(queue, 'typing', 'Mistake Journal Drill', 'Đưa các lỗi gần đây sang luyện chủ động để sửa thẳng điểm yếu.');
+        }
+      });
+    });
+  }
+
   function isNewWord(word) {
     return getConfidenceValue(word) === 0;
   }
@@ -649,20 +944,77 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRecommendedQueue(words, limit = 20) {
-    const due = words.filter(isDueWord).sort((a, b) => (a.review.dueAt || 0) - (b.review.dueAt || 0) || getConfidenceValue(a) - getConfidenceValue(b));
-    const weak = words.filter(word => isWeakWord(word) && !due.some(item => item.id === word.id))
-      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || b.review.wrongCount - a.review.wrongCount || a.review.streak - b.review.streak);
-    const fresh = words.filter(word => isNewWord(word) && !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id));
-    const building = words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && getConfidenceValue(word) < 4)
-      .sort((a, b) => getConfidenceValue(a) - getConfidenceValue(b) || (a.review.dueAt || Number.MAX_SAFE_INTEGER) - (b.review.dueAt || Number.MAX_SAFE_INTEGER));
-    const mastered = shuffle(words.filter(word => !due.some(item => item.id === word.id) && !weak.some(item => item.id === word.id) && !fresh.some(item => item.id === word.id) && !building.some(item => item.id === word.id)));
-    return [...due, ...weak, ...fresh, ...building, ...mastered].slice(0, Math.max(1, limit));
+    const prioritized = [...words]
+      .map(word => ({
+        word,
+        score: calculateForgettingRisk(word)
+          + (isDueWord(word) ? 30 : 0)
+          + (isWeakWord(word) ? 18 : 0)
+          + (isNewWord(word) ? 10 : 0)
+          + (word.entryType === 'pattern' ? 4 : 0)
+      }))
+      .sort((a, b) => b.score - a.score || (a.word.review?.dueAt || Number.MAX_SAFE_INTEGER) - (b.word.review?.dueAt || Number.MAX_SAFE_INTEGER))
+      .map(item => item.word);
+
+    return diversifyStudyQueue(prioritized, Math.max(1, limit));
   }
 
   function getSessionQueue(words, gameType) {
-    if (gameType === 'srs') return getRecommendedQueue(words, 20);
     const maxItems = gameType === 'matching' ? 18 : 20;
-    return shuffle([...words]).slice(0, Math.min(words.length, maxItems));
+    if (gameType === 'srs') return getRecommendedQueue(words, 20);
+    return diversifyStudyQueue(shuffle([...words]), Math.min(words.length, maxItems));
+  }
+
+  function diversifyStudyQueue(words, limit = 20) {
+    const selected = [];
+    const deferred = [];
+    const target = Math.max(1, limit);
+    for (const word of words) {
+      const isTooClose = selected.slice(-3).some(existing => getWordSimilarityScore(existing, word) >= 0.72);
+      if (isTooClose) deferred.push(word);
+      else selected.push(word);
+      if (selected.length >= target) break;
+    }
+    if (selected.length < target) {
+      for (const word of deferred) {
+        selected.push(word);
+        if (selected.length >= target) break;
+      }
+    }
+    return selected.slice(0, target);
+  }
+
+  function getWordSimilarityScore(a, b) {
+    if (!a || !b) return 0;
+    const sameWord = normalizeAnswer(a.word) && normalizeAnswer(a.word) === normalizeAnswer(b.word);
+    if (sameWord) return 1;
+
+    const wordTokensA = tokenizeSuggestionText(a.word);
+    const wordTokensB = tokenizeSuggestionText(b.word);
+    const meaningTokensA = tokenizeSuggestionText(a.meaning);
+    const meaningTokensB = tokenizeSuggestionText(b.meaning);
+
+    const wordOverlap = getTokenOverlap(wordTokensA, wordTokensB);
+    const meaningOverlap = getTokenOverlap(meaningTokensA, meaningTokensB);
+    const entryBonus = a.entryType && a.entryType === b.entryType ? 0.08 : 0;
+    return Math.min(1, wordOverlap * 0.55 + meaningOverlap * 0.45 + entryBonus);
+  }
+
+  function tokenizeSuggestionText(text = '') {
+    return normalizeAnswer(text)
+      .split(' ')
+      .filter(token => token && token.length > 1);
+  }
+
+  function getTokenOverlap(tokensA = [], tokensB = []) {
+    if (!tokensA.length || !tokensB.length) return 0;
+    const setA = new Set(tokensA);
+    const setB = new Set(tokensB);
+    let matches = 0;
+    setA.forEach(token => {
+      if (setB.has(token)) matches += 1;
+    });
+    return matches / Math.max(setA.size, setB.size, 1);
   }
 
   function getRecommendedStudyPlan(words, stats = getSetStats(words)) {
@@ -677,24 +1029,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stats.due > 0) {
       return {
         gameType: 'srs',
-        title: `Ôn tập thông minh • ${Math.min(getRecommendedQueue(words, 20).length, 20)} từ ưu tiên`,
-        reason: 'Ưu tiên từ đến hạn trước để giữ nền tảng ghi nhớ dài hạn ổn định và không làm rơi mức nhớ hiện tại.'
+        title: `Memory Rescue • ${Math.min(getRecommendedQueue(words, 20).length, 20)} mục ưu tiên`,
+        reason: 'Ưu tiên các mục có nguy cơ rơi trí nhớ và các mục đến hạn trước để giữ nền tảng dài hạn ổn định.'
       };
     }
 
     if (stats.weak > 0) {
       return {
         gameType: 'typing',
-        title: `Gõ từ • ${Math.min(words.length, 10)} câu luyện nhớ chủ động`,
-        reason: 'Những từ còn yếu nên được kéo sang hình thức nhớ chủ động để tăng dần mức nhớ thay vì chỉ xem lại thụ động.'
+        title: `Mistake Journal Drill • ${Math.min(words.length, 10)} lượt luyện`,
+        reason: 'Các mục còn yếu nên được kéo sang nhớ chủ động để sửa thẳng lỗi gọi lại, chính tả hoặc nhầm nghĩa.'
       };
     }
 
     if (stats.fresh > 0) {
       return {
         gameType: 'flashcard',
-        title: `Flashcard • ${Math.min(words.length, 20)} thẻ khởi động`,
-        reason: 'Từ mới nên đi qua một vòng nhận diện nhẹ trước khi chuyển sang các bài tập khó hơn.'
+        title: `Flashcard + Tonight Review • ${Math.min(words.length, 20)} thẻ`,
+        reason: 'Mục mới nên đi qua một vòng nhận diện nhẹ trước rồi khóa lại bằng một lượt ôn ngắn cuối ngày.'
       };
     }
 
@@ -718,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const words = getWordsForSet(setName);
     const plan = getRecommendedStudyPlan(words);
     if (!plan.gameType) return showToast('Hãy thêm vài từ trước khi bắt đầu học.');
-    startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason });
+    startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason, queue: plan.gameType === 'srs' ? getRecommendedQueue(words, 20) : undefined });
   }
 
   function startTargetedFocus(type) {
@@ -729,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
       weak: words.filter(isWeakWord),
       new: words.filter(isNewWord)
     };
-    const queue = filters[type] || [];
+    const queue = diversifyStudyQueue(filters[type] || [], type === 'weak' ? 12 : 20);
     if (!queue.length) return showToast('Hiện chưa có nhóm từ phù hợp để mở nhanh.');
     const config = {
       due: { gameType: 'srs', title: 'Ôn từ đến hạn', reason: 'Giữ nền tảng trí nhớ không bị tụt.' },
@@ -739,8 +1091,166 @@ document.addEventListener('DOMContentLoaded', () => {
     startGame(config.gameType, setName, { queue, planTitle: config.title, planReason: config.reason });
   }
 
+
+  function renderSmartSuggestions() {
+    const grid = byId('smartSuggestionGrid');
+    if (!grid) return;
+
+    const suggestions = getSmartSuggestions(6);
+    if (!suggestions.length) {
+      grid.innerHTML = '<div class="suggestion-empty">Hãy thêm vài từ trước. Khi đã có dữ liệu, hệ thống sẽ đề xuất từ tiếp theo để mở rộng mà không lặp quá gần.</div>';
+      return;
+    }
+
+    grid.innerHTML = suggestions.map(item => `
+      <article class="suggestion-card">
+        <div class="suggestion-card-head">
+          <div class="suggestion-word-block">
+            <strong>${escapeHtml(item.word)}</strong>
+            <small>${escapeHtml(item.wordType || item.entryTypeLabel || 'word')}</small>
+          </div>
+          <span class="suggestion-chip">${escapeHtml(item.sourceLabel)}</span>
+        </div>
+        <p class="suggestion-meaning">${escapeHtml(item.meaning || 'Bổ sung nền nghĩa mới')}</p>
+        <p class="suggestion-reason">${escapeHtml(item.reason)}</p>
+        <div class="suggestion-note">${escapeHtml(item.note || 'Giúp bù khoảng trống trong bộ từ mà không nhồi lại cùng một khái niệm.')}</div>
+        <div class="suggestion-actions">
+          <button class="secondary-btn" data-suggestion-action="append" data-suggestion-key="${escapeHtml(item.key)}">Dán vào ô nhập</button>
+          <button class="primary-btn" data-suggestion-action="save" data-suggestion-key="${escapeHtml(item.key)}">Lưu ngay</button>
+        </div>
+      </article>
+    `).join('');
+
+    state.smartSuggestions = suggestions;
+  }
+
+  async function handleSuggestionAction(event) {
+    const button = event.target.closest('[data-suggestion-action]');
+    if (!button) return;
+    const action = button.dataset.suggestionAction;
+    const suggestionKey = button.dataset.suggestionKey;
+    const suggestion = (state.smartSuggestions || []).find(item => item.key === suggestionKey);
+    if (!suggestion) return;
+
+    if (action === 'append') {
+      const input = byId('bulkInput');
+      const suggestionLine = [suggestion.word, suggestion.phonetic || '', suggestion.wordType || '', suggestion.meaning || '', suggestion.example || '', suggestion.note || ''].join(' | ');
+      input.value = input.value.trim() ? `${input.value.trim()}
+${suggestionLine}` : suggestionLine;
+      showToast(`Đã dán gợi ý ${suggestion.word} vào ô nhập.`);
+      showView('main-view');
+      input.focus();
+      return;
+    }
+
+    if (action === 'save') {
+      const targetSet = byId('wordsetDropdown')?.value || getUniqueWordsets()[0] || 'Chưa phân loại';
+      const duplicate = state.vocab.some(word => buildDedupKey(word.word, word.meaning) === buildDedupKey(suggestion.word, suggestion.meaning));
+      if (duplicate) {
+        showToast(`Từ ${suggestion.word} đã có trong bộ hiện tại.`);
+        return;
+      }
+      state.vocab = [normalizeWord({
+        word: suggestion.word,
+        phonetic: suggestion.phonetic || '',
+        meaning: suggestion.meaning || '',
+        wordType: suggestion.wordType || '',
+        example: suggestion.example || '',
+        notes: suggestion.note || '',
+        wordset: targetSet,
+        entryType: suggestion.entryType || 'word',
+        topicTags: suggestion.topicTags || [],
+        createdAt: Date.now()
+      }), ...state.vocab];
+      await saveAndRefresh();
+      showToast(`Đã lưu nhanh gợi ý ${suggestion.word}.`);
+    }
+  }
+
+  function getSmartSuggestions(limit = 6) {
+    const existingKeys = new Set(state.vocab.map(word => normalizeAnswer(word.word)));
+    const meaningSeen = state.vocab.map(word => ({ word, risk: calculateForgettingRisk(word) }))
+      .sort((a, b) => b.risk - a.risk)
+      .map(item => item.word)
+      .slice(0, 8);
+
+    const upgradeData = window.VMUpgradeData || {};
+    const lessonBank = upgradeData.WORD_LESSON_BANK || {};
+    const confusionBank = upgradeData.CONFUSION_BANK || {};
+    const suggestions = [];
+
+    const pushSuggestion = (item) => {
+      if (!item?.word) return;
+      const normalizedWord = normalizeAnswer(item.word);
+      if (!normalizedWord || existingKeys.has(normalizedWord)) return;
+      const duplicate = suggestions.some(existing => normalizeAnswer(existing.word) === normalizedWord);
+      if (duplicate) return;
+      suggestions.push({
+        key: `${normalizedWord}__${suggestions.length}`,
+        entryType: 'word',
+        sourceLabel: item.sourceLabel || 'Gợi ý hệ thống',
+        ...item
+      });
+    };
+
+    meaningSeen.forEach(word => {
+      const confusion = confusionBank[normalizeAnswer(word.word)];
+      if (confusion?.compare) {
+        const candidate = confusion.compare.split(/\s+vs\s+/i)[1]?.trim();
+        if (candidate && !existingKeys.has(normalizeAnswer(candidate))) {
+          pushSuggestion({
+            word: candidate,
+            meaning: `Bổ sung để phân biệt với ${word.word}`,
+            wordType: 'word pair',
+            sourceLabel: 'Cặp dễ nhầm',
+            reason: `Bạn đã có ${word.word}. Thêm ${candidate} sẽ giúp tránh nhầm lẫn lặp lại trong lúc recall.`,
+            note: confusion.note,
+            topicTags: word.topicTags || []
+          });
+        }
+      }
+    });
+
+    Object.entries(lessonBank).forEach(([key, lesson]) => {
+      if (existingKeys.has(normalizeAnswer(key))) return;
+      const related = meaningSeen.some(word => getWordSimilarityScore(word, { word: key, meaning: lesson.collocationMeaning || lesson.sentence || '', entryType: 'word' }) >= 0.18)
+        || meaningSeen.some(word => (word.topicTags || []).some(tag => (lesson.sentence || '').toLowerCase().includes(String(tag).toLowerCase())));
+      if (related || suggestions.length < 3) {
+        pushSuggestion({
+          word: key,
+          meaning: lesson.collocationMeaning || lesson.sentence || 'Bổ sung nền nghĩa quan trọng',
+          wordType: 'core word',
+          sourceLabel: 'Lấp khoảng trống',
+          reason: related
+            ? 'Từ này nằm gần vùng bạn đang học nhưng chưa xuất hiện trong bộ từ, nên rất hợp để mở rộng không bị trùng.'
+            : 'Đây là từ nền có thể dùng làm trục để nhớ collocation và pattern tốt hơn.',
+          note: lesson.grammar || lesson.recall || '',
+          example: lesson.sentence || '',
+          topicTags: ['core-memory']
+        });
+      }
+    });
+
+    return suggestions
+      .sort((a, b) => {
+        const sourceWeight = { 'Cặp dễ nhầm': 3, 'Lấp khoảng trống': 2, 'Gợi ý hệ thống': 1 };
+        return (sourceWeight[b.sourceLabel] || 0) - (sourceWeight[a.sourceLabel] || 0);
+      })
+      .slice(0, Math.max(1, limit));
+  }
+
+  function escapeHtml(text = '') {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function initMainView() {
     populateSetDropdown(byId('wordsetDropdown'));
+    renderSmartSuggestions();
   }
 
   function initManagementView() {
@@ -795,8 +1305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     summary.innerHTML = '';
 
     [
-      { label: 'Tổng số từ', value: stats.total, note: 'Tất cả bộ từ hiện có' },
-      { label: 'Bộ từ', value: sets.length, note: 'Dễ chia theo chủ đề' },
+      { label: 'Tổng số mục', value: stats.total, note: buildEntryTypeSummary(state.vocab) },
+      { label: 'Bộ từ', value: sets.length, note: 'Dễ chia theo chủ đề hoặc bối cảnh học' },
       { label: 'Đến hạn hôm nay', value: stats.due, note: 'Nên ôn sớm để không quên' },
       { label: 'Tiến độ hôm nay', value: `${today.studied}/${state.stats.dailyGoal}`, note: `Chuỗi học ${state.stats.currentStreak} ngày` }
     ].forEach(item => {
@@ -836,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(setName => {
         const words = state.vocab.filter(word => word.wordset === setName);
         const stats = getSetStats(words);
-        const searchBlob = normalizeAnswer(`${setName} ${words.map(word => `${word.word} ${word.meaning} ${word.wordType}`).join(' ')}`);
+        const searchBlob = normalizeAnswer(`${setName} ${words.map(word => `${word.word} ${word.meaning} ${word.wordType} ${word.entryType || ''}`).join(' ')}`);
         return { setName, words, stats, searchBlob, latest: Math.max(...words.map(word => word.createdAt || 0), 0) };
       })
       .filter(item => !query || item.searchBlob.includes(query));
@@ -860,6 +1370,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sets.forEach(({ setName, words, stats }) => {
       const weakTypes = getWeakTypeStats(words);
+      const typeSummary = buildEntryTypeSummary(words);
+      const topRisk = getAtRiskWords(words, 1)[0];
       const card = document.createElement('div');
       card.className = 'set-card';
       card.innerHTML = `
@@ -881,6 +1393,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="card-metrics">
             <span>${stats.mastered}/${stats.total || 0} đã vững</span>
             <span>${weakTypes[0] ? `Yếu nhất: ${weakTypes[0][0]}` : 'Đang cân bằng'}</span>
+          </div>
+          <div class="card-metrics compact-metrics">
+            <span>${typeSummary}</span>
+            <span>${topRisk ? `Risk cao nhất: ${topRisk.word}` : 'Risk ổn định'}</span>
           </div>
         </div>
         <div class="card-action-bar">
@@ -912,7 +1428,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const words = state.vocab.filter(word => word.wordset === setName);
     const stats = getSetStats(words);
     byId('detailsSetName').textContent = setName;
-    byId('detailsSummaryText').textContent = `${words.length} từ • ${stats.due} từ đến hạn • ${stats.fresh} từ mới • ${stats.weak} từ cần củng cố • ${buildMemoryStageSummary(words)}`;
+    const topRisk = getAtRiskWords(words, 1)[0];
+    byId('detailsSummaryText').textContent = `${words.length} mục • ${stats.due} đến hạn • ${stats.fresh} mới • ${stats.weak} cần củng cố • ${buildEntryTypeSummary(words)}${topRisk ? ` • Risk cao nhất: ${topRisk.word}` : ''} • ${buildMemoryStageSummary(words)}`;
     byId('detailsSearchInput').value = '';
     byId('detailsFilterSelect').value = 'all';
     renderEditableTable(words, 'setDetailsTableContainer', { preserveMeta: true });
@@ -954,23 +1471,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const stageStrip = byId('memoryStageStrip');
     const smartQueueSize = getRecommendedQueue(words, 20).length;
     const recommendedPlan = getRecommendedStudyPlan(words, stats);
+    const riskSummary = getAtRiskWords(words, 3);
 
     if (!words.length) {
       recommendation.textContent = 'Bộ từ đang trống. Hãy thêm từ trước khi bắt đầu ôn tập.';
       dashboardSubtext.textContent = 'Khi có dữ liệu, mọi chế độ sẽ cùng cập nhật tiến độ học.';
     } else if (stats.due > 0) {
-      recommendation.textContent = `Bạn có ${stats.due} từ đến hạn. “Ôn tập thông minh” là lựa chọn nên bắt đầu trước.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}.`;
+      recommendation.textContent = `Bạn có ${stats.due} mục đến hạn. “Memory Rescue” hoặc “Ôn tập thông minh” nên được mở trước.`;
+      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}. Risk cao nhất: ${riskSummary[0] ? `${riskSummary[0].word} (${riskSummary[0]._riskScore}%)` : 'ổn định'}.`;
     } else if (stats.weak > 0) {
-      recommendation.textContent = `Có ${stats.weak} từ đang cần củng cố. Flashcard hoặc Gõ từ sẽ hiệu quả nhất lúc này.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}.`;
+      recommendation.textContent = `Có ${stats.weak} mục đang cần củng cố. Flashcard hoặc Gõ từ sẽ hiệu quả nhất lúc này.`;
+      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
     } else if (stats.fresh > 0) {
-      recommendation.textContent = `Có ${stats.fresh} từ mới chưa ôn. Bắt đầu bằng Flashcard hoặc Quiz.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}.`;
+      recommendation.textContent = `Có ${stats.fresh} mục mới chưa ôn. Bắt đầu bằng Flashcard trước rồi chốt lại bằng Tonight Review.`;
+      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
     } else {
-      recommendation.textContent = 'Bạn đang khá ổn. Có thể chơi Quiz hoặc Nghe viết để tăng phản xạ.';
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}.`;
+      recommendation.textContent = 'Bạn đang khá ổn. Có thể chơi Quiz hoặc Nghe viết để tăng phản xạ, rồi nhìn qua Tomorrow Rescue để tránh rơi nhịp.';
+      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
     }
+
+    byId('modeBoardSummaryLine').textContent = words.length
+      ? `${stats.total} mục • ${buildEntryTypeSummary(words)} • ${stats.mastered}/${stats.total} đã vững.`
+      : 'Thêm vài từ đầu tiên để Learning Lab bắt đầu gợi ý chính xác hơn.';
+    byId('modeBoardTension').textContent = riskSummary[0]
+      ? `Risk cao nhất: ${riskSummary[0].word} (${riskSummary[0]._riskScore}%)`
+      : 'Risk hiện đang nhẹ';
+    byId('modeBoardCoverage').textContent = stats.weak
+      ? `Điểm cần kéo lên: ${stats.weak} mục yếu`
+      : stats.fresh
+        ? `Chưa phủ hết: ${stats.fresh} mục mới`
+        : 'Độ phủ đang khá ổn';
+    byId('modeBoardGap').textContent = stats.due
+      ? `${stats.due} mục cần cứu ngay`
+      : summarizeMistakeJournal()[0]
+        ? `Lỗi nổi bật: ${getMistakeReasonLabel(summarizeMistakeJournal()[0].key)}`
+        : 'Chưa có lỗi nổi bật';
+    byId('spotlightModeName').textContent = recommendedPlan.title;
+    byId('spotlightModeReason').textContent = recommendedPlan.reason;
+    byId('spotlightLaunchBtn').disabled = !recommendedPlan.gameType;
+
+    document.querySelectorAll('.mode-lab-card').forEach(card => {
+      card.classList.toggle('recommended-mode-card', card.dataset.game === recommendedPlan.gameType);
+    });
 
     if (stageStrip) {
       stageStrip.innerHTML = '';
@@ -984,6 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderDailyFocus(words);
     renderReviewInsights(words);
+    renderAdvancedReviewPanels(words);
 
     byId('recommendedModeTitle').textContent = recommendedPlan.title;
     byId('recommendedModeReason').textContent = recommendedPlan.reason;
@@ -1428,6 +1971,279 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${normalizeAnswer(word)}__${normalizeAnswer(meaning)}`;
   }
 
+  function openStudySupportForCurrent(reason = 'recall', options = {}) {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return;
+    renderStudySupportForWord(card, reason, options);
+    showToast('Đã mở Rescue Lane cho từ hiện tại.');
+  }
+
+  function hideStudySupport() {
+    state.studySupport = null;
+    byId('studySupportDock')?.classList.add('hidden');
+    const primaryBtn = byId('studySupportQueueBtn');
+    if (primaryBtn) {
+      primaryBtn.disabled = true;
+      delete primaryBtn.dataset.supportKey;
+      primaryBtn.textContent = 'Ôn từ liên quan kế tiếp';
+    }
+    if (byId('studySupportPills')) byId('studySupportPills').innerHTML = '';
+    if (byId('studySupportGrid')) byId('studySupportGrid').innerHTML = '';
+  }
+
+  function getFailureReasonLead(reason, card) {
+    const map = {
+      meaning: `Bạn đang biết mặt chữ của “${card.word}” nhưng phần nghĩa vẫn chưa bật ra ổn định.`,
+      spelling: `Bạn đã chạm gần đúng “${card.word}”, nhưng đường gọi lại phần mặt chữ vẫn còn yếu.`,
+      listening: `Âm của “${card.word}” chưa nối chắc với mặt chữ, nên hệ thống gợi ý thêm các từ gần vùng âm/nghĩa này.`,
+      confusion: `Bạn vừa rơi vào vùng dễ nhầm của “${card.word}”, nên mình đẩy ra vài từ đối chiếu để phân biệt rõ hơn.`,
+      recall: `Bạn vừa bí khi gọi lại “${card.word}”, nên mình mở một lối nhớ gần nhất thay vì lặp lại mù mờ.`
+    };
+    return map[reason] || map.recall;
+  }
+
+  function extractCompareCandidates(compareText = '') {
+    return String(compareText || '')
+      .split(/\s+vs\s+/i)
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(normalizeAnswer);
+  }
+
+  function getRelatedWordsFromVocab(card, reason = 'recall', limit = 3) {
+    const basePool = (state.optionPool?.length ? state.optionPool : getWordsForSet(state.activeSet || 'all'))
+      .concat(state.vocab)
+      .filter((item, index, arr) => item?.id && arr.findIndex(other => other.id === item.id) === index && item.id !== card.id);
+    const upgradeData = window.VMUpgradeData || {};
+    const confusionBank = upgradeData.CONFUSION_BANK || {};
+    const compareSet = new Set(extractCompareCandidates(confusionBank[normalizeAnswer(card.word)]?.compare || ''));
+    compareSet.delete(normalizeAnswer(card.word));
+    const cardTags = new Set((card.topicTags || []).map(tag => normalizeAnswer(tag)));
+    const scored = basePool.map(item => {
+      let score = getWordSimilarityScore(card, item) * 60;
+      const normalizedWord = normalizeAnswer(item.word);
+      if (compareSet.has(normalizedWord)) score += 55;
+      if ((item.topicTags || []).some(tag => cardTags.has(normalizeAnswer(tag)))) score += 18;
+      if (normalizeAnswer(item.wordType) && normalizeAnswer(item.wordType) === normalizeAnswer(card.wordType)) score += 8;
+      if (item.entryType && item.entryType === card.entryType) score += 6;
+      if (reason === 'spelling' && item.word[0] && card.word[0] && item.word[0].toLowerCase() === card.word[0].toLowerCase()) score += 4;
+      if (normalizeAnswer(item.meaning).includes(normalizeAnswer(card.word)) || normalizeAnswer(card.meaning).includes(normalizedWord)) score += 10;
+      if (score < 14) return null;
+      const relationLabel = compareSet.has(normalizedWord)
+        ? 'Từ đối chiếu để bớt nhầm'
+        : (item.topicTags || []).some(tag => cardTags.has(normalizeAnswer(tag)))
+          ? 'Cùng chủ đề đang học'
+          : 'Từ gần vùng nhớ này';
+      return {
+        key: `${item.id}__support`,
+        actionType: 'queue',
+        wordId: item.id,
+        word: item.word,
+        meaning: item.meaning,
+        detail: `${getEntryTypeLabel(item)} • ${getWordStatusLabel(item)}`,
+        note: relationLabel,
+        score
+      };
+    }).filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, limit));
+    return scored;
+  }
+
+  function getExternalSupportSuggestions(card, reason = 'recall', limit = 2) {
+    const existingWords = new Set(state.vocab.map(item => normalizeAnswer(item.word)));
+    const upgradeData = window.VMUpgradeData || {};
+    const confusionBank = upgradeData.CONFUSION_BANK || {};
+    const lessonBank = upgradeData.WORD_LESSON_BANK || {};
+    const suggestions = [];
+    const pushSuggestion = (item) => {
+      if (!item?.word) return;
+      const normalized = normalizeAnswer(item.word);
+      if (!normalized || existingWords.has(normalized) || suggestions.some(entry => normalizeAnswer(entry.word) === normalized)) return;
+      suggestions.push({
+        key: `${normalized}__ext_${suggestions.length}`,
+        actionType: 'save',
+        ...item
+      });
+    };
+
+    const compareCandidates = extractCompareCandidates(confusionBank[normalizeAnswer(card.word)]?.compare || '');
+    compareCandidates.forEach(candidate => {
+      if (candidate && candidate !== normalizeAnswer(card.word)) {
+        const source = confusionBank[normalizeAnswer(card.word)];
+        pushSuggestion({
+          word: candidate,
+          meaning: `Bổ sung để phân biệt với ${card.word}`,
+          detail: 'Gợi ý hệ thống',
+          note: source?.note || 'Thêm cặp đối chiếu để giảm nhầm lẫn ở lần sau.',
+          topicTags: card.topicTags || [],
+          entryType: 'word',
+          wordType: 'contrast pair'
+        });
+      }
+    });
+
+    Object.entries(lessonBank).forEach(([word, lesson]) => {
+      const similarity = getWordSimilarityScore(card, { word, meaning: lesson.collocationMeaning || lesson.sentence || '', entryType: 'word' });
+      if (similarity >= 0.18 || suggestions.length < 1) {
+        pushSuggestion({
+          word,
+          meaning: lesson.collocationMeaning || lesson.sentence || 'Bổ sung vùng nhớ gần đó',
+          detail: 'Lấp khoảng trống',
+          note: lesson.grammar || lesson.recall || 'Thêm một trục từ nền để nhớ vùng này tốt hơn.',
+          example: lesson.sentence || '',
+          topicTags: ['rescue-lane'],
+          entryType: 'word',
+          wordType: 'core word'
+        });
+      }
+    });
+
+    return suggestions.slice(0, Math.max(0, limit));
+  }
+
+  function queueRelatedWordNearCurrent(wordId, gap = 1) {
+    if (!wordId) return false;
+    const targetWord = state.optionPool.find(item => item.id === wordId) || state.vocab.find(item => item.id === wordId);
+    if (!targetWord) return false;
+
+    const nearIndex = state.studyQueue.findIndex((item, idx) => idx > state.currentCardIdx && idx <= state.currentCardIdx + gap + 1 && item.id === wordId);
+    if (nearIndex !== -1) return true;
+
+    const laterIndex = state.studyQueue.findIndex((item, idx) => idx > state.currentCardIdx + gap + 1 && item.id === wordId);
+    if (laterIndex !== -1) {
+      const [existing] = state.studyQueue.splice(laterIndex, 1);
+      state.studyQueue.splice(Math.min(state.currentCardIdx + gap, state.studyQueue.length), 0, existing);
+      return true;
+    }
+
+    state.studyQueue.splice(Math.min(state.currentCardIdx + gap, state.studyQueue.length), 0, targetWord);
+    return true;
+  }
+
+  async function saveSupportSuggestion(item) {
+    if (!item?.word) return false;
+    const targetSet = state.activeSet === 'all' ? (state.studyQueue[state.currentCardIdx]?.wordset || byId('wordsetDropdown')?.value || 'Chưa phân loại') : (state.activeSet || 'Chưa phân loại');
+    const duplicate = state.vocab.some(word => buildDedupKey(word.word, word.meaning) === buildDedupKey(item.word, item.meaning || ''));
+    if (duplicate) {
+      showToast(`Từ ${item.word} đã có trong bộ từ.`);
+      return false;
+    }
+    const newWord = normalizeWord({
+      word: item.word,
+      phonetic: item.phonetic || '',
+      meaning: item.meaning || '',
+      wordType: item.wordType || '',
+      example: item.example || '',
+      notes: item.note || '',
+      wordset: targetSet,
+      entryType: item.entryType || 'word',
+      topicTags: item.topicTags || [],
+      createdAt: Date.now()
+    });
+    state.vocab = [newWord, ...state.vocab];
+    state.optionPool = [newWord, ...state.optionPool];
+    queueRelatedWordNearCurrent(newWord.id, 1);
+    await persistState();
+    showToast(`Đã lưu và đưa ${newWord.word} vào làn ôn gần tiếp theo.`);
+    return true;
+  }
+
+  function handleStudySupportPrimaryAction() {
+    const button = byId('studySupportQueueBtn');
+    const key = button?.dataset.supportKey;
+    if (!key) return;
+    const item = (state.studySupport?.items || []).find(entry => entry.key === key);
+    if (!item) return;
+    if (item.actionType === 'queue') {
+      const moved = queueRelatedWordNearCurrent(item.wordId, 1);
+      showToast(moved ? `Đã đưa ${item.word} vào lượt kế tiếp.` : `Chưa thể chèn ${item.word} vào queue lúc này.`);
+    } else if (item.actionType === 'save') {
+      saveSupportSuggestion(item);
+    }
+  }
+
+  function handleStudySupportAction(event) {
+    const button = event.target.closest('[data-support-key]');
+    if (!button) return;
+    const key = button.dataset.supportKey;
+    const item = (state.studySupport?.items || []).find(entry => entry.key === key);
+    if (!item) return;
+    if (item.actionType === 'queue') {
+      const moved = queueRelatedWordNearCurrent(item.wordId, 1);
+      showToast(moved ? `Đã đưa ${item.word} vào gần ngay sau lượt này.` : `Không thể đưa ${item.word} vào queue ngay.`);
+    } else if (item.actionType === 'save') {
+      saveSupportSuggestion(item);
+    }
+  }
+
+  function renderStudySupportForWord(card, reason = 'recall', options = {}) {
+    const dock = byId('studySupportDock');
+    const grid = byId('studySupportGrid');
+    const pills = byId('studySupportPills');
+    const title = byId('studySupportTitle');
+    const lead = byId('studySupportLead');
+    const primaryBtn = byId('studySupportQueueBtn');
+    if (!dock || !grid || !pills || !title || !lead || !primaryBtn || !card) return;
+
+    const related = getRelatedWordsFromVocab(card, reason, 3);
+    const external = getExternalSupportSuggestions(card, reason, 2);
+    const items = [...related, ...external];
+    const primaryItem = items.find(item => item.actionType === 'queue') || items[0] || null;
+
+    if (options.autoQueue && primaryItem?.actionType === 'queue') {
+      queueRelatedWordNearCurrent(primaryItem.wordId, 1);
+    }
+
+    state.studySupport = {
+      focusWordId: card.id,
+      reason,
+      items,
+      primaryKey: primaryItem?.key || ''
+    };
+
+    title.textContent = `Rescue Lane • ${card.word}`;
+    lead.textContent = getFailureReasonLead(reason, card);
+    pills.innerHTML = [
+      `<span class="support-pill strong-pill">Đáp án: ${escapeHtml(card.word)}</span>`,
+      `<span class="support-pill">${escapeHtml(card.meaning || 'Chưa có nghĩa')}</span>`,
+      `<span class="support-pill">Lỗi: ${escapeHtml(getMistakeReasonLabel(reason))}</span>`,
+      `<span class="support-pill">Mức nhớ: ${escapeHtml(getMemoryStage(card).shortLabel)}</span>`
+    ].join('');
+
+    if (!items.length) {
+      grid.innerHTML = '<div class="support-empty">Chưa tìm thấy từ liên quan đủ mạnh. Bạn có thể bấm “Chưa nhớ” để hệ thống lặp lại từ này sớm hơn.</div>';
+      primaryBtn.disabled = true;
+      delete primaryBtn.dataset.supportKey;
+      primaryBtn.textContent = 'Ôn từ liên quan kế tiếp';
+    } else {
+      grid.innerHTML = items.map(item => `
+        <article class="support-card ${item.actionType === 'queue' ? 'queue-card' : 'save-card'}">
+          <div class="support-card-head">
+            <div>
+              <strong>${escapeHtml(item.word)}</strong>
+              <span>${escapeHtml(item.detail || (item.actionType === 'queue' ? 'Từ liên quan' : 'Gợi ý hệ thống'))}</span>
+            </div>
+            <span class="support-action-tag">${item.actionType === 'queue' ? 'Học tiếp' : 'Lưu nhanh'}</span>
+          </div>
+          <p class="support-meaning">${escapeHtml(item.meaning || 'Bổ sung vùng nhớ liên quan')}</p>
+          <p class="support-note">${escapeHtml(item.note || 'Thêm một neo nhớ gần đó để đỡ bí ở vòng sau.')}</p>
+          <button class="secondary-btn support-card-btn" data-support-key="${escapeHtml(item.key)}">${item.actionType === 'queue' ? 'Đưa vào lượt kế tiếp' : 'Lưu vào bộ và ôn gần'} </button>
+        </article>
+      `).join('');
+      primaryBtn.disabled = !primaryItem;
+      if (primaryItem) {
+        primaryBtn.dataset.supportKey = primaryItem.key;
+        primaryBtn.textContent = primaryItem.actionType === 'queue'
+          ? `Ôn ${primaryItem.word} kế tiếp`
+          : `Lưu ${primaryItem.word} và ôn gần`;
+      }
+    }
+
+    dock.classList.remove('hidden');
+  }
+
+
   async function startGame(gameType, setName, options = {}) {
     const words = getWordsForSet(setName);
     const queue = Array.isArray(options.queue) && options.queue.length ? options.queue : getSessionQueue(words, gameType);
@@ -1435,9 +2251,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.activeSet = setName;
     state.currentGame = gameType;
+    hideStudySupport();
     state.optionPool = [...words];
     state.currentCardIdx = 0;
     state.answerLocked = false;
+    state.pendingFailureReason = '';
     state.currentPlanTitle = options.planTitle || '';
     state.currentPlanReason = options.planReason || '';
     state.sessionStats = {
@@ -1487,6 +2305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     stopMatchingTimer();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
+    hideStudySupport();
+    hideStudySupport();
     state.studyQueue = [];
     state.currentCardIdx = 0;
     state.answerLocked = false;
@@ -1502,14 +2322,15 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('studyProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
     byId('studyModeLabel').textContent = state.currentGame === 'srs' ? 'Ôn tập thông minh' : 'Flashcard';
     byId('fcStatusBadge').textContent = getWordStatusLabel(card);
-    byId('fcMemoryBadge').textContent = `Mức nhớ: ${getMemoryStage(card).shortLabel}`;
+    byId('fcMemoryBadge').textContent = `Mức nhớ: ${getMemoryStage(card).shortLabel} • ${getEntryTypeLabel(card)}`;
     byId('fcWord').textContent = card.word;
-    byId('fcType').textContent = card.wordType || 'Từ vựng';
+    byId('fcType').textContent = card.wordType || getEntryTypeLabel(card);
     byId('fcPhonetic').textContent = card.phonetic || '—';
     byId('fcMeaning').textContent = card.meaning;
     byId('fcExample').textContent = card.example || 'Không có ví dụ';
     byId('fcNotes').textContent = card.notes || '';
     byId('fcTypingInput').value = '';
+    state.pendingFailureReason = '';
     byId('activeFlashcard').classList.remove('flipped');
   }
 
@@ -1518,12 +2339,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!card) return;
 
     const coinGain = quality === 'good' ? 5 : quality === 'hard' ? 2 : 0;
-    await recordWordResult(card.id, quality, coinGain);
+    const failureReason = quality === 'again' ? (state.pendingFailureReason || 'recall') : '';
+    await recordWordResult(card.id, quality, coinGain, true, { failureReason });
 
     if (quality === 'again') {
+      renderStudySupportForWord(card, failureReason || 'recall', { autoQueue: true, trigger: 'again' });
       requeueCurrentCard(2);
       showToast(`Đã đánh dấu cần ôn lại: ${card.word}`);
     } else {
+      if (quality === 'hard') {
+        renderStudySupportForWord(card, 'recall', { autoQueue: false, trigger: 'hard' });
+      }
       state.currentCardIdx += 1;
       if (quality === 'hard') showToast(`Đã ghi nhận “gần nhớ” cho ${card.word}.`);
     }
@@ -1538,9 +2364,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!input) return;
 
     if (isMeaningMatch(input, card.meaning)) {
+      state.pendingFailureReason = '';
       byId('activeFlashcard').classList.add('flipped');
       showToast('Khớp nghĩa. Bấm “Nhớ rồi” để ghi nhận tiến độ.');
     } else {
+      state.pendingFailureReason = 'meaning';
+      renderStudySupportForWord(card, 'meaning', { autoQueue: false, trigger: 'meaning-check' });
       showToast(`Chưa khớp. Gợi ý đúng: ${card.meaning}`);
       byId('fcTypingInput').classList.add('shake-error');
       setTimeout(() => byId('fcTypingInput').classList.remove('shake-error'), 350);
@@ -1604,13 +2433,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const correctButton = Array.from(grid.querySelectorAll('button')).find(btn => btn.textContent === optionTextFor(card));
         if (option.id === card.id) {
           button.classList.add('correct');
-          await recordWordResult(card.id, 'good', 10);
+          await recordWordResult(card.id, 'good', 10, true, { failureReason: '' });
           state.currentCardIdx += 1;
           setTimeout(renderQuiz, 650);
         } else {
+          const failureReason = state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
           button.classList.add('wrong');
           correctButton?.classList.add('correct');
-          await recordWordResult(card.id, 'again', 0);
+          renderStudySupportForWord(card, failureReason, { autoQueue: true, trigger: 'quiz-wrong' });
+          await recordWordResult(card.id, 'again', 0, true, { failureReason });
           requeueCurrentCard(2);
           setTimeout(renderQuiz, 900);
         }
@@ -1657,17 +2488,19 @@ document.addEventListener('DOMContentLoaded', () => {
     state.answerLocked = true;
     const verdict = evaluateWordAttempt(answer, card.word);
     if (verdict === 'good') {
-      await recordWordResult(card.id, 'good', 10);
+      await recordWordResult(card.id, 'good', 10, true, { failureReason: '' });
       showToast('Chính xác!');
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 500);
     } else if (verdict === 'hard') {
-      await recordWordResult(card.id, 'hard', 5);
+      renderStudySupportForWord(card, 'spelling', { autoQueue: false, trigger: 'typing-hard' });
+      await recordWordResult(card.id, 'hard', 5, true, { failureReason: 'spelling' });
       showToast(`Gần đúng. Đáp án chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderTyping, 700);
     } else {
-      await recordWordResult(card.id, 'again', 0);
+      renderStudySupportForWord(card, 'spelling', { autoQueue: true, trigger: 'typing-again' });
+      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'spelling' });
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Chưa đúng. Đáp án là “${card.word}”.`);
@@ -1700,17 +2533,19 @@ document.addEventListener('DOMContentLoaded', () => {
     state.answerLocked = true;
     const verdict = evaluateWordAttempt(answer, card.word);
     if (verdict === 'good') {
-      await recordWordResult(card.id, 'good', 15);
+      await recordWordResult(card.id, 'good', 15, true, { failureReason: '' });
       showToast('Nghe viết đúng!');
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 650);
     } else if (verdict === 'hard') {
-      await recordWordResult(card.id, 'hard', 6);
+      renderStudySupportForWord(card, 'listening', { autoQueue: false, trigger: 'dictation-hard' });
+      await recordWordResult(card.id, 'hard', 6, true, { failureReason: 'listening' });
       showToast(`Bạn gõ rất gần đúng. Từ chuẩn là “${card.word}”.`);
       state.currentCardIdx += 1;
       setTimeout(renderDictation, 750);
     } else {
-      await recordWordResult(card.id, 'again', 0);
+      renderStudySupportForWord(card, 'listening', { autoQueue: true, trigger: 'dictation-again' });
+      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'listening' });
       requeueCurrentCard(2);
       input.classList.add('shake-error');
       showToast(`Sai rồi. Từ đúng là “${card.word}”.`);
@@ -1784,7 +2619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.matchingPairsSolved === state.matchingBatch.length) {
           stopMatchingTimer();
-          await Promise.all(state.matchingBatch.map(item => recordWordResult(item.id, 'good', 2, false)));
+          await Promise.all(state.matchingBatch.map(item => recordWordResult(item.id, 'good', 2, false, { failureReason: '' })));
           await persistState();
           state.currentCardIdx += state.matchingBatch.length;
           showToast(`Hoàn thành ${state.matchingBatch.length} cặp trong ${state.matchingTimer}s!`);
@@ -1805,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
           state.answerLocked = false;
           if (state.matchingLives <= 0) {
             stopMatchingTimer();
-            await Promise.all(state.matchingBatch.map(item => recordWordResult(item.id, 'again', 0, false)));
+            await Promise.all(state.matchingBatch.map(item => recordWordResult(item.id, 'again', 0, false, { failureReason: 'confusion' })));
             await persistState();
             state.currentCardIdx += state.matchingBatch.length;
             showToast('Hết lượt ở vòng này. Chuyển sang nhóm tiếp theo.');
@@ -1823,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.matchingInterval = null;
   }
 
-  async function recordWordResult(wordId, quality, coinGain = 0, persistImmediately = true) {
+  async function recordWordResult(wordId, quality, coinGain = 0, persistImmediately = true, detail = {}) {
     const word = state.vocab.find(item => item.id === wordId);
     if (!word) return;
 
@@ -1836,6 +2671,7 @@ document.addEventListener('DOMContentLoaded', () => {
     word.review.confidence = deriveConfidenceValue(word.review, Boolean(word.isLearned));
     word.review.seenCount += 1;
     word.review.lastReviewedAt = now;
+    word.review.lastSeenGame = detail.gameType || state.currentGame || '';
 
     if (quality === 'again') {
       word.review.streak = 0;
@@ -1843,12 +2679,16 @@ document.addEventListener('DOMContentLoaded', () => {
       word.review.lapseCount += 1;
       word.review.confidence = clampConfidence(Math.max(0, word.review.confidence - 1));
       word.review.dueAt = now + 10 * 60 * 1000;
+      word.review.lastFailureAt = now;
+      word.review.lastFailureReason = detail.failureReason || inferFailureReasonFromGame(detail.gameType || state.currentGame);
+      recordFailureReason(word.review.lastFailureReason, word, detail.gameType || state.currentGame);
       word.isLearned = false;
     } else if (quality === 'hard') {
       word.review.correctCount += 1;
       word.review.hardCount += 1;
       word.review.streak = Math.max(1, word.review.streak);
       word.review.confidence = clampConfidence(Math.max(1, word.review.confidence));
+      if (detail.failureReason) word.review.lastFailureReason = detail.failureReason;
       const confidenceIntervals = [0.25, 0.5, 1, 2, 4];
       const intervalDays = confidenceIntervals[word.review.confidence] || 0.5;
       word.review.dueAt = now + intervalDays * DAY_MS;
@@ -1857,6 +2697,7 @@ document.addEventListener('DOMContentLoaded', () => {
       word.review.correctCount += 1;
       word.review.streak += 1;
       word.review.confidence = clampConfidence(word.review.confidence + 1);
+      word.review.lastFailureReason = '';
       const confidenceIntervals = [0.5, 1, 3, 6, 10];
       const intervalDays = confidenceIntervals[word.review.confidence] || 1;
       word.review.dueAt = now + intervalDays * DAY_MS;
@@ -1889,6 +2730,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stopMatchingTimer();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
+    hideStudySupport();
 
     if (state.sessionStats) {
       state.sessionStats.durationSeconds = Math.max(1, Math.round((Date.now() - state.sessionStats.startAt) / 1000));
@@ -1902,7 +2744,8 @@ document.addEventListener('DOMContentLoaded', () => {
           again: state.sessionStats.again,
           strengthened: state.sessionStats.strengthened,
           durationSeconds: state.sessionStats.durationSeconds,
-          dateLabel: new Date().toLocaleString('vi-VN')
+          dateLabel: new Date().toLocaleString('vi-VN'),
+          rescued: getAtRiskWords(state.studyQueue, 99).filter(word => calculateForgettingRisk(word) >= 65).length
         },
         ...(state.stats.studyLog || [])
       ].slice(0, 20);
@@ -1988,14 +2831,16 @@ document.addEventListener('DOMContentLoaded', () => {
       { label: 'Đã xử lý', value: state.sessionStats.total, note: 'Tổng lượt trong phiên này' },
       { label: 'Nhớ tốt', value: state.sessionStats.good, note: 'Trả lời chắc và đúng' },
       { label: 'Gần nhớ', value: state.sessionStats.hard, note: 'Đúng gần chuẩn hoặc còn lưỡng lự' },
-      { label: 'Cần ôn lại', value: state.sessionStats.again, note: 'Sẽ được ưu tiên sớm hơn' }
+      { label: 'Cần ôn lại', value: state.sessionStats.again, note: 'Sẽ được ưu tiên sớm hơn' },
+      { label: 'Lỗi nổi bật', value: summarizeMistakeJournal()[0] ? getMistakeReasonLabel(summarizeMistakeJournal()[0].key) : 'Chưa có', note: 'Nhật ký lỗi đang ghi nhận kiểu sai nổi bật nhất' }
     ].forEach(item => {
       const card = document.createElement('div');
       card.className = 'summary-card';
       card.innerHTML = `<span class="summary-label">${item.label}</span><strong>${item.value}</strong><span class="summary-note">${item.note}</span>`;
       grid.appendChild(card);
     });
-    textNode.textContent = `${message} • Củng cố tăng cho ${state.sessionStats.strengthened} lượt • Thời gian ${state.sessionStats.durationSeconds}s. ${state.currentPlanReason || ''}`.trim();
+    const topMistake = summarizeMistakeJournal()[0];
+    textNode.textContent = `${message} • Củng cố tăng cho ${state.sessionStats.strengthened} lượt • Thời gian ${state.sessionStats.durationSeconds}s • Lỗi nổi bật: ${topMistake ? getMistakeReasonLabel(topMistake.key) : 'chưa có'}. ${state.currentPlanReason || ''}`.trim();
   }
 
   function maskWord(word) {

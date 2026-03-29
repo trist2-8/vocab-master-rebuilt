@@ -869,6 +869,21 @@ body[data-ui-quote-style="spotlight"] .daily-saying-image {
 .pomodoro-mini-widget.running {
   filter: drop-shadow(0 12px 22px rgba(47, 127, 233, 0.18));
 }
+.pomodoro-mini-widget.study-dock {
+  left: auto;
+  right: 20px;
+  top: 86px;
+  bottom: auto;
+}
+.pomodoro-mini-widget.study-dock .pomodoro-mini-main {
+  padding: 10px 14px;
+}
+.pomodoro-mini-widget.study-dock .pomodoro-mini-text strong {
+  font-size: 16px;
+}
+.ambient-companion.study-hidden {
+  opacity: 0;
+}
 .pomodoro-mini-main,
 .pomodoro-mini-action {
   border-radius: 999px;
