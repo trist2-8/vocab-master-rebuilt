@@ -79,9 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function syncCompactNav() {
     document.body.classList.toggle('nav-condensed', window.scrollY > 56);
+    if (window.scrollY > 16) closeLanguageModeMenu();
   }
 
   window.addEventListener('scroll', syncCompactNav, { passive: true });
+  window.addEventListener('resize', closeLanguageModeMenu, { passive: true });
 
   function normalizeSettings(settings = {}) {
     const languageMode = LANGUAGE_MODE_OPTIONS.some(option => option.value === settings?.languageMode)
@@ -133,6 +135,65 @@ document.addEventListener('DOMContentLoaded', () => {
     })[mode] || 'English Focus';
   }
 
+  function getLanguageModeOptionNote(value, mode = getLanguageMode()) {
+    if (value === 'vi_focus') {
+      return uiText('Toàn bộ lời nhắc ưu tiên tiếng Việt để học nhẹ đầu hơn.', 'Vietnamese-first prompts for a lighter review flow.', 'Vietnamese-first prompts with English study content.');
+    }
+    if (value === 'balanced') {
+      return uiText('Giữ song song cả hai ngôn ngữ để chuyển ý dễ hơn.', 'Shows both languages where they improve clarity.', 'Keeps both languages visible for easier switching.');
+    }
+    return uiText('Ưu tiên English, vẫn giữ hỗ trợ tiếng Việt khi cần nhớ lại.', 'English-led study with Vietnamese support when needed.', 'English-led study with light Vietnamese support.');
+  }
+
+  function renderLanguageModeMenu(mode = getLanguageMode()) {
+    const select = byId('languageModeSelect');
+    const trigger = byId('languageModeTrigger');
+    const currentNode = byId('languageModeCurrent');
+    const menu = byId('languageModeMenu');
+    const shell = byId('languageModeShell');
+    if (!select || !trigger || !currentNode || !menu || !shell) return;
+
+    const current = LANGUAGE_MODE_OPTIONS.some(option => option.value === select.value) ? select.value : mode;
+    currentNode.textContent = getLanguageModeLabel(current);
+    trigger.setAttribute('aria-expanded', String(!menu.classList.contains('hidden')));
+
+    menu.innerHTML = LANGUAGE_MODE_OPTIONS.map(option => {
+      const isActive = option.value === current;
+      return `
+        <button type="button" class="nav-select-option ${isActive ? 'active' : ''}" data-language-mode-value="${option.value}" role="option" aria-selected="${isActive}">
+          <span class="nav-option-copy">
+            <span class="nav-option-title">${getLanguageLaneOptionLabel(option, mode)}</span>
+            <span class="nav-option-note">${getLanguageModeOptionNote(option.value, mode)}</span>
+          </span>
+          <span class="nav-option-check" aria-hidden="true">${isActive ? '✓' : ''}</span>
+        </button>`;
+    }).join('');
+  }
+
+  function closeLanguageModeMenu() {
+    const menu = byId('languageModeMenu');
+    const trigger = byId('languageModeTrigger');
+    const shell = byId('languageModeShell');
+    const tools = document.querySelector('.nav-tools');
+    if (menu) menu.classList.add('hidden');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    if (shell) shell.classList.remove('is-open');
+    if (tools) tools.classList.remove('language-open');
+  }
+
+  function toggleLanguageModeMenu(forceOpen) {
+    const menu = byId('languageModeMenu');
+    const trigger = byId('languageModeTrigger');
+    const shell = byId('languageModeShell');
+    const tools = document.querySelector('.nav-tools');
+    if (!menu || !trigger || !shell) return;
+    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', !shouldOpen);
+    shell.classList.toggle('is-open', shouldOpen);
+    if (tools) tools.classList.toggle('language-open', shouldOpen);
+    trigger.setAttribute('aria-expanded', String(shouldOpen));
+  }
+
   function getLanguageModeHint(mode = getLanguageMode()) {
     if (mode === 'vi_focus') {
       return 'Toàn bộ hướng dẫn, lời nhắc học và gợi ý được ưu tiên bằng tiếng Việt để giảm tải nhận thức khi ôn.';
@@ -150,10 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const select = byId('languageModeSelect');
     if (select) {
-      const current = select.value || mode;
       select.innerHTML = LANGUAGE_MODE_OPTIONS.map(option => `
         <option value="${option.value}">${getLanguageLaneOptionLabel(option, mode)}</option>`).join('');
-      select.value = LANGUAGE_MODE_OPTIONS.some(option => option.value === current) ? current : mode;
+      select.value = mode;
+      renderLanguageModeMenu(mode);
     }
 
     setTextValue('#languageModeLabel', uiText('Chế độ ngôn ngữ', 'Learning language lane', 'Language lane'));
@@ -305,8 +366,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     byId('languageModeSelect')?.addEventListener('change', async (event) => {
       state.settings.languageMode = event.target.value;
+      closeLanguageModeMenu();
       await persistState();
       renderAll();
+    });
+    byId('languageModeTrigger')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleLanguageModeMenu();
+    });
+    byId('languageModeMenu')?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-language-mode-value]');
+      if (!button) return;
+      const value = button.dataset.languageModeValue;
+      const select = byId('languageModeSelect');
+      if (!select || !value || select.value === value) {
+        closeLanguageModeMenu();
+        return;
+      }
+      select.value = value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
     byId('addSetBtn').addEventListener('click', () => openModal('createSetModal'));
@@ -318,6 +396,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.addEventListener('click', () => {
       document.querySelector('.dropdown-menu').classList.add('hidden');
+      closeLanguageModeMenu();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeLanguageModeMenu();
     });
 
     byId('importCsvBtn').addEventListener('click', () => byId('fileInputCsv').click());

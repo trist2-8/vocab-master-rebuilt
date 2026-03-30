@@ -20,13 +20,20 @@
         <button id="navReviewBtn" class="nav-btn">Ôn tập</button>
       </div>
       <div class="nav-tools">
-        <label class="nav-tool">
+        <label class="nav-tool nav-tool-language">
           <span id="languageModeLabel">Chế độ ngôn ngữ</span>
-          <select id="languageModeSelect" class="nav-select" aria-label="Chế độ ngôn ngữ học tập">
-            <option value="en_focus">English Focus</option>
-            <option value="balanced">Balanced</option>
-            <option value="vi_focus">Tiếng Việt thuần</option>
-          </select>
+          <div id="languageModeShell" class="nav-select-shell">
+            <select id="languageModeSelect" class="nav-select native-select-hidden" aria-label="Chế độ ngôn ngữ học tập">
+              <option value="en_focus">English Focus</option>
+              <option value="balanced">Balanced</option>
+              <option value="vi_focus">Tiếng Việt thuần</option>
+            </select>
+            <button id="languageModeTrigger" type="button" class="nav-select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="languageModeMenu">
+              <span id="languageModeCurrent" class="nav-select-current">English Focus</span>
+              <span class="nav-select-chevron" aria-hidden="true"></span>
+            </button>
+            <div id="languageModeMenu" class="nav-select-menu hidden" role="listbox" aria-label="Chế độ ngôn ngữ học tập"></div>
+          </div>
         </label>
         <div id="languageModeHint" class="nav-mode-hint">English-led learning with Vietnamese support.</div>
       </div>
