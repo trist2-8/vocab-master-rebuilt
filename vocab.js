@@ -25,7 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   const DEFAULT_SETTINGS = {
-    languageMode: 'en_focus'
+    languageMode: 'en_focus',
+    fxGlass: 'crystal',
+    fxMotion: 'calm',
+    fxScene: 'nebula',
+    fxDensity: 'compact'
   };
 
   const LANGUAGE_MODE_OPTIONS = [
@@ -61,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     smartSuggestionMeta: { byScope: {}, currentScope: 'all' },
     studySupport: null,
     optimizerReport: null,
+    clusterMissions: [],
     settings: { ...DEFAULT_SETTINGS }
   };
 
@@ -89,7 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const languageMode = LANGUAGE_MODE_OPTIONS.some(option => option.value === settings?.languageMode)
       ? settings.languageMode
       : DEFAULT_SETTINGS.languageMode;
-    return { languageMode };
+    const fxGlass = ['crystal', 'mist', 'depth'].includes(settings?.fxGlass) ? settings.fxGlass : DEFAULT_SETTINGS.fxGlass;
+    const fxMotion = ['off', 'calm', 'flow'].includes(settings?.fxMotion) ? settings.fxMotion : DEFAULT_SETTINGS.fxMotion;
+    const fxScene = ['nebula', 'aurora', 'midnight'].includes(settings?.fxScene) ? settings.fxScene : DEFAULT_SETTINGS.fxScene;
+    const fxDensity = ['compact', 'cozy'].includes(settings?.fxDensity) ? settings.fxDensity : DEFAULT_SETTINGS.fxDensity;
+    return { languageMode, fxGlass, fxMotion, fxScene, fxDensity };
   }
 
   function getLanguageMode() {
@@ -202,6 +211,47 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'English learning prompts stay visible, while Vietnamese helper text appears where it improves understanding and retention.';
     }
     return 'Most labels and study prompts turn English, while meanings and rescue hints can still keep Vietnamese support for easier recall.';
+  }
+
+  function applyEffectSettings() {
+    const settings = state.settings || DEFAULT_SETTINGS;
+    document.body.dataset.fxGlass = settings.fxGlass || DEFAULT_SETTINGS.fxGlass;
+    document.body.dataset.fxMotion = settings.fxMotion || DEFAULT_SETTINGS.fxMotion;
+    document.body.dataset.fxScene = settings.fxScene || DEFAULT_SETTINGS.fxScene;
+    document.body.dataset.fxDensity = settings.fxDensity || DEFAULT_SETTINGS.fxDensity;
+  }
+
+  function getFxLabel(type, value) {
+    const labels = {
+      glass: {
+        crystal: uiText('Pha lê trong', 'Crystal Clear', 'Crystal Clear'),
+        mist: uiText('Sương mờ', 'Mist Glow', 'Mist Glow'),
+        depth: uiText('Chiều sâu kính', 'Depth Glass', 'Depth Glass')
+      },
+      motion: {
+        off: uiText('Tĩnh', 'Still', 'Still'),
+        calm: uiText('Êm', 'Calm', 'Calm'),
+        flow: uiText('Chuyển động', 'Flow', 'Flow')
+      },
+      scene: {
+        nebula: uiText('Nebula', 'Nebula', 'Nebula'),
+        aurora: uiText('Aurora', 'Aurora', 'Aurora'),
+        midnight: uiText('Midnight', 'Midnight', 'Midnight')
+      },
+      density: {
+        compact: uiText('Gọn', 'Compact', 'Compact'),
+        cozy: uiText('Thoáng', 'Cozy', 'Cozy')
+      }
+    };
+    return labels[type]?.[value] || value;
+  }
+
+  function buildEffectsLabSummary() {
+    return uiText(
+      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Cảnh: ${getFxLabel('scene', state.settings.fxScene)} • Chuyển động: ${getFxLabel('motion', state.settings.fxMotion)}`,
+      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Scene: ${getFxLabel('scene', state.settings.fxScene)} • Motion: ${getFxLabel('motion', state.settings.fxMotion)}`,
+      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Scene: ${getFxLabel('scene', state.settings.fxScene)} • Motion: ${getFxLabel('motion', state.settings.fxMotion)}`
+    );
   }
 
   function applyLanguageModeUI() {
@@ -336,6 +386,29 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextValue('#createSetModal h2', uiText('📚 Tạo bộ từ mới', '📚 Create a new set', '📚 Create a new set'));
     setInputPlaceholder('#newSetNameInput', uiText('Ví dụ: IELTS Reading - Unit 1', 'Example: IELTS Reading - Unit 1', 'Example: IELTS Reading - Unit 1'));
     setTextValue('#saveSetNameBtn', uiText('Tạo bộ từ', 'Create set', 'Create set'));
+
+    if (byId('effectsLabTitle')) setTextValue('#effectsLabTitle', uiText('Effects Lab', 'Effects Lab', 'Effects Lab'));
+    if (byId('effectsLabLead')) setTextValue('#effectsLabLead', uiText('Tinh chỉnh chất kính, cảnh nền và chuyển động để không gian học có chiều sâu nhưng vẫn tập trung.', 'Tune glass depth, scene, and motion so the interface feels alive without hurting focus.', 'Tune glass depth, scene, and motion so the interface feels alive without hurting focus.'));
+    if (byId('fxGlassLabel')) setTextValue('#fxGlassLabel', uiText('Chất kính', 'Glass style', 'Glass style'));
+    if (byId('fxMotionLabel')) setTextValue('#fxMotionLabel', uiText('Nhịp chuyển động', 'Motion', 'Motion'));
+    if (byId('fxDensityLabel')) setTextValue('#fxDensityLabel', uiText('Mật độ shell', 'Shell density', 'Shell density'));
+    if (byId('effectsLabPreviewNote')) setTextValue('#effectsLabPreviewNote', buildEffectsLabSummary());
+    document.querySelectorAll('[data-fx-scene-card]').forEach(node => {
+      const value = node.dataset.fxSceneCard;
+      const title = node.querySelector('.fx-scene-name');
+      const note = node.querySelector('.fx-scene-note');
+      if (title) title.textContent = getFxLabel('scene', value);
+      if (note) {
+        note.textContent = ({
+          nebula: uiText('Nền tím sâu, hợp với glass sáng và layout học hằng ngày.', 'Deep purple ambient scene for daily study.', 'Deep purple ambient scene for daily study.'),
+          aurora: uiText('Ánh xanh chuyển nhẹ, tạo cảm giác mới hơn cho giao diện.', 'Cool moving aurora glow for a fresher interface.', 'Cool moving aurora glow for a fresher interface.'),
+          midnight: uiText('Tối hơn, gọn hơn, hợp khi muốn giảm nhiễu thị giác.', 'Darker and tighter for low-distraction sessions.', 'Darker and tighter for low-distraction sessions.')
+        })[value] || '';
+      }
+    });
+
+    if (byId('clusterMissionTitle')) setTextValue('#clusterMissionTitle', uiText('Memory Constellation', 'Memory Constellation', 'Memory Constellation'));
+    if (byId('clusterMissionLead')) setTextValue('#clusterMissionLead', uiText('Thay vì ôn từng từ rời rạc, hệ thống gom chúng thành cụm để bạn cứu cả một vùng nhớ trong một lượt.', 'Instead of drilling isolated entries, cluster missions let you rescue a whole memory zone in one session.', 'Instead of drilling isolated entries, cluster missions let you rescue a whole memory zone in one session.'));
   }
 
   init();
@@ -385,6 +458,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       select.value = value;
       select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    document.addEventListener('change', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.matches('[data-fx-setting]')) {
+        state.settings[target.dataset.fxSetting] = target.value;
+        applyEffectSettings();
+        renderEffectsLabPanel();
+        await persistState();
+      }
+    });
+    document.addEventListener('click', async (event) => {
+      const sceneBtn = event.target.closest('[data-fx-scene]');
+      if (sceneBtn) {
+        state.settings.fxScene = sceneBtn.dataset.fxScene;
+        applyEffectSettings();
+        renderEffectsLabPanel();
+        await persistState();
+        return;
+      }
+      const missionBtn = event.target.closest('[data-cluster-mission]');
+      if (missionBtn) {
+        launchClusterMission(missionBtn.dataset.clusterMission);
+      }
     });
 
     byId('addSetBtn').addEventListener('click', () => openModal('createSetModal'));
@@ -887,6 +985,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMainView();
     initManagementView();
     initReviewView();
+    applyEffectSettings();
     applyLanguageModeUI();
   }
 
@@ -2205,6 +2304,91 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+  function ensureEffectsLabPanel() {
+    const managementView = byId('management-view');
+    if (!managementView || byId('effectsLabPanel')) return;
+    const panel = document.createElement('section');
+    panel.id = 'effectsLabPanel';
+    panel.className = 'panel-card effects-lab-panel';
+    panel.innerHTML = `
+      <div class="effects-lab-head">
+        <div>
+          <h2 id="effectsLabTitle">Effects Lab</h2>
+          <p id="effectsLabLead" class="muted-text"></p>
+        </div>
+        <div class="effects-lab-badge">${escapeHtml(uiText('Update lớn', 'Big update', 'Big update'))}</div>
+      </div>
+      <div class="effects-lab-grid">
+        <label class="effects-field">
+          <span id="fxGlassLabel">Glass style</span>
+          <select id="fxGlassSelect" class="modern-input" data-fx-setting="fxGlass">
+            <option value="crystal">Crystal Clear</option>
+            <option value="mist">Mist Glow</option>
+            <option value="depth">Depth Glass</option>
+          </select>
+        </label>
+        <label class="effects-field">
+          <span id="fxMotionLabel">Motion</span>
+          <select id="fxMotionSelect" class="modern-input" data-fx-setting="fxMotion">
+            <option value="off">Still</option>
+            <option value="calm">Calm</option>
+            <option value="flow">Flow</option>
+          </select>
+        </label>
+        <label class="effects-field">
+          <span id="fxDensityLabel">Shell density</span>
+          <select id="fxDensitySelect" class="modern-input" data-fx-setting="fxDensity">
+            <option value="compact">Compact</option>
+            <option value="cozy">Cozy</option>
+          </select>
+        </label>
+      </div>
+      <div id="fxSceneGrid" class="fx-scene-grid">
+        <button type="button" class="fx-scene-card" data-fx-scene="nebula" data-fx-scene-card="nebula"><strong class="fx-scene-name">Nebula</strong><span class="fx-scene-note"></span></button>
+        <button type="button" class="fx-scene-card" data-fx-scene="aurora" data-fx-scene-card="aurora"><strong class="fx-scene-name">Aurora</strong><span class="fx-scene-note"></span></button>
+        <button type="button" class="fx-scene-card" data-fx-scene="midnight" data-fx-scene-card="midnight"><strong class="fx-scene-name">Midnight</strong><span class="fx-scene-note"></span></button>
+      </div>
+      <div id="effectsLabPreviewNote" class="effects-lab-preview muted-text"></div>
+    `;
+    const summary = byId('managementSummary');
+    if (summary?.parentNode) summary.insertAdjacentElement('afterend', panel);
+    else managementView.prepend(panel);
+  }
+
+  function renderEffectsLabPanel() {
+    ensureEffectsLabPanel();
+    const glass = byId('fxGlassSelect');
+    const motion = byId('fxMotionSelect');
+    const density = byId('fxDensitySelect');
+    if (glass) glass.value = state.settings.fxGlass || DEFAULT_SETTINGS.fxGlass;
+    if (motion) motion.value = state.settings.fxMotion || DEFAULT_SETTINGS.fxMotion;
+    if (density) density.value = state.settings.fxDensity || DEFAULT_SETTINGS.fxDensity;
+    document.querySelectorAll('[data-fx-scene]').forEach(button => {
+      button.classList.toggle('active', button.dataset.fxScene === (state.settings.fxScene || DEFAULT_SETTINGS.fxScene));
+    });
+    if (byId('effectsLabPreviewNote')) byId('effectsLabPreviewNote').textContent = buildEffectsLabSummary();
+  }
+
+  function ensureClusterMissionPanel() {
+    const reviewView = byId('review-dashboard-view');
+    if (!reviewView || byId('clusterMissionPanel')) return;
+    const panel = document.createElement('section');
+    panel.id = 'clusterMissionPanel';
+    panel.className = 'panel-card cluster-mission-panel';
+    panel.innerHTML = `
+      <div class="cluster-panel-head">
+        <div>
+          <h2 id="clusterMissionTitle">Memory Constellation</h2>
+          <p id="clusterMissionLead" class="muted-text"></p>
+        </div>
+      </div>
+      <div id="clusterMissionGrid" class="cluster-mission-grid"></div>
+    `;
+    const anchor = byId('dailyFocusGrid');
+    if (anchor?.parentNode) anchor.insertAdjacentElement('afterend', panel);
+    else reviewView.appendChild(panel);
+  }
+
   function initMainView() {
     populateSetDropdown(byId('wordsetDropdown'));
     renderSmartSuggestions({ resetCycle: true });
@@ -2213,11 +2397,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initManagementView() {
     renderManagementSummary();
+    renderEffectsLabPanel();
     renderWordsetsGrid();
   }
 
   function initReviewView() {
     populateSetDropdown(byId('reviewSetDropdown'), true);
+    ensureClusterMissionPanel();
     renderReviewDashboard();
   }
 
@@ -2485,6 +2671,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDailyFocus(words);
+    renderClusterMissions(words);
     renderReviewInsights(words);
     renderAdvancedReviewPanels(words);
 
@@ -2507,6 +2694,97 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-badge]').forEach(node => {
       node.textContent = badgeText[node.dataset.badge] || '0';
     });
+  }
+
+  function getConceptFamilyDisplay(familyKey, sample) {
+    if ((familyKey || '').startsWith('conf:')) {
+      return uiText(`Nhóm phân biệt: ${sample.word}`, `Contrast family: ${sample.word}`, `Contrast family: ${sample.word}`);
+    }
+    if ((familyKey || '').startsWith('tag:')) {
+      const tag = sample.topicTags?.[0] || sample.wordset || sample.word;
+      return uiText(`Cụm chủ đề: ${tag}`, `Topic cluster: ${tag}`, `Topic cluster: ${tag}`);
+    }
+    if ((familyKey || '').startsWith('root:')) {
+      return uiText(`Nhóm gốc: ${sample.word}`, `Root family: ${sample.word}`, `Root family: ${sample.word}`);
+    }
+    return uiText(`Cụm nghĩa: ${sample.word}`, `Meaning cluster: ${sample.word}`, `Meaning cluster: ${sample.word}`);
+  }
+
+  function buildClusterMissions(words) {
+    const families = {};
+    words.forEach(word => {
+      const key = getConceptFamilyKey(word);
+      if (!families[key]) families[key] = { key, sample: word, words: [], risk: 0, due: 0, weak: 0, types: new Set() };
+      const bucket = families[key];
+      const risk = calculateForgettingRisk(word);
+      bucket.words.push(word);
+      bucket.types.add(word.entryType || 'word');
+      bucket.risk += risk;
+      if (isDueWord(word)) bucket.due += 1;
+      if (isWeakWord(word)) bucket.weak += 1;
+      if (risk > calculateForgettingRisk(bucket.sample)) bucket.sample = word;
+    });
+    return Object.values(families)
+      .filter(item => item.words.length >= 2 || item.risk / Math.max(1, item.words.length) >= 54)
+      .map(item => {
+        const avgRisk = Math.round(item.risk / Math.max(1, item.words.length));
+        const queue = buildCoverageQueue(item.words, Math.min(10, item.words.length), item.due ? 'rescue' : item.weak ? 'drill' : 'balanced');
+        const gameType = item.due ? 'srs' : item.weak ? 'typing' : (item.types.has('pattern') ? 'flashcard' : 'quiz');
+        return {
+          key: item.key,
+          title: getConceptFamilyDisplay(item.key, item.sample),
+          sample: item.sample,
+          avgRisk,
+          queue,
+          gameType,
+          itemCount: item.words.length,
+          due: item.due,
+          weak: item.weak,
+          preview: item.words.slice(0, 4).map(word => word.word).join(', '),
+          reason: item.due
+            ? uiText('Cụm này có nhiều mục đến hạn và đang cần cứu theo nhóm.', 'This cluster has multiple due items and should be rescued as one memory zone.', 'This cluster has multiple due items and should be rescued as one memory zone.')
+            : item.weak
+              ? uiText('Cụm này đang sai hoặc nhớ yếu, hợp để drill theo nhóm liên quan.', 'This cluster is weak or error-prone, so a grouped drill works better than isolated review.', 'This cluster is weak or error-prone, so a grouped drill works better than isolated review.')
+              : uiText('Cụm này giúp mở rộng độ phủ mà không lặp lại đúng một từ duy nhất.', 'This cluster expands coverage without repeating one isolated item.', 'This cluster expands coverage without repeating one isolated item.')
+        };
+      })
+      .sort((a, b) => b.avgRisk - a.avgRisk || b.itemCount - a.itemCount)
+      .slice(0, 4);
+  }
+
+  function renderClusterMissions(words) {
+    ensureClusterMissionPanel();
+    const grid = byId('clusterMissionGrid');
+    if (!grid) return;
+    const missions = buildClusterMissions(words);
+    state.clusterMissions = missions;
+    if (!missions.length) {
+      grid.innerHTML = `<div class="cluster-mission-empty">${escapeHtml(uiText('Khi bộ từ đủ dày hơn, Memory Constellation sẽ tự tạo các mission theo cụm nhầm lẫn, cụm chủ đề hoặc cụm risk cao.', 'Once the set gets denser, Memory Constellation will auto-build missions from confusion pairs, topic families, or high-risk clusters.', 'Once the set gets denser, Memory Constellation will auto-build missions from confusion pairs, topic families, or high-risk clusters.'))}</div>`;
+      return;
+    }
+    grid.innerHTML = missions.map(mission => `
+      <article class="cluster-mission-card">
+        <div class="cluster-mission-top">
+          <span class="cluster-risk-pill">risk ${mission.avgRisk}%</span>
+          <span class="cluster-count-pill">${mission.itemCount} ${escapeHtml(uiText('mục', 'items', 'items'))}</span>
+        </div>
+        <h3>${escapeHtml(mission.title)}</h3>
+        <p class="cluster-mission-reason">${escapeHtml(mission.reason)}</p>
+        <div class="cluster-preview">${escapeHtml(mission.preview)}</div>
+        <div class="cluster-mission-meta">
+          <span>${escapeHtml(uiText(`Đến hạn: ${mission.due}`, `Due: ${mission.due}`, `Due: ${mission.due}`))}</span>
+          <span>${escapeHtml(uiText(`Yếu: ${mission.weak}`, `Weak: ${mission.weak}`, `Weak: ${mission.weak}`))}</span>
+          <span>${escapeHtml(uiText(`Chế độ: ${mission.gameType}`, `Mode: ${mission.gameType}`, `Mode: ${mission.gameType}`))}</span>
+        </div>
+        <button type="button" class="primary-btn cluster-launch-btn" data-cluster-mission="${escapeHtml(mission.key)}">${escapeHtml(uiText('▶ Mở mission cụm này', '▶ Launch this cluster mission', '▶ Launch this cluster mission'))}</button>
+      </article>
+    `).join('');
+  }
+
+  function launchClusterMission(key) {
+    const mission = (state.clusterMissions || []).find(item => item.key === key);
+    if (!mission || !mission.queue?.length) return showToast(uiText('Mission này chưa đủ dữ liệu để mở.', 'This mission does not have enough data to launch yet.', 'This mission does not have enough data to launch yet.'));
+    startCustomQueue(mission.queue, mission.gameType, mission.title, mission.reason);
   }
 
   function createSetFromModal() {

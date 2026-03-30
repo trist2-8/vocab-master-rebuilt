@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "6.8.6",
-  "description": "Vocab Master refined with a compact liquid-glass header with lighter spacing and a smaller top shell.",
+  "version": "6.9.0",
+  "description": "Vocab Master with Effects Lab, animated glass scenes, and Memory Constellation cluster missions.",
   "permissions": [
     "storage"
   ],
