@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "6.7.1",
-  "description": "Vocab Master optimized: smart suggestion hotfix with safer recovery, working suggestion actions, and more resilient data handling.",
+  "version": "6.8.1",
+  "description": "Vocab Master optimized: language lanes, Set Intelligence, grouped smart suggestions, redundancy cleanup, and safer study support.",
   "permissions": [
     "storage"
   ],

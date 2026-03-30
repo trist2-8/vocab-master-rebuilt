@@ -23,6 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
     { level: 4, label: 'Rất vững', shortLabel: 'Rất vững', note: 'Đã qua nhiều lượt ôn tốt' }
   ];
 
+
+  const DEFAULT_SETTINGS = {
+    languageMode: 'en_focus'
+  };
+
+  const LANGUAGE_MODE_OPTIONS = [
+    { value: 'en_focus', viLabel: 'English Focus', enLabel: 'English Focus', balancedLabel: 'English Focus' },
+    { value: 'balanced', viLabel: 'Cân bằng song ngữ', enLabel: 'Balanced Bilingual', balancedLabel: 'Balanced Bilingual' },
+    { value: 'vi_focus', viLabel: 'Tiếng Việt thuần', enLabel: 'Pure Vietnamese', balancedLabel: 'Pure Vietnamese' }
+  ];
+
   const state = {
     vocab: [],
     stats: { coins: 0, dailyGoal: 12, dailyProgress: {}, currentStreak: 0, bestStreak: 0, totalSessions: 0, studyLog: [] },
@@ -49,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     smartSuggestions: [],
     smartSuggestionMeta: { byScope: {}, currentScope: 'all' },
     studySupport: null,
-    optimizerReport: null
+    optimizerReport: null,
+    settings: { ...DEFAULT_SETTINGS }
   };
 
   const storage = {
@@ -65,7 +77,209 @@ document.addEventListener('DOMContentLoaded', () => {
   const views = Array.from(document.querySelectorAll('.view'));
   const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
 
+  function syncCompactNav() {
+    document.body.classList.toggle('nav-condensed', window.scrollY > 56);
+  }
+
+  window.addEventListener('scroll', syncCompactNav, { passive: true });
+
+  function normalizeSettings(settings = {}) {
+    const languageMode = LANGUAGE_MODE_OPTIONS.some(option => option.value === settings?.languageMode)
+      ? settings.languageMode
+      : DEFAULT_SETTINGS.languageMode;
+    return { languageMode };
+  }
+
+  function getLanguageMode() {
+    return LANGUAGE_MODE_OPTIONS.some(option => option.value === state.settings?.languageMode)
+      ? state.settings.languageMode
+      : DEFAULT_SETTINGS.languageMode;
+  }
+
+  function getLanguageLaneOptionLabel(option, lane = getLanguageMode()) {
+    if (!option) return '';
+    if (lane === 'vi_focus') return option.viLabel || option.enLabel || option.value;
+    if (lane === 'balanced') return option.balancedLabel || option.enLabel || option.viLabel || option.value;
+    return option.enLabel || option.viLabel || option.value;
+  }
+
+  function uiText(viText, enText, balancedText = '') {
+    const mode = getLanguageMode();
+    if (mode === 'vi_focus') return viText;
+    if (mode === 'balanced') return balancedText || `${enText} • ${viText}`;
+    return enText;
+  }
+
+  function setTextValue(target, value) {
+    const node = typeof target === 'string' ? document.querySelector(target) : target;
+    if (node) node.textContent = value;
+  }
+
+  function setInputPlaceholder(target, value) {
+    const node = typeof target === 'string' ? document.querySelector(target) : target;
+    if (node) node.placeholder = value;
+  }
+
+  function setHtmlValue(target, value) {
+    const node = typeof target === 'string' ? document.querySelector(target) : target;
+    if (node) node.innerHTML = value;
+  }
+
+  function getLanguageModeLabel(mode = getLanguageMode()) {
+    return ({
+      en_focus: uiText('English Focus', 'English Focus', 'English Focus'),
+      balanced: uiText('Cân bằng song ngữ', 'Balanced Bilingual', 'Balanced Bilingual'),
+      vi_focus: uiText('Tiếng Việt thuần', 'Pure Vietnamese', 'Pure Vietnamese')
+    })[mode] || 'English Focus';
+  }
+
+  function getLanguageModeHint(mode = getLanguageMode()) {
+    if (mode === 'vi_focus') {
+      return 'Toàn bộ hướng dẫn, lời nhắc học và gợi ý được ưu tiên bằng tiếng Việt để giảm tải nhận thức khi ôn.';
+    }
+    if (mode === 'balanced') {
+      return 'English learning prompts stay visible, while Vietnamese helper text appears where it improves understanding and retention.';
+    }
+    return 'Most labels and study prompts turn English, while meanings and rescue hints can still keep Vietnamese support for easier recall.';
+  }
+
+  function applyLanguageModeUI() {
+    const mode = getLanguageMode();
+    document.documentElement.lang = mode === 'vi_focus' ? 'vi' : 'en';
+    document.body.dataset.languageMode = mode;
+
+    const select = byId('languageModeSelect');
+    if (select) {
+      const current = select.value || mode;
+      select.innerHTML = LANGUAGE_MODE_OPTIONS.map(option => `
+        <option value="${option.value}">${getLanguageLaneOptionLabel(option, mode)}</option>`).join('');
+      select.value = LANGUAGE_MODE_OPTIONS.some(option => option.value === current) ? current : mode;
+    }
+
+    setTextValue('#languageModeLabel', uiText('Chế độ ngôn ngữ', 'Learning language lane', 'Language lane'));
+    setTextValue('#languageModeHint', getLanguageModeHint(mode));
+    setTextValue('.nav-subtitle', uiText('Học từ vựng gọn gàng, nhớ lâu hơn.', 'Build vocabulary cleanly and remember it longer.', 'English-led learning with lighter Vietnamese support.'));
+    setTextValue('#navMainBtn', uiText('Thêm từ', 'Add words', 'Add words'));
+    setTextValue('#navManagementBtn', uiText('Bộ từ của tôi', 'Library', 'Library'));
+    setTextValue('#navReviewBtn', uiText('Ôn tập', 'Review', 'Review'));
+
+    setTextValue('#main-view .header-section h1', uiText('Thêm vào bộ từ', 'Add into your sets', 'Add into your sets'));
+    setTextValue('#main-view .header-subtext', uiText('Dán nhanh từ Excel, nhập tay, hoặc tải CSV rồi kiểm tra trước khi lưu.', 'Paste from Excel, type manually, or import CSV before saving.', 'Paste quickly, type manually, or import CSV before saving.'));
+    setTextValue('#addSetBtn', uiText('＋ Bộ mới', '＋ New set', '＋ New set'));
+    setTextValue('#input-view .help-box h2', uiText('Định dạng đề xuất', 'Suggested format', 'Suggested format'));
+    setTextValue('#input-view .quick-add-hint', uiText('Mẹo: bạn có thể copy nhiều cột từ Excel hoặc Google Sheets và dán thẳng vào đây.', 'Tip: copy multiple columns from Excel or Google Sheets and paste them here directly.', 'Tip: copy multiple columns from Excel or Google Sheets and paste here.'));
+    setTextValue('.dropdown-toggle', uiText('Nhập dữ liệu ▼', 'Import data ▼', 'Import data ▼'));
+    setTextValue('#importCsvBtn', uiText('Chọn file CSV', 'Choose CSV file', 'Choose CSV file'));
+    setTextValue('#tutorialBtn', uiText('Hướng dẫn', 'Guide', 'Guide'));
+    setTextValue('#promptHelperBtn', uiText('🤖 Prompt chủ đề', '🤖 Topic prompt', '🤖 Topic prompt'));
+    setTextValue('#quickAddBtn', uiText('⚡ Thêm nhanh', '⚡ Quick add', '⚡ Quick add'));
+    setTextValue('#previewBtn', uiText('Kiểm tra & sửa', 'Review & clean', 'Review & clean'));
+    setTextValue('#preview-view h2', uiText('Kiểm tra trước khi lưu', 'Review before saving', 'Review before saving'));
+    setTextValue('#cancelPreviewBtn', uiText('Quay lại', 'Back', 'Back'));
+    setTextValue('#smartSuggestionPanel h2', uiText('Gợi ý thông minh', 'Smart Suggestions', 'Smart Suggestions'));
+    setTextValue('#smartSuggestionPanel .muted-text', uiText('Hệ thống đề xuất từ nên thêm tiếp, tránh học trùng và bù khoảng trống trong bộ nhớ.', 'The system suggests what to add next, avoids redundancy, and fills memory gaps.', 'The system suggests the next words, avoids redundancy, and fills memory gaps.'));
+    setTextValue('#setIntelligenceTitle', uiText('Set Intelligence', 'Set Intelligence', 'Set Intelligence'));
+    setTextValue('#setIntelligenceLead', uiText('Phân tích bộ từ hiện tại để phát hiện vùng trùng lặp, cụm yếu và cụm nên thêm tiếp theo.', 'Analyze the current set to detect overlap, weak clusters, and the next best cluster to add.', 'Analyze the current set for overlap, weak clusters, and the next cluster to add.'));
+
+    setTextValue('#management-view .header-section h1', uiText('Bộ từ của tôi', 'My library', 'My library'));
+    setTextValue('#management-view .header-subtext', uiText('Quản lý từng bộ từ, theo dõi tiến độ và sửa nội dung ngay trong bảng.', 'Manage sets, track progress, and edit entries directly inside the table.', 'Manage sets, track progress, and edit entries directly in the table.'));
+    setInputPlaceholder('#setSearchInput', uiText('Tìm bộ từ, chủ đề, loại từ...', 'Search sets, topics, or entry types...', 'Search sets, topics, or entry types...'));
+    setTextValue('#exportBackupBtn', uiText('Xuất backup JSON', 'Export JSON backup', 'Export JSON backup'));
+    setTextValue('#importBackupBtn', uiText('Nhập backup JSON', 'Import JSON backup', 'Import JSON backup'));
+    setTextValue('#backToManagementBtn', uiText('← Quay lại', '← Back', '← Back'));
+    setTextValue('#deleteSetBtn', uiText('Xóa bộ từ', 'Delete set', 'Delete set'));
+    setTextValue('#saveSetChangesBtn', uiText('Lưu thay đổi', 'Save changes', 'Save changes'));
+    setInputPlaceholder('#detailsSearchInput', uiText('Tìm trong bộ từ này...', 'Search inside this set...', 'Search inside this set...'));
+    if (byId('setSortSelect')) {
+      const currentSort = byId('setSortSelect').value || 'due';
+      byId('setSortSelect').innerHTML = `
+        <option value="due">${uiText('Ưu tiên đến hạn', 'Due first', 'Due first')}</option>
+        <option value="recent">${uiText('Mới cập nhật', 'Recently updated', 'Recently updated')}</option>
+        <option value="size">${uiText('Nhiều từ nhất', 'Largest sets', 'Largest sets')}</option>
+        <option value="progress">${uiText('Tiến độ cao nhất', 'Highest progress', 'Highest progress')}</option>
+        <option value="name">${uiText('Tên A → Z', 'Name A → Z', 'Name A → Z')}</option>`;
+      byId('setSortSelect').value = currentSort;
+    }
+    if (byId('detailsFilterSelect')) {
+      const currentFilter = byId('detailsFilterSelect').value || 'all';
+      byId('detailsFilterSelect').innerHTML = `
+        <option value="all">${uiText('Tất cả mức nhớ', 'All memory stages', 'All memory stages')}</option>
+        <option value="due">${uiText('Chỉ từ đến hạn', 'Due only', 'Due only')}</option>
+        <option value="weak">${uiText('Chỉ từ cần củng cố', 'Needs work only', 'Needs work only')}</option>
+        <option value="new">${uiText('Chỉ từ mới', 'New only', 'New only')}</option>
+        <option value="strong">${uiText('Chỉ từ khá chắc / rất vững', 'Solid / strong only', 'Solid / strong only')}</option>`;
+      byId('detailsFilterSelect').value = currentFilter;
+    }
+
+    setTextValue('label[for="reviewSetDropdown"]', uiText('Bộ từ vựng', 'Word set', 'Word set'));
+    setTextValue('#review-dashboard-view .filter-box-wide label', uiText('Gợi ý hôm nay', "Today's guidance", "Today's guidance"));
+    setTextValue('.recommended-study-label', uiText('Bắt đầu theo lộ trình gợi ý', 'Start with the suggested path', 'Start with the suggested path'));
+    setTextValue('#startRecommendedBtn', uiText('▶ Học theo gợi ý', '▶ Start suggested path', '▶ Start suggested path'));
+    setTextValue('#startDueFocusBtn', uiText('Ôn từ đến hạn', 'Review due words', 'Review due words'));
+    setTextValue('#startWeakFocusBtn', uiText('Ôn từ yếu', 'Drill weak words', 'Drill weak words'));
+    setTextValue('#startNewFocusBtn', uiText('Làm quen từ mới', 'Warm up new words', 'Warm up new words'));
+    document.querySelectorAll('.stat-card .stat-label').forEach((node, index) => {
+      const labels = [
+        uiText('Đến hạn', 'Due now', 'Due now'),
+        uiText('Từ mới', 'New', 'New'),
+        uiText('Cần củng cố', 'Needs work', 'Needs work'),
+        uiText('Đã vững', 'Strong', 'Strong')
+      ];
+      if (labels[index]) node.textContent = labels[index];
+    });
+    document.querySelectorAll('.stat-card .stat-note').forEach((node, index) => {
+      const notes = [
+        uiText('Nên ôn ngay hôm nay', 'Best reviewed today', 'Best reviewed today'),
+        uiText('Chưa ôn lần nào', 'Never reviewed yet', 'Never reviewed yet'),
+        uiText('Sai nhiều hoặc mức nhớ còn thấp', 'Wrong often or still low-confidence', 'Wrong often or still low-confidence'),
+        uiText('Qua nhiều lượt nhớ tốt', 'Passed several strong recalls', 'Passed several strong recalls')
+      ];
+      if (notes[index]) node.textContent = notes[index];
+    });
+    setTextValue('.mode-board-kicker', 'Learning Lab');
+    setTextValue('#review-dashboard-view .mode-board-copy h2', uiText('Chọn chế độ học theo trạng thái trí nhớ hiện tại', 'Choose the best learning lane for the current memory state', 'Choose the best learning lane for the current memory state'));
+    document.querySelectorAll('.mode-lab-card').forEach(card => {
+      const game = card.dataset.game;
+      const titleNode = card.querySelector('h3');
+      const labelNode = card.querySelector('.mode-mini-label');
+      const descNode = card.querySelector('.v-description');
+      const map = {
+        srs: [uiText('Ưu tiên số 1', 'Top priority', 'Top priority'), 'Memory Rescue', uiText('Ưu tiên từ đến hạn, từ risk cao và từ bạn vừa sắp quên.', 'Prioritize due words, high-risk items, and anything about to slip.', 'Prioritize due words, high-risk items, and anything about to slip.')],
+        flashcard: [uiText('Khởi động', 'Warm-up', 'Warm-up'), 'Flashcard', uiText('Lật thẻ và gọi lại nghĩa trước khi xem đáp án.', 'Flip cards and recall meaning before checking the answer.', 'Flip cards and recall meaning before checking the answer.')],
+        typing: [uiText('Chữa lỗi chủ động', 'Active repair', 'Active repair'), uiText('Gõ từ', 'Typing', 'Typing'), uiText('Nhìn gợi ý rồi tự gõ để kéo từ sang nhớ chủ động.', 'Type from a cue to pull the word into active recall.', 'Type from a cue to pull the word into active recall.')],
+        quiz: [uiText('Kiểm tra tốc độ', 'Speed check', 'Speed check'), uiText('Trắc nghiệm', 'Quiz', 'Quiz'), uiText('Kiểm tra nhanh khả năng nhận biết từ, nghĩa và ngữ cảnh.', 'Check how quickly you recognize meaning, word form, and context.', 'Check how quickly you recognize meaning, word form, and context.')],
+        dictation: [uiText('Âm → chữ', 'Sound to text', 'Sound to text'), uiText('Nghe viết', 'Dictation', 'Dictation'), uiText('Nối âm thanh với mặt chữ để sửa lỗi nghe và spelling.', 'Link sound to spelling to fix listening and spelling errors.', 'Link sound to spelling to fix listening and spelling errors.')],
+        matching: [uiText('Tăng phản xạ', 'Speed pairing', 'Speed pairing'), uiText('Nối cặp', 'Matching', 'Matching'), uiText('Ghép nhanh để tăng phản xạ truy xuất nghĩa và mặt chữ.', 'Pair fast to speed up meaning and word-form retrieval.', 'Pair fast to speed up meaning and word-form retrieval.')]
+      };
+      const payload = map[game];
+      if (!payload) return;
+      if (labelNode) labelNode.textContent = payload[0];
+      if (titleNode) titleNode.textContent = payload[1];
+      if (descNode) descNode.textContent = payload[2];
+    });
+
+    setTextValue('#study-mode-view .header-row h1', uiText('Flashcard', 'Flashcard', 'Flashcard'));
+    setTextValue('#typing-mode-view .header-row h1', uiText('Gõ từ vựng', 'Typing drill', 'Typing drill'));
+    setTextValue('#dictation-mode-view .header-row h1', uiText('Nghe viết', 'Dictation', 'Dictation'));
+    setTextValue('#quizModeModal h2', uiText('Chọn chế độ Quiz', 'Choose quiz mode', 'Choose quiz mode'));
+    setTextValue('#studySupportCloseBtn', uiText('Ẩn', 'Hide', 'Hide'));
+    setInputPlaceholder('#typingInput', uiText('Gõ từ vựng tiếng Anh vào đây', 'Type the English word here', 'Type the English word here'));
+    setInputPlaceholder('#dictationInput', uiText('Gõ từ bạn nghe được', 'Type the word you hear', 'Type the word you hear'));
+    setInputPlaceholder('#quickWord', uiText('Từ vựng (ví dụ: hello)', 'Word (example: hello)', 'Word (example: hello)'));
+    setInputPlaceholder('#quickPhonetic', uiText('Phiên âm (ví dụ: /həˈləʊ/)', 'Phonetic (example: /həˈləʊ/)', 'Phonetic (example: /həˈləʊ/)'));
+    setInputPlaceholder('#quickType', uiText('Loại từ / nhóm (ví dụ: verb, noun)', 'Type / group (example: verb, noun)', 'Type / group (example: verb, noun)'));
+    setInputPlaceholder('#quickMeaning', uiText('Nghĩa (ví dụ: xin chào)', 'Meaning (example: hello)', 'Meaning (example: hello)'));
+    setInputPlaceholder('#quickExample', uiText('Ví dụ ngắn (không bắt buộc)', 'Short example (optional)', 'Short example (optional)'));
+    setInputPlaceholder('#quickNotes', uiText('Ghi chú / mẹo nhớ (không bắt buộc)', 'Notes / memory tip (optional)', 'Notes / memory tip (optional)'));
+    setTextValue('#saveQuickWordBtn', uiText('Lưu từ này', 'Save this entry', 'Save this entry'));
+    setTextValue('#createSetModal h2', uiText('📚 Tạo bộ từ mới', '📚 Create a new set', '📚 Create a new set'));
+    setInputPlaceholder('#newSetNameInput', uiText('Ví dụ: IELTS Reading - Unit 1', 'Example: IELTS Reading - Unit 1', 'Example: IELTS Reading - Unit 1'));
+    setTextValue('#saveSetNameBtn', uiText('Tạo bộ từ', 'Create set', 'Create set'));
+  }
+
   init();
+
+  syncCompactNav();
 
   async function init() {
     bindStaticEvents();
@@ -89,6 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
       showView('review-dashboard-view');
       initReviewView();
     });
+    byId('languageModeSelect')?.addEventListener('change', async (event) => {
+      state.settings.languageMode = event.target.value;
+      await persistState();
+      renderAll();
+    });
 
     byId('addSetBtn').addEventListener('click', () => openModal('createSetModal'));
     byId('saveSetNameBtn').addEventListener('click', createSetFromModal);
@@ -111,7 +330,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     byId('saveWordsBtn').addEventListener('click', savePreviewWords);
     byId('saveQuickWordBtn').addEventListener('click', saveQuickWord);
-    byId('wordsetDropdown')?.addEventListener('change', () => renderSmartSuggestions({ resetCycle: true }));
+    byId('wordsetDropdown')?.addEventListener('change', () => {
+      renderSmartSuggestions({ resetCycle: true });
+      renderSetIntelligence();
+    });
     byId('refreshSuggestionsBtn')?.addEventListener('click', refreshSmartSuggestions);
     byId('smartSuggestionGrid')?.addEventListener('click', handleSuggestionAction);
     byId('exportBackupBtn')?.addEventListener('click', exportBackup);
@@ -241,21 +463,53 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildTopicPrompt(topic = '') {
-    const cleanTopic = topic.trim() || '[CHỦ ĐỀ]';
-    return `Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề ${cleanTopic} với định dạng sau, mỗi dòng một từ, các cột cách nhau bằng dấu |:
+    const cleanTopic = topic.trim() || (getLanguageMode() === 'vi_focus' ? '[CHỦ ĐỀ]' : '[TOPIC]');
+    if (getLanguageMode() === 'vi_focus') {
+      return `Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề ${cleanTopic} với định dạng sau, mỗi dòng một từ, các cột cách nhau bằng dấu |:
 
 ` +
-      `từ vựng | /phiên âm/ | loại từ | nghĩa tiếng Việt | ví dụ tiếng Anh | ghi chú
+        `từ vựng | /phiên âm/ | loại từ | nghĩa tiếng Việt | ví dụ tiếng Anh | ghi chú
 
 ` +
-      `Ví dụ:
+        `Ví dụ:
 ` +
-      `abandon | /əˈbæn.dən/ | verb | từ bỏ, bỏ rơi | She abandoned her old car | thường dùng trong văn viết
+        `abandon | /əˈbæn.dən/ | verb | từ bỏ, bỏ rơi | She abandoned her old car | thường dùng trong văn viết
+` +
+        `ability | /əˈbɪl.ə.ti/ | noun | khả năng, năng lực | He has the ability to learn fast |
+
+` +
+        `Hãy tạo 20 từ vựng theo chủ đề ${cleanTopic}.`;
+    }
+    if (getLanguageMode() === 'balanced') {
+      return `Create an English vocabulary list for the topic ${cleanTopic}. Put one item on each line and separate the columns with |.
+` +
+        `Please keep the Vietnamese meaning column because this app is using bilingual learning mode.
+
+` +
+        `word | /phonetic/ | part of speech | Vietnamese meaning | English example | note
+
+` +
+        `Example:
+` +
+        `abandon | /əˈbæn.dən/ | verb | từ bỏ, bỏ rơi | She abandoned her old car | often used in writing
+
+` +
+        `Create 20 entries for ${cleanTopic}.`;
+    }
+    return `Create an English vocabulary list for the topic ${cleanTopic}. Put one item on each line and separate the columns with |.
+
+` +
+      `word | /phonetic/ | part of speech | Vietnamese meaning | English example | note
+
+` +
+      `Example:
+` +
+      `abandon | /əˈbæn.dən/ | verb | từ bỏ, bỏ rơi | She abandoned her old car | often used in writing
 ` +
       `ability | /əˈbɪl.ə.ti/ | noun | khả năng, năng lực | He has the ability to learn fast |
 
 ` +
-      `Hãy tạo 20 từ vựng theo chủ đề ${cleanTopic}.`;
+      `Create 20 entries for ${cleanTopic}.`;
   }
 
   function refreshPromptOutput() {
@@ -284,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadState() {
-    const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null });
+    const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null, vm_settings: DEFAULT_SETTINGS });
     let changed = false;
 
     if (Array.isArray(result.vocab) && result.vocab.length) {
@@ -315,8 +569,10 @@ document.addEventListener('DOMContentLoaded', () => {
     changed = changed || optimization.changed;
 
     state.stats = normalizeStats(result.stats || {});
+    state.settings = normalizeSettings(result.vm_settings || {});
     updateStreakStats();
     changed = changed || JSON.stringify(result.stats || {}) !== JSON.stringify(state.stats);
+    changed = changed || JSON.stringify(result.vm_settings || {}) !== JSON.stringify(state.settings);
 
     if (changed) {
       await persistState();
@@ -549,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMainView();
     initManagementView();
     initReviewView();
+    applyLanguageModeUI();
   }
 
   function showView(viewIdToShow) {
@@ -576,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function persistState() {
-    await storage.set({ vocab: state.vocab, stats: state.stats });
+    await storage.set({ vocab: state.vocab, stats: state.stats, vm_settings: state.settings });
   }
 
   async function saveAndRefresh({ showManagement = false, showReview = false } = {}) {
@@ -832,10 +1089,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
   }
 
+  function getLocalizedMemoryStage(stage, variant = 'label') {
+    const level = Number(stage?.level ?? stage ?? 0);
+    const labels = {
+      0: { label: uiText('Mới', 'New', 'New'), shortLabel: uiText('Mới', 'New', 'New'), note: uiText('Chưa ôn lần nào', 'Not reviewed yet', 'Not reviewed yet') },
+      1: { label: uiText('Làm quen', 'Warm-up', 'Warm-up'), shortLabel: uiText('Làm quen', 'Warm-up', 'Warm-up'), note: uiText('Đã thấy nhưng còn rất dễ quên', 'Seen once but still fragile', 'Seen once but still fragile') },
+      2: { label: uiText('Đang nhớ', 'Building recall', 'Building recall'), shortLabel: uiText('Đang nhớ', 'Recall', 'Recall'), note: uiText('Đã nhớ được một phần, cần nhắc lại', 'Partly remembered and needs another pass', 'Partly remembered and needs another pass') },
+      3: { label: uiText('Khá chắc', 'Pretty solid', 'Pretty solid'), shortLabel: uiText('Khá chắc', 'Solid', 'Solid'), note: uiText('Nhớ tương đối ổn, nên tiếp tục củng cố', 'Mostly stable, worth reinforcing', 'Mostly stable, worth reinforcing') },
+      4: { label: uiText('Rất vững', 'Very strong', 'Very strong'), shortLabel: uiText('Rất vững', 'Strong', 'Strong'), note: uiText('Đã qua nhiều lượt ôn tốt', 'Survived multiple strong recalls', 'Survived multiple strong recalls') }
+    };
+    return labels[level]?.[variant] || labels[0][variant] || '';
+  }
+
   function buildMemoryStageSummary(words) {
     const counts = getMemoryStageCounts(words).filter(stage => stage.count > 0);
-    if (!counts.length) return 'Chưa có tiến độ ghi nhớ để hiển thị.';
-    return counts.map(stage => `${stage.label}: ${stage.count}`).join(' • ');
+    if (!counts.length) return uiText('Chưa có tiến độ ghi nhớ để hiển thị.', 'No memory progress to show yet.', 'No memory progress to show yet.');
+    return counts.map(stage => `${getLocalizedMemoryStage(stage, 'label')}: ${stage.count}`).join(' • ');
   }
 
   function getDateKeyFromTimestamp(timestamp) {
@@ -865,12 +1134,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getEntryTypeLabel(word) {
     const labels = {
-      word: 'Từ',
-      phrase: 'Cụm',
-      pattern: 'Mẫu câu',
-      tip: 'Ghi chú'
+      word: uiText('Từ', 'Word', 'Word'),
+      phrase: uiText('Cụm', 'Phrase', 'Phrase'),
+      pattern: uiText('Mẫu câu', 'Pattern', 'Pattern'),
+      tip: uiText('Ghi chú', 'Tip', 'Tip')
     };
-    return labels[word?.entryType] || 'Từ';
+    return labels[word?.entryType] || labels.word;
   }
 
   function getEntryTypeStats(words) {
@@ -885,11 +1154,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildEntryTypeSummary(words) {
     const counts = getEntryTypeStats(words);
     return [
-      counts.word ? `${counts.word} từ` : '',
-      counts.phrase ? `${counts.phrase} cụm` : '',
-      counts.pattern ? `${counts.pattern} mẫu` : '',
-      counts.tip ? `${counts.tip} ghi chú` : ''
-    ].filter(Boolean).join(' • ') || 'Chưa có phân loại học liệu';
+      counts.word ? `${counts.word} ${uiText('từ', 'words', 'words')}` : '',
+      counts.phrase ? `${counts.phrase} ${uiText('cụm', 'phrases', 'phrases')}` : '',
+      counts.pattern ? `${counts.pattern} ${uiText('mẫu', 'patterns', 'patterns')}` : '',
+      counts.tip ? `${counts.tip} ${uiText('ghi chú', 'tips', 'tips')}` : ''
+    ].filter(Boolean).join(' • ') || uiText('Chưa có phân loại học liệu', 'No learning material types yet', 'No learning material types yet');
   }
 
   function calculateForgettingRisk(word) {
@@ -911,10 +1180,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRiskLabel(risk) {
-    if (risk >= 80) return 'Rất dễ rơi';
-    if (risk >= 65) return 'Cần cứu sớm';
-    if (risk >= 45) return 'Nên nhắc lại';
-    return 'Khá ổn';
+    if (risk >= 80) return uiText('Rất dễ rơi', 'Critical risk', 'Critical risk');
+    if (risk >= 65) return uiText('Cần cứu sớm', 'Rescue soon', 'Rescue soon');
+    if (risk >= 45) return uiText('Nên nhắc lại', 'Review soon', 'Review soon');
+    return uiText('Khá ổn', 'Stable', 'Stable');
   }
 
   function getAtRiskWords(words, limit = 8) {
@@ -963,13 +1232,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getMistakeReasonLabel(reason) {
     const labels = {
-      meaning: 'Sai nghĩa',
-      spelling: 'Sai chính tả',
-      listening: 'Nghe chưa chắc',
-      recall: 'Gọi lại chưa ra',
-      confusion: 'Dễ nhầm lẫn'
+      meaning: uiText('Sai nghĩa', 'Meaning miss', 'Meaning miss'),
+      spelling: uiText('Sai chính tả', 'Spelling miss', 'Spelling miss'),
+      listening: uiText('Nghe chưa chắc', 'Listening miss', 'Listening miss'),
+      recall: uiText('Gọi lại chưa ra', 'Recall miss', 'Recall miss'),
+      confusion: uiText('Dễ nhầm lẫn', 'Confusion pair', 'Confusion pair')
     };
-    return labels[reason] || 'Lỗi khác';
+    return labels[reason] || uiText('Lỗi khác', 'Other issue', 'Other issue');
   }
 
   function inferFailureReasonFromGame(gameType) {
@@ -1033,15 +1302,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="queue-card-top">
         <div>
           <div class="insight-label">Tonight Review</div>
-          <div class="insight-note">Ôn ngắn trước khi nghỉ để khóa lại từ mới, từ vừa sai và từ có nguy cơ rơi.</div>
+          <div class="insight-note">${escapeHtml(uiText('Ôn ngắn trước khi nghỉ để khóa lại từ mới, từ vừa sai và từ có nguy cơ rơi.', 'A short pre-sleep review to lock new items, fresh mistakes, and high-risk words.', 'A short pre-sleep review to lock new items, fresh mistakes, and high-risk words.'))}</div>
         </div>
         <span class="queue-badge">${tonight.length}</span>
       </div>
       <ul class="queue-list">
-        ${tonight.length ? tonight.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getEntryTypeLabel(word))} • ${escapeHtml(getWordStatusLabel(word))}</span></li>`).join('') : '<li>Chưa có mục nào thật sự cần ôn tối nay.</li>'}
+        ${tonight.length ? tonight.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getEntryTypeLabel(word))} • ${escapeHtml(getWordStatusLabel(word))}</span></li>`).join('') : `<li>${escapeHtml(uiText('Chưa có mục nào thật sự cần ôn tối nay.', 'Nothing urgently needs a Tonight Review right now.', 'Nothing urgently needs a Tonight Review right now.'))}</li>`}
       </ul>
       <div class="queue-actions">
-        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="tonight">Ôn tối nay</button>
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="tonight">${escapeHtml(uiText('Ôn tối nay', 'Start Tonight Review', 'Start Tonight Review'))}</button>
       </div>
     `;
 
@@ -1049,23 +1318,23 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="queue-card-top">
         <div>
           <div class="insight-label">Tomorrow Rescue</div>
-          <div class="insight-note">Những mục nên cứu trong vòng 24 giờ tới để tránh tụt trí nhớ dài hạn.</div>
+          <div class="insight-note">${escapeHtml(uiText('Những mục nên cứu trong vòng 24 giờ tới để tránh tụt trí nhớ dài hạn.', 'Items to rescue within the next 24 hours before long-term memory drops.', 'Items to rescue within the next 24 hours before long-term memory drops.'))}</div>
         </div>
         <span class="queue-badge risk-badge">${tomorrow.length}</span>
       </div>
       <ul class="queue-list">
-        ${tomorrow.length ? tomorrow.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getRiskLabel(word._riskScore || calculateForgettingRisk(word)))} • risk ${(word._riskScore || calculateForgettingRisk(word))}%</span></li>`).join('') : '<li>Ngày mai hiện khá nhẹ, chưa có mục cần cứu gấp.</li>'}
+        ${tomorrow.length ? tomorrow.map(word => `<li><strong>${escapeHtml(word.word)}</strong><span>${escapeHtml(getRiskLabel(word._riskScore || calculateForgettingRisk(word)))} • risk ${(word._riskScore || calculateForgettingRisk(word))}%</span></li>`).join('') : `<li>${escapeHtml(uiText('Ngày mai hiện khá nhẹ, chưa có mục cần cứu gấp.', 'Tomorrow looks fairly light. No urgent rescue item yet.', 'Tomorrow looks fairly light. No urgent rescue item yet.'))}</li>`}
       </ul>
       <div class="queue-actions">
-        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="rescue">Mở Memory Rescue</button>
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="rescue">${escapeHtml(uiText('Mở Memory Rescue', 'Open Memory Rescue', 'Open Memory Rescue'))}</button>
       </div>
     `;
 
     mistakesCard.innerHTML = `
       <div class="queue-card-top">
         <div>
-          <div class="insight-label">Nhật ký lỗi</div>
-          <div class="insight-note">Theo dõi kiểu sai nổi bật để chuyển từ xem lại sang chữa đúng điểm yếu.</div>
+          <div class="insight-label">${escapeHtml(uiText('Nhật ký lỗi', 'Mistake Journal', 'Mistake Journal'))}</div>
+          <div class="insight-note">${escapeHtml(uiText('Theo dõi kiểu sai nổi bật để chuyển từ xem lại sang chữa đúng điểm yếu.', 'Track standout error types so review turns into focused repair.', 'Track standout error types so review turns into focused repair.'))}</div>
         </div>
         <span class="queue-badge">${recentFailures.length}</span>
       </div>
@@ -1073,10 +1342,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ${(mistakes.length ? mistakes.slice(0, 3) : [{ key: 'recall', count: 0 }]).map(item => `<span class="mistake-chip">${escapeHtml(getMistakeReasonLabel(item.key))}: <strong>${item.count}</strong></span>`).join('')}
       </div>
       <ul class="queue-list compact-list">
-        ${recentFailures.length ? recentFailures.map(item => `<li><strong>${escapeHtml(item.word)}</strong><span>${escapeHtml(getMistakeReasonLabel(item.reason))} • ${escapeHtml(item.gameType || 'study')}</span></li>`).join('') : '<li>Chưa có lỗi gần đây để ghi vào journal.</li>'}
+        ${recentFailures.length ? recentFailures.map(item => `<li><strong>${escapeHtml(item.word)}</strong><span>${escapeHtml(getMistakeReasonLabel(item.reason))} • ${escapeHtml(item.gameType || 'study')}</span></li>`).join('') : `<li>${escapeHtml(uiText('Chưa có lỗi gần đây để ghi vào journal.', 'No recent mistake has been logged yet.', 'No recent mistake has been logged yet.'))}</li>`}
       </ul>
       <div class="queue-actions">
-        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="mistakes">Luyện theo lỗi</button>
+        <button type="button" class="secondary-btn queue-action-btn" data-queue-action="mistakes">${escapeHtml(uiText('Luyện theo lỗi', 'Drill by mistake type', 'Drill by mistake type'))}</button>
       </div>
     `;
 
@@ -1084,13 +1353,13 @@ document.addEventListener('DOMContentLoaded', () => {
       button.addEventListener('click', () => {
         const action = button.dataset.queueAction;
         if (action === 'tonight') {
-          startCustomQueue(tonight, 'flashcard', 'Tonight Review', 'Khóa lại từ mới và lỗi vừa xảy ra trước khi kết thúc ngày học.');
+          startCustomQueue(tonight, 'flashcard', uiText('Tonight Review', 'Tonight Review', 'Tonight Review'), uiText('Khóa lại từ mới và lỗi vừa xảy ra trước khi kết thúc ngày học.', 'Lock in new items and fresh mistakes before the study day ends.', 'Lock in new items and fresh mistakes before the study day ends.'));
         } else if (action === 'rescue') {
-          startCustomQueue(tomorrow, 'srs', 'Memory Rescue', 'Ưu tiên các mục có nguy cơ rơi trí nhớ trong 24 giờ tới.');
+          startCustomQueue(tomorrow, 'srs', 'Memory Rescue', uiText('Ưu tiên các mục có nguy cơ rơi trí nhớ trong 24 giờ tới.', 'Prioritize items likely to slip within the next 24 hours.', 'Prioritize items likely to slip within the next 24 hours.'));
         } else if (action === 'mistakes') {
           const wordIds = new Set((state.stats.recentFailures || []).slice(0, 10).map(item => item.wordId));
           const queue = words.filter(word => wordIds.has(word.id));
-          startCustomQueue(queue, 'typing', 'Mistake Journal Drill', 'Đưa các lỗi gần đây sang luyện chủ động để sửa thẳng điểm yếu.');
+          startCustomQueue(queue, 'typing', uiText('Mistake Journal Drill', 'Mistake Journal Drill', 'Mistake Journal Drill'), uiText('Đưa các lỗi gần đây sang luyện chủ động để sửa thẳng điểm yếu.', 'Turn recent mistakes into active repair drills.', 'Turn recent mistakes into active repair drills.'));
         }
       });
     });
@@ -1117,9 +1386,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getWordStatusLabel(word) {
-    if (isDueWord(word)) return 'Đến hạn';
-    if (isWeakWord(word)) return 'Cần ôn lại';
-    return getMemoryStage(word).label;
+    if (isDueWord(word)) return uiText('Đến hạn', 'Due now', 'Due now');
+    if (isWeakWord(word)) return uiText('Cần ôn lại', 'Needs reinforcement', 'Needs reinforcement');
+    return getLocalizedMemoryStage(getMemoryStage(word), 'label');
   }
 
   function getSetStats(words) {
@@ -1274,47 +1543,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!words.length) {
       return {
         gameType: null,
-        title: 'Chưa có dữ liệu để ôn',
-        reason: 'Hãy thêm vài từ trước khi bắt đầu một lộ trình học mới.'
+        title: uiText('Chưa có dữ liệu để ôn', 'No data to review yet', 'No data to review yet'),
+        reason: uiText('Hãy thêm vài từ trước khi bắt đầu một lộ trình học mới.', 'Add a few words before starting a new learning path.', 'Add a few words before starting a new learning path.')
       };
     }
 
     if (stats.due > 0) {
       return {
         gameType: 'srs',
-        title: `Memory Rescue • ${Math.min(getRecommendedQueue(words, 20).length, 20)} mục ưu tiên`,
-        reason: 'Ưu tiên các mục có nguy cơ rơi trí nhớ và các mục đến hạn trước để giữ nền tảng dài hạn ổn định.'
+        title: uiText(`Memory Rescue • ${Math.min(getRecommendedQueue(words, 20).length, 20)} mục ưu tiên`, `Memory Rescue • ${Math.min(getRecommendedQueue(words, 20).length, 20)} priority item(s)`, `Memory Rescue • ${Math.min(getRecommendedQueue(words, 20).length, 20)} priority item(s)`),
+        reason: uiText('Ưu tiên các mục có nguy cơ rơi trí nhớ và các mục đến hạn trước để giữ nền tảng dài hạn ổn định.', 'Prioritize due and high-risk items first to stabilize long-term memory.', 'Prioritize due and high-risk items first to stabilize long-term memory.')
       };
     }
 
     if (stats.weak > 0) {
       return {
         gameType: 'typing',
-        title: `Mistake Journal Drill • ${Math.min(words.length, 10)} lượt luyện`,
-        reason: 'Các mục còn yếu nên được kéo sang nhớ chủ động để sửa thẳng lỗi gọi lại, chính tả hoặc nhầm nghĩa.'
+        title: uiText(`Mistake Journal Drill • ${Math.min(words.length, 10)} lượt luyện`, `Mistake Journal Drill • ${Math.min(words.length, 10)} reps`, `Mistake Journal Drill • ${Math.min(words.length, 10)} reps`),
+        reason: uiText('Các mục còn yếu nên được kéo sang nhớ chủ động để sửa thẳng lỗi gọi lại, chính tả hoặc nhầm nghĩa.', 'Weak items should move into active recall to fix recall, spelling, and meaning errors directly.', 'Weak items should move into active recall to fix recall, spelling, and meaning errors directly.')
       };
     }
 
     if (stats.fresh > 0) {
       return {
         gameType: 'flashcard',
-        title: `Flashcard + Tonight Review • ${Math.min(words.length, 20)} thẻ`,
-        reason: 'Mục mới nên đi qua một vòng nhận diện nhẹ trước rồi khóa lại bằng một lượt ôn ngắn cuối ngày.'
+        title: uiText(`Flashcard + Tonight Review • ${Math.min(words.length, 20)} thẻ`, `Flashcard + Tonight Review • ${Math.min(words.length, 20)} cards`, `Flashcard + Tonight Review • ${Math.min(words.length, 20)} cards`),
+        reason: uiText('Mục mới nên đi qua một vòng nhận diện nhẹ trước rồi khóa lại bằng một lượt ôn ngắn cuối ngày.', 'New items should get a light recognition pass first, then a short lock-in review later.', 'New items should get a light recognition pass first, then a short lock-in review later.')
       };
     }
 
     if (words.length >= 4) {
       return {
         gameType: 'quiz',
-        title: `Trắc nghiệm • ${Math.min(words.length, 10)} câu tăng phản xạ`,
-        reason: 'Khi bộ từ đã khá ổn định, trắc nghiệm là cách an toàn để kiểm tra tốc độ nhận biết.'
+        title: uiText(`Trắc nghiệm • ${Math.min(words.length, 10)} câu tăng phản xạ`, `Quiz • ${Math.min(words.length, 10)} fast checks`, `Quiz • ${Math.min(words.length, 10)} fast checks`),
+        reason: uiText('Khi bộ từ đã khá ổn định, trắc nghiệm là cách an toàn để kiểm tra tốc độ nhận biết.', 'Once the set is fairly stable, quiz mode safely tests recognition speed.', 'Once the set is fairly stable, quiz mode safely tests recognition speed.')
       };
     }
 
     return {
       gameType: 'flashcard',
-      title: `Flashcard • ${Math.min(words.length, 20)} thẻ ôn nhẹ`,
-      reason: 'Với bộ từ nhỏ, flashcard vẫn là bước ôn ổn định và ít rủi ro nhất.'
+      title: uiText(`Flashcard • ${Math.min(words.length, 20)} thẻ ôn nhẹ`, `Flashcard • ${Math.min(words.length, 20)} light cards`, `Flashcard • ${Math.min(words.length, 20)} light cards`),
+      reason: uiText('Với bộ từ nhỏ, flashcard vẫn là bước ôn ổn định và ít rủi ro nhất.', 'For a small set, flashcard is still the safest stable review step.', 'For a small set, flashcard is still the safest stable review step.')
     };
   }
 
@@ -1322,7 +1591,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const setName = byId('reviewSetDropdown').value || 'all';
     const words = getWordsForSet(setName);
     const plan = getRecommendedStudyPlan(words);
-    if (!plan.gameType) return showToast('Hãy thêm vài từ trước khi bắt đầu học.');
+    if (!plan.gameType) return showToast(uiText('Hãy thêm vài từ trước khi bắt đầu học.', 'Add a few words before you start learning.', 'Add a few words before you start learning.'));
     startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason, queue: plan.gameType === 'srs' ? getRecommendedQueue(words, 20) : undefined });
   }
 
@@ -1335,11 +1604,11 @@ document.addEventListener('DOMContentLoaded', () => {
       new: words.filter(isNewWord)
     };
     const queue = diversifyStudyQueue(filters[type] || [], type === 'weak' ? 12 : 20);
-    if (!queue.length) return showToast('Hiện chưa có nhóm từ phù hợp để mở nhanh.');
+    if (!queue.length) return showToast(uiText('Hiện chưa có nhóm từ phù hợp để mở nhanh.', 'There is no suitable group to launch right now.', 'There is no suitable group to launch right now.'));
     const config = {
-      due: { gameType: 'srs', title: 'Ôn từ đến hạn', reason: 'Giữ nền tảng trí nhớ không bị tụt.' },
-      weak: { gameType: 'typing', title: 'Ôn từ yếu', reason: 'Kéo các từ còn yếu sang nhớ chủ động.' },
-      new: { gameType: 'flashcard', title: 'Làm quen từ mới', reason: 'Xây lớp ghi nhớ đầu tiên thật nhẹ nhàng.' }
+      due: { gameType: 'srs', title: uiText('Ôn từ đến hạn', 'Review due words', 'Review due words'), reason: uiText('Giữ nền tảng trí nhớ không bị tụt.', 'Keep the memory base from slipping.', 'Keep the memory base from slipping.') },
+      weak: { gameType: 'typing', title: uiText('Ôn từ yếu', 'Drill weak words', 'Drill weak words'), reason: uiText('Kéo các từ còn yếu sang nhớ chủ động.', 'Pull weak items into active recall.', 'Pull weak items into active recall.') },
+      new: { gameType: 'flashcard', title: uiText('Làm quen từ mới', 'Warm up new words', 'Warm up new words'), reason: uiText('Xây lớp ghi nhớ đầu tiên thật nhẹ nhàng.', 'Build the first memory layer gently.', 'Build the first memory layer gently.') }
     }[type];
     startGame(config.gameType, setName, { queue, planTitle: config.title, planReason: config.reason });
   }
@@ -1354,6 +1623,54 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSmartSuggestions({ forceRotate: true });
   }
 
+  function getSuggestionGroupLabel(category = 'bridge') {
+    const labels = {
+      contrast: uiText('Cặp phân biệt', 'Contrast lane', 'Contrast lane'),
+      bridge: uiText('Từ nối vùng nhớ', 'Bridge lane', 'Bridge lane'),
+      topic: uiText('Theo chủ đề bộ từ', 'Topic lane', 'Topic lane'),
+      pattern: uiText('Mẫu nối câu', 'Pattern lane', 'Pattern lane')
+    };
+    return labels[category] || uiText('Gợi ý hệ thống', 'System lane', 'System lane');
+  }
+
+  function buildSuggestionGroups(candidates = []) {
+    const grouped = {};
+    candidates.forEach(item => {
+      const key = item.category || 'bridge';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+    const groupOrder = ['contrast', 'bridge', 'topic', 'pattern'].filter(key => grouped[key]?.length);
+    Object.keys(grouped).forEach(key => {
+      if (!groupOrder.includes(key) && grouped[key]?.length) groupOrder.push(key);
+    });
+    return { grouped, groupOrder };
+  }
+
+  function refreshSuggestionBucket(scopeKey = 'all') {
+    const candidates = buildSmartSuggestionPool(scopeKey);
+    const { grouped, groupOrder } = buildSuggestionGroups(candidates);
+    const bucket = {
+      candidates,
+      grouped,
+      groupOrder,
+      activeGroupIndex: 0,
+      cursorByGroup: {},
+      pageSize: 6,
+      cycle: 1
+    };
+    state.smartSuggestionMeta.byScope[scopeKey] = bucket;
+    return bucket;
+  }
+
+  function getActiveSuggestionGroup(bucket) {
+    const key = bucket?.groupOrder?.[bucket.activeGroupIndex || 0] || '';
+    return {
+      key,
+      items: key ? (bucket.grouped?.[key] || []) : (bucket?.candidates || [])
+    };
+  }
+
   function renderSmartSuggestions({ resetCycle = false, forceRotate = false } = {}) {
     const grid = byId('smartSuggestionGrid');
     const contextNote = byId('suggestionContextNote');
@@ -1365,46 +1682,65 @@ document.addEventListener('DOMContentLoaded', () => {
     let bucket = state.smartSuggestionMeta.byScope[scopeKey];
 
     if (!bucket || resetCycle) {
-      const candidates = buildSmartSuggestionPool(scopeKey);
-      bucket = {
-        candidates,
-        cursor: 0,
-        pageSize: 6,
-        cycle: 1
-      };
-      state.smartSuggestionMeta.byScope[scopeKey] = bucket;
+      bucket = refreshSuggestionBucket(scopeKey);
     } else if (forceRotate) {
-      const step = Math.max(1, bucket.pageSize || 6);
-      if (bucket.candidates.length > step) {
-        bucket.cursor = (bucket.cursor + step) % bucket.candidates.length;
-        if (bucket.cursor === 0) bucket.cycle = (bucket.cycle || 1) + 1;
+      const active = getActiveSuggestionGroup(bucket);
+      const pageSize = bucket.pageSize || 6;
+      if (bucket.groupOrder.length > 1) {
+        bucket.activeGroupIndex = (bucket.activeGroupIndex + 1) % bucket.groupOrder.length;
+        if (bucket.activeGroupIndex === 0) bucket.cycle = (bucket.cycle || 1) + 1;
+      } else if (active.items.length > pageSize) {
+        const currentCursor = bucket.cursorByGroup[active.key] || 0;
+        bucket.cursorByGroup[active.key] = (currentCursor + pageSize) % active.items.length;
+        if ((bucket.cursorByGroup[active.key] || 0) === 0) bucket.cycle = (bucket.cycle || 1) + 1;
       } else {
-        bucket.candidates = rotateSuggestionPool(bucket.candidates, scopeKey, bucket.cycle || 1);
-        bucket.cursor = 0;
-        bucket.cycle = (bucket.cycle || 1) + 1;
+        bucket = refreshSuggestionBucket(scopeKey);
+        if (bucket.candidates.length === (state.smartSuggestionMeta.byScope[scopeKey]?.candidates || []).length) {
+          bucket.cycle = (bucket.cycle || 1) + 1;
+        }
       }
     }
 
-    const suggestions = sliceSuggestionDeck(bucket.candidates, bucket.cursor || 0, bucket.pageSize || 6);
-    const scopeLabel = scopeKey === 'all' ? 'toàn bộ thư viện' : `bộ “${scopeKey}”`;
+    const active = getActiveSuggestionGroup(bucket);
+    const cursor = bucket.cursorByGroup[active.key] || 0;
+    const suggestions = sliceSuggestionDeck(active.items, cursor, bucket.pageSize || 6);
+    const scopeLabel = scopeKey === 'all' ? uiText('toàn bộ thư viện', 'the whole library', 'the whole library') : `“${scopeKey}”`;
+    const laneLabel = active.key ? getSuggestionGroupLabel(active.key) : uiText('Gợi ý chính', 'Primary lane', 'Primary lane');
 
     if (contextNote) {
       if (bucket.candidates.length) {
-        const hiddenCount = Math.max(0, bucket.candidates.length - suggestions.length);
-        contextNote.textContent = `Gợi ý đang bám theo ${scopeLabel}. Hệ thống xoay vòng theo nhóm liên quan, từ dễ nhầm và khoảng trống để tránh lặp. ${hiddenCount ? `Còn ${hiddenCount} gợi ý khác trong hàng chờ.` : 'Đây là nhóm gợi ý tốt nhất hiện tại.'}`;
+        const hiddenCount = Math.max(0, active.items.length - suggestions.length);
+        contextNote.textContent = uiText(
+          `Gợi ý đang bám theo ${scopeLabel}. Làn hiện tại: ${laneLabel}. ${hiddenCount ? `Còn ${hiddenCount} mục trong làn này.` : 'Đây là nhóm tốt nhất hiện tại.'}`,
+          `Suggestions are following ${scopeLabel}. Active lane: ${laneLabel}. ${hiddenCount ? `${hiddenCount} more item(s) are waiting in this lane.` : 'This is the strongest lane right now.'}`,
+          `Suggestions follow ${scopeLabel}. Active lane: ${laneLabel}. ${hiddenCount ? `${hiddenCount} more item(s) remain in this lane.` : 'This is the strongest lane right now.'}`
+        );
       } else {
-        contextNote.textContent = `Chưa có đủ tín hiệu từ ${scopeLabel} để đề xuất thêm. Hãy thêm vài từ hoặc đổi bộ từ khác.`;
+        contextNote.textContent = uiText(
+          `Chưa có đủ tín hiệu từ ${scopeLabel} để đề xuất thêm. Hãy thêm vài từ hoặc đổi bộ từ khác.`,
+          `There is not enough signal from ${scopeLabel} yet. Add a few words or switch to another set.`,
+          `There is not enough signal from ${scopeLabel} yet. Add a few words or switch sets.`
+        );
       }
     }
 
     if (refreshBtn) {
       refreshBtn.disabled = !bucket.candidates.length;
-      refreshBtn.textContent = bucket.candidates.length > (bucket.pageSize || 6) ? 'Đổi nhóm gợi ý' : 'Làm mới gợi ý';
+      refreshBtn.textContent = bucket.groupOrder.length > 1
+        ? uiText('Đổi làn gợi ý', 'Switch suggestion lane', 'Switch suggestion lane')
+        : active.items.length > (bucket.pageSize || 6)
+          ? uiText('Xem nhóm tiếp theo', 'Next page in lane', 'Next page in lane')
+          : uiText('Làm mới gợi ý', 'Refresh suggestions', 'Refresh suggestions');
     }
 
     if (!suggestions.length) {
-      grid.innerHTML = '<div class="suggestion-empty">Hãy thêm vài từ trước. Khi đã có dữ liệu, hệ thống sẽ đề xuất từ tiếp theo theo bộ đang chọn, ưu tiên từ bù khoảng trống và tránh lặp quá gần.</div>';
+      grid.innerHTML = `<div class="suggestion-empty">${escapeHtml(uiText(
+        'Hãy thêm vài từ trước. Khi đã có dữ liệu, hệ thống sẽ đề xuất từ tiếp theo theo bộ đang chọn, ưu tiên từ bù khoảng trống và tránh lặp quá gần.',
+        'Add a few words first. Then the system can suggest what comes next for the selected set, fill real gaps, and avoid near-duplicate learning.',
+        'Add a few words first. Then the system can suggest what comes next for the selected set and avoid near-duplicate learning.'
+      ))}</div>`;
       state.smartSuggestions = [];
+      renderSetIntelligence(scopeKey, []);
       return;
     }
 
@@ -1415,19 +1751,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <strong>${escapeHtml(item.word)}</strong>
             <small>${escapeHtml(item.wordType || item.entryTypeLabel || 'word')}</small>
           </div>
-          <span class="suggestion-chip">${escapeHtml(item.sourceLabel)}</span>
+          <span class="suggestion-chip suggestion-chip-group">${escapeHtml(getSuggestionGroupLabel(item.category || 'bridge'))}</span>
         </div>
-        <p class="suggestion-meaning">${escapeHtml(item.meaning || 'Bổ sung nền nghĩa mới')}</p>
+        <p class="suggestion-meaning">${escapeHtml(item.meaning || uiText('Bổ sung nền nghĩa mới', 'Adds a new meaning anchor', 'Adds a new meaning anchor'))}</p>
         <p class="suggestion-reason">${escapeHtml(item.reason)}</p>
-        <div class="suggestion-note">${escapeHtml(item.note || 'Giúp bù khoảng trống trong bộ từ mà không nhồi lại cùng một khái niệm.')}</div>
+        <div class="suggestion-note">${escapeHtml(item.note || uiText('Giúp bù khoảng trống trong bộ từ mà không nhồi lại cùng một khái niệm.', 'Fills a real gap without forcing the same concept too often.', 'Fills a real gap without forcing the same concept too often.'))}</div>
         <div class="suggestion-actions">
-          <button class="secondary-btn" data-suggestion-action="append" data-suggestion-key="${escapeHtml(item.key)}">Dán vào ô nhập</button>
-          <button class="primary-btn" data-suggestion-action="save" data-suggestion-key="${escapeHtml(item.key)}">Lưu ngay</button>
+          <button class="secondary-btn" data-suggestion-action="append" data-suggestion-key="${escapeHtml(item.key)}">${escapeHtml(uiText('Dán vào ô nhập', 'Append to input', 'Append to input'))}</button>
+          <button class="primary-btn" data-suggestion-action="save" data-suggestion-key="${escapeHtml(item.key)}">${escapeHtml(uiText('Lưu ngay', 'Save now', 'Save now'))}</button>
         </div>
       </article>
     `).join('');
 
     state.smartSuggestions = suggestions;
+    renderSetIntelligence(scopeKey, bucket.candidates);
   }
 
   function rotateSuggestionPool(candidates = [], scopeKey = 'all', cycle = 1) {
@@ -1446,6 +1783,85 @@ document.addEventListener('DOMContentLoaded', () => {
       deck.push(candidates[(cursor + i) % candidates.length]);
     }
     return deck;
+  }
+
+  function renderSetIntelligence(scopeKey = getSuggestionScopeKey(), suggestionPool = null) {
+    const grid = byId('setIntelligenceGrid');
+    if (!grid) return;
+    const words = getWordsForSet(scopeKey);
+    const pool = Array.isArray(suggestionPool) ? suggestionPool : buildSmartSuggestionPool(scopeKey);
+    if (!words.length) {
+      grid.innerHTML = `<div class="intelligence-empty">${escapeHtml(uiText(
+        'Bộ này còn trống. Khi có vài từ đầu tiên, Set Intelligence sẽ chỉ ra cụm yếu, vùng trùng lặp và cụm nên bổ sung tiếp theo.',
+        'This set is still empty. After a few entries are added, Set Intelligence will show weak clusters, overlap zones, and the next cluster to add.',
+        'This set is still empty. After a few entries are added, Set Intelligence will show weak clusters and the next cluster to add.'
+      ))}</div>`;
+      return;
+    }
+    const stats = getSetStats(words);
+    const atRisk = getAtRiskWords(words, 4);
+    const familyStats = {};
+    atRisk.forEach(word => {
+      const key = getConceptFamilyKey(word);
+      if (!familyStats[key]) {
+        familyStats[key] = { count: 0, sample: word };
+      }
+      familyStats[key].count += 1;
+      if ((word._riskScore || 0) > (familyStats[key].sample?._riskScore || 0)) familyStats[key].sample = word;
+    });
+    const weakestFamily = Object.values(familyStats).sort((a, b) => b.count - a.count || (b.sample?._riskScore || 0) - (a.sample?._riskScore || 0))[0];
+    const categories = {};
+    pool.forEach(item => {
+      const key = item.category || 'bridge';
+      categories[key] = (categories[key] || 0) + 1;
+    });
+    const nextCategory = Object.entries(categories).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const topWords = pool.filter(item => !nextCategory || item.category === nextCategory).slice(0, 3).map(item => item.word).filter(Boolean);
+    const patternCount = words.filter(word => word.entryType === 'pattern').length;
+    const phraseCount = words.filter(word => word.entryType === 'phrase').length;
+    const coverageNote = patternCount || phraseCount
+      ? uiText(`Bộ này đã có ${phraseCount} cụm và ${patternCount} mẫu câu, khá tốt để học theo cụm nhớ.`, `This set already has ${phraseCount} phrase(s) and ${patternCount} pattern(s), which is good for cluster memory.`, `This set already has ${phraseCount} phrase(s) and ${patternCount} pattern(s).`)
+      : uiText('Bộ này vẫn nghiêng nhiều về từ đơn. Thêm cụm hoặc mẫu sẽ giúp gọi nhớ thực tế hơn.', 'This set still leans on single words. Add phrases or patterns for stronger usable recall.', 'This set still leans on single words. Add phrases or patterns for stronger recall.');
+
+    const cards = [
+      {
+        label: uiText('Độ phủ hiện tại', 'Coverage now', 'Coverage now'),
+        value: `${stats.total}`,
+        note: `${buildEntryTypeSummary(words)} • ${buildMemoryStageSummary(words)}`,
+        foot: coverageNote
+      },
+      {
+        label: uiText('Cụm cần kéo lên', 'Weak cluster', 'Weak cluster'),
+        value: weakestFamily?.sample?.word || uiText('Chưa rõ cụm yếu', 'No dominant weak cluster', 'No dominant weak cluster'),
+        note: weakestFamily
+          ? uiText(`Cụm này đang có ${weakestFamily.count} mục risk cao. Nên cứu ${weakestFamily.sample.word} trước.`, `This cluster has ${weakestFamily.count} high-risk item(s). Rescue ${weakestFamily.sample.word} first.`, `This cluster has ${weakestFamily.count} high-risk item(s). Rescue ${weakestFamily.sample.word} first.`)
+          : uiText('Hiện chưa có cụm rơi nổi bật.', 'No dominant falling cluster right now.', 'No dominant falling cluster right now.'),
+        foot: atRisk[0] ? `${uiText('Risk cao nhất', 'Highest risk', 'Highest risk')}: ${atRisk[0].word} (${atRisk[0]._riskScore}%)` : ''
+      },
+      {
+        label: uiText('Cụm nên thêm tiếp', 'Next best cluster', 'Next best cluster'),
+        value: nextCategory ? getSuggestionGroupLabel(nextCategory) : uiText('Chưa có', 'No lane yet', 'No lane yet'),
+        note: topWords.length
+          ? uiText(`Từ gợi ý nổi bật: ${topWords.join(', ')}.`, `Top candidates: ${topWords.join(', ')}.`, `Top candidates: ${topWords.join(', ')}.`)
+          : uiText('Chưa có gợi ý nổi bật. Hãy thêm thêm dữ liệu nền cho bộ này.', 'No strong candidate yet. Add a little more foundation data for this set.', 'No strong candidate yet. Add more foundation data for this set.'),
+        foot: nextCategory ? uiText('Nhấn Đổi làn gợi ý để chuyển sang nhóm kế tiếp thay vì lặp cùng một vùng nhớ.', 'Use Switch suggestion lane to move to another cluster instead of repeating the same zone.', 'Use Switch suggestion lane to move to another cluster instead of repeating the same zone.') : ''
+      },
+      {
+        label: uiText('Làn ngôn ngữ', 'Language lane', 'Language lane'),
+        value: getLanguageModeLabel(),
+        note: getLanguageModeHint(),
+        foot: uiText('Bạn có thể đổi nhanh ở thanh trên cùng để chuyển từ ôn tiếng Việt sang ôn ưu tiên tiếng Anh.', 'Switch it from the top bar whenever you want a more English-led or more Vietnamese-led study experience.', 'Switch it from the top bar whenever you want a more English-led or more Vietnamese-led study experience.')
+      }
+    ];
+
+    grid.innerHTML = cards.map(card => `
+      <article class="intelligence-card">
+        <span class="intelligence-label">${escapeHtml(card.label)}</span>
+        <strong class="intelligence-value">${escapeHtml(card.value)}</strong>
+        <div class="intelligence-note">${escapeHtml(card.note || '')}</div>
+        <div class="intelligence-foot">${escapeHtml(card.foot || '')}</div>
+      </article>
+    `).join('');
   }
 
   function buildSmartSuggestionPool(scopeKey = 'all') {
@@ -1472,8 +1888,9 @@ document.addEventListener('DOMContentLoaded', () => {
         key: `${scopeKey}__${normalizedWord}__${candidates.length}`,
         word: String(item.word || '').trim(),
         entryType: item.entryType || 'word',
-        sourceLabel: item.sourceLabel || 'Gợi ý hệ thống',
-        meaning: item.meaning || 'Bổ sung nền nghĩa mới',
+        sourceLabel: item.sourceLabel || uiText('Gợi ý hệ thống', 'System suggestion', 'System suggestion'),
+        category: item.category || 'bridge',
+        meaning: item.meaning || uiText('Bổ sung nền nghĩa mới', 'Adds a new meaning anchor', 'Adds a new meaning anchor'),
         note: item.note || '',
         reason: item.reason || `Từ này giúp mở rộng ${scopeLabel} mà không đè lặp cùng một vùng nhớ.`,
         wordType: item.wordType || (item.entryType === 'pattern' ? 'pattern' : 'core word'),
@@ -1496,8 +1913,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pushCandidate({
           word: candidateWord,
           meaning: `Bổ sung để phân biệt với ${word.word}`,
-          wordType: 'confusion pair',
-          sourceLabel: 'Cặp dễ nhầm',
+          wordType: uiText('cặp dễ nhầm', 'confusion pair', 'confusion pair'),
+          sourceLabel: uiText('Cặp dễ nhầm', 'Contrast pair', 'Contrast pair'),
+          category: 'contrast',
           reason: `Bạn đang ôn ${word.word} trong ${scopeLabel}. Thêm ${candidateWord} sẽ giúp sửa lỗi nhầm lẫn ngay trong cùng vùng học.`,
           note: confusion.note,
           topicTags: mergeUniqueTopicTags(word.topicTags || [], [scopeKey]),
@@ -1520,8 +1938,9 @@ document.addEventListener('DOMContentLoaded', () => {
       pushCandidate({
         word: key,
         meaning: lesson.collocationMeaning || lesson.sentence || 'Bổ sung nền nghĩa quan trọng',
-        wordType: 'core bridge',
-        sourceLabel: topicHit || tagHit ? 'Theo chủ đề bộ từ' : 'Lấp khoảng trống',
+        wordType: uiText('từ nối nền', 'core bridge', 'core bridge'),
+        sourceLabel: topicHit || tagHit ? uiText('Theo chủ đề bộ từ', 'Topic-aligned', 'Topic-aligned') : uiText('Lấp khoảng trống', 'Gap filler', 'Gap filler'),
+        category: topicHit || tagHit ? 'topic' : 'bridge',
         reason: topicHit || tagHit
           ? `Từ này bám sát chủ đề hiện có trong ${scopeLabel}, giúp bộ từ liền mạch hơn thay vì dàn trải.`
           : `Từ này nằm gần vùng bạn đang học và phù hợp để nối các mục riêng lẻ thành một cụm nhớ rõ ràng hơn.`,
@@ -1544,8 +1963,9 @@ document.addEventListener('DOMContentLoaded', () => {
           word: pattern.label || pattern.pattern,
           entryType: 'pattern',
           meaning: pattern.pattern || 'Mẫu câu gợi ý để tái sử dụng từ vựng',
-          wordType: 'pattern',
-          sourceLabel: 'Mẫu nối câu',
+          wordType: uiText('mẫu câu', 'pattern', 'pattern'),
+          sourceLabel: uiText('Mẫu nối câu', 'Pattern bridge', 'Pattern bridge'),
+          category: 'pattern',
           reason: `Bộ ${scopeLabel} đã có dấu hiệu học qua cụm và mẫu câu. Thêm mẫu này sẽ giúp dùng lại từ thay vì chỉ nhớ nghĩa đơn lẻ.`,
           note: pattern.grammar || '',
           example: pattern.example || '',
@@ -1585,7 +2005,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function extractCompareCandidates(text = '') {
     return String(text || '')
-      .split(/vs|,/i)
+      .split(/\s+vs\s+|,/i)
       .map(part => part.trim())
       .filter(Boolean)
       .reduce((list, part) => {
@@ -1616,7 +2036,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const bucket = state.smartSuggestionMeta.byScope[targetScope];
     if (bucket?.candidates?.length) {
       bucket.candidates = bucket.candidates.filter(item => item?.key !== key);
-      if (bucket.cursor >= bucket.candidates.length) bucket.cursor = 0;
+      Object.keys(bucket.grouped || {}).forEach(groupKey => {
+        bucket.grouped[groupKey] = (bucket.grouped[groupKey] || []).filter(item => item?.key !== key);
+      });
+      bucket.groupOrder = (bucket.groupOrder || []).filter(groupKey => (bucket.grouped?.[groupKey] || []).length);
+      if (bucket.activeGroupIndex >= bucket.groupOrder.length) bucket.activeGroupIndex = 0;
     }
     state.smartSuggestions = (state.smartSuggestions || []).filter(item => item?.key !== key);
   }
@@ -1702,6 +2126,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function initMainView() {
     populateSetDropdown(byId('wordsetDropdown'));
     renderSmartSuggestions({ resetCycle: true });
+    renderSetIntelligence();
   }
 
   function initManagementView() {
@@ -1723,14 +2148,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (includeAll) {
       const allOption = document.createElement('option');
       allOption.value = 'all';
-      allOption.textContent = 'Tất cả bộ từ';
+      allOption.textContent = uiText('Tất cả bộ từ', 'All sets', 'All sets');
       selectEl.appendChild(allOption);
     }
 
     if (sets.length === 0) {
       const fallback = document.createElement('option');
       fallback.value = 'Chưa phân loại';
-      fallback.textContent = 'Chưa phân loại';
+      fallback.textContent = uiText('Chưa phân loại', 'Uncategorized', 'Uncategorized');
       selectEl.appendChild(fallback);
     } else {
       sets.forEach(setName => {
@@ -1756,10 +2181,10 @@ document.addEventListener('DOMContentLoaded', () => {
     summary.innerHTML = '';
 
     [
-      { label: 'Tổng số mục', value: stats.total, note: state.optimizerReport?.mergedDuplicates ? `${buildEntryTypeSummary(state.vocab)} • đã gộp ${state.optimizerReport.mergedDuplicates} mục trùng` : buildEntryTypeSummary(state.vocab) },
-      { label: 'Bộ từ', value: sets.length, note: 'Dễ chia theo chủ đề hoặc bối cảnh học' },
-      { label: 'Đến hạn hôm nay', value: stats.due, note: 'Nên ôn sớm để không quên' },
-      { label: 'Tiến độ hôm nay', value: `${today.studied}/${state.stats.dailyGoal}`, note: `Chuỗi học ${state.stats.currentStreak} ngày` }
+      { label: uiText('Tổng số mục', 'Total entries', 'Total entries'), value: stats.total, note: state.optimizerReport?.mergedDuplicates ? `${buildEntryTypeSummary(state.vocab)} • ${uiText('đã gộp', 'merged', 'merged')} ${state.optimizerReport.mergedDuplicates} ${uiText('mục trùng', 'duplicates', 'duplicates')}` : buildEntryTypeSummary(state.vocab) },
+      { label: uiText('Bộ từ', 'Sets', 'Sets'), value: sets.length, note: uiText('Dễ chia theo chủ đề hoặc bối cảnh học', 'Easy to split by topic or context', 'Easy to split by topic or context') },
+      { label: uiText('Đến hạn hôm nay', 'Due today', 'Due today'), value: stats.due, note: uiText('Nên ôn sớm để không quên', 'Best reviewed early before they slip', 'Best reviewed early before they slip') },
+      { label: uiText('Tiến độ hôm nay', "Today's progress", "Today's progress"), value: `${today.studied}/${state.stats.dailyGoal}`, note: uiText(`Chuỗi học ${state.stats.currentStreak} ngày`, `${state.stats.currentStreak}-day streak`, `${state.stats.currentStreak}-day streak`) }
     ].forEach(item => {
       const card = document.createElement('div');
       card.className = 'summary-card';
@@ -1774,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const createCard = document.createElement('button');
     createCard.className = 'set-card create-new-card';
-    createCard.innerHTML = '<div class="create-new-content"><span class="create-icon">+</span><h2>Tạo bộ từ mới</h2><p class="muted-text">Bắt đầu một nhóm từ mới và thêm dữ liệu ngay.</p></div>';
+    createCard.innerHTML = `<div class="create-new-content"><span class="create-icon">+</span><h2>${escapeHtml(uiText('Tạo bộ từ mới', 'Create a new set', 'Create a new set'))}</h2><p class="muted-text">${escapeHtml(uiText('Bắt đầu một nhóm từ mới và thêm dữ liệu ngay.', 'Start a fresh set and add data right away.', 'Start a fresh set and add data right away.'))}</p></div>`;
     createCard.addEventListener('click', () => {
       showView('main-view');
       openModal('createSetModal');
@@ -1785,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.vocab.length) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.innerHTML = '<strong>Chưa có từ vựng nào</strong><div>Thêm vài từ đầu tiên để bắt đầu học và theo dõi tiến độ.</div>';
+      empty.innerHTML = `<strong>${escapeHtml(uiText('Chưa có từ vựng nào', 'No vocabulary yet', 'No vocabulary yet'))}</strong><div>${escapeHtml(uiText('Thêm vài từ đầu tiên để bắt đầu học và theo dõi tiến độ.', 'Add your first entries to start studying and tracking progress.', 'Add your first entries to start studying and tracking progress.'))}</div>`;
       grid.appendChild(empty);
       return;
     }
@@ -1814,7 +2239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!sets.length) {
       const emptySearch = document.createElement('div');
       emptySearch.className = 'set-card-search-empty';
-      emptySearch.innerHTML = '<strong>Không tìm thấy bộ từ phù hợp</strong><div>Thử đổi từ khóa hoặc thứ tự sắp xếp.</div>';
+      emptySearch.innerHTML = `<strong>${escapeHtml(uiText('Không tìm thấy bộ từ phù hợp', 'No matching set found', 'No matching set found'))}</strong><div>${escapeHtml(uiText('Thử đổi từ khóa hoặc thứ tự sắp xếp.', 'Try a different keyword or sorting order.', 'Try a different keyword or sorting order.'))}</div>`;
       grid.appendChild(emptySearch);
       return;
     }
@@ -1927,38 +2352,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const riskSummary = getAtRiskWords(words, 3);
 
     if (!words.length) {
-      recommendation.textContent = 'Bộ từ đang trống. Hãy thêm từ trước khi bắt đầu ôn tập.';
-      dashboardSubtext.textContent = 'Khi có dữ liệu, mọi chế độ sẽ cùng cập nhật tiến độ học.';
+      recommendation.textContent = uiText('Bộ từ đang trống. Hãy thêm từ trước khi bắt đầu ôn tập.', 'This set is empty. Add some entries before starting review.', 'This set is empty. Add some entries before starting review.');
+      dashboardSubtext.textContent = uiText('Khi có dữ liệu, mọi chế độ sẽ cùng cập nhật tiến độ học.', 'Once data is available, every mode will update the same learning progress.', 'Once data is available, every mode will update the same learning progress.');
     } else if (stats.due > 0) {
-      recommendation.textContent = `Bạn có ${stats.due} mục đến hạn. “Memory Rescue” hoặc “Ôn tập thông minh” nên được mở trước.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}. Risk cao nhất: ${riskSummary[0] ? `${riskSummary[0].word} (${riskSummary[0]._riskScore}%)` : 'ổn định'}.`;
+      recommendation.textContent = uiText(`Bạn có ${stats.due} mục đến hạn. “Memory Rescue” hoặc “Ôn tập thông minh” nên được mở trước.`, `You have ${stats.due} due item(s). Start with Memory Rescue or the smart review lane first.`, `You have ${stats.due} due item(s). Start with Memory Rescue or the smart review lane first.`);
+      dashboardSubtext.textContent = uiText(`Thang nhớ hiện tại: ${buildMemoryStageSummary(words)}. Risk cao nhất: ${riskSummary[0] ? `${riskSummary[0].word} (${riskSummary[0]._riskScore}%)` : 'ổn định'}.`, `Current memory ladder: ${buildMemoryStageSummary(words)}. Highest risk: ${riskSummary[0] ? `${riskSummary[0].word} (${riskSummary[0]._riskScore}%)` : 'stable'}.`, `Current memory ladder: ${buildMemoryStageSummary(words)}. Highest risk: ${riskSummary[0] ? `${riskSummary[0].word} (${riskSummary[0]._riskScore}%)` : 'stable'}.`);
     } else if (stats.weak > 0) {
-      recommendation.textContent = `Có ${stats.weak} mục đang cần củng cố. Flashcard hoặc Gõ từ sẽ hiệu quả nhất lúc này.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
+      recommendation.textContent = uiText(`Có ${stats.weak} mục đang cần củng cố. Flashcard hoặc Gõ từ sẽ hiệu quả nhất lúc này.`, `There are ${stats.weak} item(s) needing reinforcement. Flashcard or Typing will help most right now.`, `There are ${stats.weak} item(s) needing reinforcement. Flashcard or Typing will help most right now.`);
+      dashboardSubtext.textContent = uiText(`Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`);
     } else if (stats.fresh > 0) {
-      recommendation.textContent = `Có ${stats.fresh} mục mới chưa ôn. Bắt đầu bằng Flashcard trước rồi chốt lại bằng Tonight Review.`;
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
+      recommendation.textContent = uiText(`Có ${stats.fresh} mục mới chưa ôn. Bắt đầu bằng Flashcard trước rồi chốt lại bằng Tonight Review.`, `There are ${stats.fresh} fresh item(s). Start with Flashcard, then lock them in with Tonight Review.`, `There are ${stats.fresh} fresh item(s). Start with Flashcard, then lock them in with Tonight Review.`);
+      dashboardSubtext.textContent = uiText(`Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`);
     } else {
-      recommendation.textContent = 'Bạn đang khá ổn. Có thể chơi Quiz hoặc Nghe viết để tăng phản xạ, rồi nhìn qua Tomorrow Rescue để tránh rơi nhịp.';
-      dashboardSubtext.textContent = `Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`;
+      recommendation.textContent = uiText('Bạn đang khá ổn. Có thể chơi Quiz hoặc Nghe viết để tăng phản xạ, rồi nhìn qua Tomorrow Rescue để tránh rơi nhịp.', 'You are in a fairly stable zone. Use Quiz or Dictation for speed, then glance at Tomorrow Rescue to avoid slipping.', 'You are in a fairly stable zone. Use Quiz or Dictation for speed, then glance at Tomorrow Rescue to avoid slipping.');
+      dashboardSubtext.textContent = uiText(`Thang nhớ hiện tại: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`, `Current memory ladder: ${buildMemoryStageSummary(words)} • ${buildEntryTypeSummary(words)}.`);
     }
 
     byId('modeBoardSummaryLine').textContent = words.length
-      ? `${stats.total} mục • ${buildEntryTypeSummary(words)} • ${stats.mastered}/${stats.total} đã vững.`
-      : 'Thêm vài từ đầu tiên để Learning Lab bắt đầu gợi ý chính xác hơn.';
+      ? uiText(`${stats.total} mục • ${buildEntryTypeSummary(words)} • ${stats.mastered}/${stats.total} đã vững.`, `${stats.total} item(s) • ${buildEntryTypeSummary(words)} • ${stats.mastered}/${stats.total} strong.`, `${stats.total} item(s) • ${buildEntryTypeSummary(words)} • ${stats.mastered}/${stats.total} strong.`)
+      : uiText('Thêm vài từ đầu tiên để Learning Lab bắt đầu gợi ý chính xác hơn.', 'Add the first few items so Learning Lab can guide you more accurately.', 'Add the first few items so Learning Lab can guide you more accurately.');
     byId('modeBoardTension').textContent = riskSummary[0]
-      ? `Risk cao nhất: ${riskSummary[0].word} (${riskSummary[0]._riskScore}%)`
-      : 'Risk hiện đang nhẹ';
+      ? uiText(`Risk cao nhất: ${riskSummary[0].word} (${riskSummary[0]._riskScore}%)`, `Highest risk: ${riskSummary[0].word} (${riskSummary[0]._riskScore}%)`, `Highest risk: ${riskSummary[0].word} (${riskSummary[0]._riskScore}%)`)
+      : uiText('Risk hiện đang nhẹ', 'Risk is currently light', 'Risk is currently light');
     byId('modeBoardCoverage').textContent = stats.weak
-      ? `Điểm cần kéo lên: ${stats.weak} mục yếu`
+      ? uiText(`Điểm cần kéo lên: ${stats.weak} mục yếu`, `Need to lift: ${stats.weak} weak item(s)`, `Need to lift: ${stats.weak} weak item(s)`)
       : stats.fresh
-        ? `Chưa phủ hết: ${stats.fresh} mục mới`
-        : 'Độ phủ đang khá ổn';
+        ? uiText(`Chưa phủ hết: ${stats.fresh} mục mới`, `Still uncovered: ${stats.fresh} fresh item(s)`, `Still uncovered: ${stats.fresh} fresh item(s)`)
+        : uiText('Độ phủ đang khá ổn', 'Coverage is fairly stable', 'Coverage is fairly stable');
     byId('modeBoardGap').textContent = stats.due
-      ? `${stats.due} mục cần cứu ngay`
+      ? uiText(`${stats.due} mục cần cứu ngay`, `${stats.due} item(s) need rescue now`, `${stats.due} item(s) need rescue now`)
       : summarizeMistakeJournal()[0]
-        ? `Lỗi nổi bật: ${getMistakeReasonLabel(summarizeMistakeJournal()[0].key)}`
-        : 'Chưa có lỗi nổi bật';
+        ? uiText(`Lỗi nổi bật: ${getMistakeReasonLabel(summarizeMistakeJournal()[0].key)}`, `Top issue: ${getMistakeReasonLabel(summarizeMistakeJournal()[0].key)}`, `Top issue: ${getMistakeReasonLabel(summarizeMistakeJournal()[0].key)}`)
+        : uiText('Chưa có lỗi nổi bật', 'No standout mistake yet', 'No standout mistake yet');
     byId('spotlightModeName').textContent = recommendedPlan.title;
     byId('spotlightModeReason').textContent = recommendedPlan.reason;
     byId('spotlightLaunchBtn').disabled = !recommendedPlan.gameType;
@@ -1989,12 +2414,12 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('startNewFocusBtn').disabled = !stats.fresh;
 
     const badgeText = {
-      flashcard: `${Math.min(words.length, 20)} thẻ`,
-      quiz: `${Math.min(words.length, 10)} câu`,
-      matching: `${Math.min(words.length, 6)} cặp`,
-      typing: `${Math.min(words.length, 10)} câu`,
-      dictation: `${Math.min(words.length, 10)} câu`,
-      srs: `${smartQueueSize} từ ưu tiên`
+      flashcard: uiText(`${Math.min(words.length, 20)} thẻ`, `${Math.min(words.length, 20)} cards`, `${Math.min(words.length, 20)} cards`),
+      quiz: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} questions`, `${Math.min(words.length, 10)} questions`),
+      matching: uiText(`${Math.min(words.length, 6)} cặp`, `${Math.min(words.length, 6)} pairs`, `${Math.min(words.length, 6)} pairs`),
+      typing: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} prompts`, `${Math.min(words.length, 10)} prompts`),
+      dictation: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} prompts`, `${Math.min(words.length, 10)} prompts`),
+      srs: uiText(`${smartQueueSize} từ ưu tiên`, `${smartQueueSize} priority words`, `${smartQueueSize} priority words`)
     };
 
     document.querySelectorAll('[data-badge]').forEach(node => {
@@ -2426,7 +2851,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (primaryBtn) {
       primaryBtn.disabled = true;
       delete primaryBtn.dataset.supportKey;
-      primaryBtn.textContent = 'Ôn từ liên quan kế tiếp';
+      primaryBtn.textContent = uiText('Ôn từ liên quan kế tiếp', 'Queue the next related word', 'Queue the next related word');
     }
     if (byId('studySupportPills')) byId('studySupportPills').innerHTML = '';
     if (byId('studySupportGrid')) byId('studySupportGrid').innerHTML = '';
@@ -2434,22 +2859,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getFailureReasonLead(reason, card) {
     const map = {
-      meaning: `Bạn đang biết mặt chữ của “${card.word}” nhưng phần nghĩa vẫn chưa bật ra ổn định.`,
-      spelling: `Bạn đã chạm gần đúng “${card.word}”, nhưng đường gọi lại phần mặt chữ vẫn còn yếu.`,
-      listening: `Âm của “${card.word}” chưa nối chắc với mặt chữ, nên hệ thống gợi ý thêm các từ gần vùng âm/nghĩa này.`,
-      confusion: `Bạn vừa rơi vào vùng dễ nhầm của “${card.word}”, nên mình đẩy ra vài từ đối chiếu để phân biệt rõ hơn.`,
-      recall: `Bạn vừa bí khi gọi lại “${card.word}”, nên mình mở một lối nhớ gần nhất thay vì lặp lại mù mờ.`
+      meaning: uiText(`Bạn đang biết mặt chữ của “${card.word}” nhưng phần nghĩa vẫn chưa bật ra ổn định.`, `You recognize “${card.word}”, but the meaning is not surfacing reliably yet.`, `You recognize “${card.word}”, but the meaning is not surfacing reliably yet.`),
+      spelling: uiText(`Bạn đã chạm gần đúng “${card.word}”, nhưng đường gọi lại phần mặt chữ vẫn còn yếu.`, `You were close to “${card.word}”, but the spelling path is still fragile.`, `You were close to “${card.word}”, but the spelling path is still fragile.`),
+      listening: uiText(`Âm của “${card.word}” chưa nối chắc với mặt chữ, nên hệ thống gợi ý thêm các từ gần vùng âm/nghĩa này.`, `The sound of “${card.word}” is not firmly linked to its spelling yet, so nearby sound/meaning words are suggested.`, `The sound of “${card.word}” is not firmly linked to its spelling yet, so nearby words are suggested.`),
+      confusion: uiText(`Bạn vừa rơi vào vùng dễ nhầm của “${card.word}”, nên mình đẩy ra vài từ đối chiếu để phân biệt rõ hơn.`, `You just hit a confusion zone around “${card.word}”, so a few contrast words are pushed next.`, `You just hit a confusion zone around “${card.word}”, so a few contrast words are pushed next.`),
+      recall: uiText(`Bạn vừa bí khi gọi lại “${card.word}”, nên mình mở một lối nhớ gần nhất thay vì lặp lại mù mờ.`, `You got stuck recalling “${card.word}”, so the system is opening the nearest memory bridge instead of repeating blindly.`, `You got stuck recalling “${card.word}”, so the system is opening the nearest memory bridge instead of repeating blindly.`)
     };
     return map[reason] || map.recall;
   }
 
-  function extractCompareCandidates(compareText = '') {
-    return String(compareText || '')
-      .split(/\s+vs\s+/i)
-      .map(part => part.trim())
-      .filter(Boolean)
-      .map(normalizeAnswer);
-  }
 
   function getRelatedWordsFromVocab(card, reason = 'recall', limit = 3) {
     const basePool = (state.optionPool?.length ? state.optionPool : getWordsForSet(state.activeSet || 'all'))
@@ -2656,38 +3074,38 @@ document.addEventListener('DOMContentLoaded', () => {
     title.textContent = `Rescue Lane • ${card.word}`;
     lead.textContent = getFailureReasonLead(reason, card);
     pills.innerHTML = [
-      `<span class="support-pill strong-pill">Đáp án: ${escapeHtml(card.word)}</span>`,
-      `<span class="support-pill">${escapeHtml(card.meaning || 'Chưa có nghĩa')}</span>`,
-      `<span class="support-pill">Lỗi: ${escapeHtml(getMistakeReasonLabel(reason))}</span>`,
-      `<span class="support-pill">Mức nhớ: ${escapeHtml(getMemoryStage(card).shortLabel)}</span>`
+      `<span class="support-pill strong-pill">${escapeHtml(uiText('Đáp án', 'Answer', 'Answer'))}: ${escapeHtml(card.word)}</span>`,
+      `<span class="support-pill">${escapeHtml(card.meaning || uiText('Chưa có nghĩa', 'No meaning yet', 'No meaning yet'))}</span>`,
+      `<span class="support-pill">${escapeHtml(uiText('Lỗi', 'Issue', 'Issue'))}: ${escapeHtml(getMistakeReasonLabel(reason))}</span>`,
+      `<span class="support-pill">${escapeHtml(uiText('Mức nhớ', 'Memory stage', 'Memory stage'))}: ${escapeHtml(getLocalizedMemoryStage(getMemoryStage(card), 'shortLabel'))}</span>`
     ].join('');
 
     if (!items.length) {
-      grid.innerHTML = '<div class="support-empty">Chưa tìm thấy từ liên quan đủ mạnh. Bạn có thể bấm “Chưa nhớ” để hệ thống lặp lại từ này sớm hơn.</div>';
+      grid.innerHTML = `<div class="support-empty">${escapeHtml(uiText('Chưa tìm thấy từ liên quan đủ mạnh. Bạn có thể bấm “Chưa nhớ” để hệ thống lặp lại từ này sớm hơn.', 'No related word is strong enough yet. You can still mark this as not remembered so it returns sooner.', 'No related word is strong enough yet. You can still mark this as not remembered so it returns sooner.'))}</div>`;
       primaryBtn.disabled = true;
       delete primaryBtn.dataset.supportKey;
-      primaryBtn.textContent = 'Ôn từ liên quan kế tiếp';
+      primaryBtn.textContent = uiText('Ôn từ liên quan kế tiếp', 'Queue the next related word', 'Queue the next related word');
     } else {
       grid.innerHTML = items.map(item => `
         <article class="support-card ${item.actionType === 'queue' ? 'queue-card' : 'save-card'}">
           <div class="support-card-head">
             <div>
               <strong>${escapeHtml(item.word)}</strong>
-              <span>${escapeHtml(item.detail || (item.actionType === 'queue' ? 'Từ liên quan' : 'Gợi ý hệ thống'))}</span>
+              <span>${escapeHtml(item.detail || (item.actionType === 'queue' ? uiText('Từ liên quan', 'Related word', 'Related word') : uiText('Gợi ý hệ thống', 'System suggestion', 'System suggestion')))}</span>
             </div>
-            <span class="support-action-tag">${item.actionType === 'queue' ? 'Học tiếp' : 'Lưu nhanh'}</span>
+            <span class="support-action-tag">${item.actionType === 'queue' ? uiText('Học tiếp', 'Study next', 'Study next') : uiText('Lưu nhanh', 'Quick save', 'Quick save')}</span>
           </div>
-          <p class="support-meaning">${escapeHtml(item.meaning || 'Bổ sung vùng nhớ liên quan')}</p>
-          <p class="support-note">${escapeHtml(item.note || 'Thêm một neo nhớ gần đó để đỡ bí ở vòng sau.')}</p>
-          <button class="secondary-btn support-card-btn" data-support-key="${escapeHtml(item.key)}">${item.actionType === 'queue' ? 'Đưa vào lượt kế tiếp' : 'Lưu vào bộ và ôn gần'} </button>
+          <p class="support-meaning">${escapeHtml(item.meaning || uiText('Bổ sung vùng nhớ liên quan', 'Add a nearby memory anchor', 'Add a nearby memory anchor'))}</p>
+          <p class="support-note">${escapeHtml(item.note || uiText('Thêm một neo nhớ gần đó để đỡ bí ở vòng sau.', 'Add a nearby anchor so the next round is less blank.', 'Add a nearby anchor so the next round is less blank.'))}</p>
+          <button class="secondary-btn support-card-btn" data-support-key="${escapeHtml(item.key)}">${item.actionType === 'queue' ? uiText('Đưa vào lượt kế tiếp', 'Queue next', 'Queue next') : uiText('Lưu vào bộ và ôn gần', 'Save and queue nearby', 'Save and queue nearby')} </button>
         </article>
       `).join('');
       primaryBtn.disabled = !primaryItem;
       if (primaryItem) {
         primaryBtn.dataset.supportKey = primaryItem.key;
         primaryBtn.textContent = primaryItem.actionType === 'queue'
-          ? `Ôn ${primaryItem.word} kế tiếp`
-          : `Lưu ${primaryItem.word} và ôn gần`;
+          ? uiText(`Ôn ${primaryItem.word} kế tiếp`, `Queue ${primaryItem.word} next`, `Queue ${primaryItem.word} next`)
+          : uiText(`Lưu ${primaryItem.word} và ôn gần`, `Save ${primaryItem.word} and queue nearby`, `Save ${primaryItem.word} and queue nearby`);
       }
     }
 
@@ -2757,7 +3175,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
     hideStudySupport();
-    hideStudySupport();
     state.studyQueue = [];
     state.currentCardIdx = 0;
     state.answerLocked = false;
@@ -2771,14 +3188,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     byId('fcCoinCount').textContent = state.stats.coins;
     byId('studyProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
-    byId('studyModeLabel').textContent = state.currentGame === 'srs' ? 'Ôn tập thông minh' : 'Flashcard';
+    byId('studyModeLabel').textContent = state.currentGame === 'srs' ? uiText('Ôn tập thông minh', 'Smart review', 'Smart review') : 'Flashcard';
     byId('fcStatusBadge').textContent = getWordStatusLabel(card);
-    byId('fcMemoryBadge').textContent = `Mức nhớ: ${getMemoryStage(card).shortLabel} • ${getEntryTypeLabel(card)}`;
+    byId('fcMemoryBadge').textContent = `${uiText('Mức nhớ', 'Memory stage', 'Memory stage')}: ${getLocalizedMemoryStage(getMemoryStage(card), 'shortLabel')} • ${getEntryTypeLabel(card)}`;
     byId('fcWord').textContent = card.word;
     byId('fcType').textContent = card.wordType || getEntryTypeLabel(card);
     byId('fcPhonetic').textContent = card.phonetic || '—';
     byId('fcMeaning').textContent = card.meaning;
-    byId('fcExample').textContent = card.example || 'Không có ví dụ';
+    byId('fcExample').textContent = card.example || uiText('Không có ví dụ', 'No example yet', 'No example yet');
     byId('fcNotes').textContent = card.notes || '';
     byId('fcTypingInput').value = '';
     state.pendingFailureReason = '';
@@ -2913,15 +3330,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const promptType = card.phonetic ? Math.floor(Math.random() * 3) : Math.floor(Math.random() * 2) + 1;
 
     if (promptType === 0 && card.phonetic) {
-      byId('typingPromptHint').textContent = 'Phiên âm';
+      byId('typingPromptHint').textContent = uiText('Phiên âm', 'Phonetic cue', 'Phonetic cue');
       byId('typingQuestionText').textContent = card.phonetic;
       byId('typingSpeakBtn').classList.remove('hidden');
       byId('typingSpeakBtn').onclick = () => playWordAudio(card.word);
     } else if (promptType === 1 && card.word.length > 3) {
-      byId('typingPromptHint').textContent = `Nghĩa: ${card.meaning}`;
+      byId('typingPromptHint').textContent = uiText(`Nghĩa: ${card.meaning}`, `Meaning: ${card.meaning}`, `Meaning: ${card.meaning}`);
       byId('typingQuestionText').textContent = maskWord(card.word);
     } else {
-      byId('typingPromptHint').textContent = 'Nghĩa của từ';
+      byId('typingPromptHint').textContent = uiText('Nghĩa của từ', 'Meaning cue', 'Meaning cue');
       byId('typingQuestionText').textContent = card.meaning;
     }
 

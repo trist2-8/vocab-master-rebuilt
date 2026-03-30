@@ -19,6 +19,17 @@
         <button id="navManagementBtn" class="nav-btn">Bộ từ của tôi</button>
         <button id="navReviewBtn" class="nav-btn">Ôn tập</button>
       </div>
+      <div class="nav-tools">
+        <label class="nav-tool">
+          <span id="languageModeLabel">Chế độ ngôn ngữ</span>
+          <select id="languageModeSelect" class="nav-select" aria-label="Chế độ ngôn ngữ học tập">
+            <option value="en_focus">English Focus</option>
+            <option value="balanced">Balanced</option>
+            <option value="vi_focus">Tiếng Việt thuần</option>
+          </select>
+        </label>
+        <div id="languageModeHint" class="nav-mode-hint">English-led learning with Vietnamese support.</div>
+      </div>
     </nav>
 
     <main id="content-area">
@@ -90,6 +101,16 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
           </div>
           <div id="suggestionContextNote" class="muted-text suggestion-context-note">Gợi ý sẽ bám theo bộ từ đang chọn và xoay vòng theo nhóm khác nhau để tránh lặp.</div>
           <div id="smartSuggestionGrid" class="smart-suggestion-grid"></div>
+        </div>
+
+        <div id="setIntelligencePanel" class="panel-card intelligence-panel">
+          <div class="suggestion-panel-head">
+            <div>
+              <h2 id="setIntelligenceTitle">Set Intelligence</h2>
+              <p id="setIntelligenceLead" class="muted-text">Phân tích bộ từ hiện tại để phát hiện vùng trùng lặp, cụm yếu và cụm nên thêm tiếp theo.</p>
+            </div>
+          </div>
+          <div id="setIntelligenceGrid" class="intelligence-grid"></div>
         </div>
       </section>
 
