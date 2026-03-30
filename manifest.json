@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "6.9.0",
-  "description": "Vocab Master with Effects Lab, animated glass scenes, and Memory Constellation cluster missions.",
+  "version": "7.2.0",
+  "description": "Vocab Master with Set Doctor, Memory Coach, Retrieval Ladder, Context Replay, and Memory Constellation cluster missions.",
   "permissions": [
     "storage"
   ],

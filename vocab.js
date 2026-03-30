@@ -29,13 +29,51 @@ document.addEventListener('DOMContentLoaded', () => {
     fxGlass: 'crystal',
     fxMotion: 'calm',
     fxScene: 'nebula',
-    fxDensity: 'compact'
+    fxDensity: 'compact',
+    fxAccent: 'blue',
+    fxRadius: 'rounded'
   };
 
   const LANGUAGE_MODE_OPTIONS = [
     { value: 'en_focus', viLabel: 'English Focus', enLabel: 'English Focus', balancedLabel: 'English Focus' },
     { value: 'balanced', viLabel: 'Cân bằng song ngữ', enLabel: 'Balanced Bilingual', balancedLabel: 'Balanced Bilingual' },
     { value: 'vi_focus', viLabel: 'Tiếng Việt thuần', enLabel: 'Pure Vietnamese', balancedLabel: 'Pure Vietnamese' }
+  ];
+
+
+  const EFFECT_PRESETS = [
+    {
+      key: 'study_focus',
+      viLabel: 'Tập trung học',
+      enLabel: 'Study Focus',
+      noteVi: 'Gọn, tĩnh, ít nhiễu để ôn lâu hơn.',
+      noteEn: 'Compact and calm for long study sessions.',
+      settings: { fxGlass: 'depth', fxMotion: 'off', fxScene: 'midnight', fxDensity: 'micro', fxAccent: 'blue', fxRadius: 'soft' }
+    },
+    {
+      key: 'glass_studio',
+      viLabel: 'Glass Studio',
+      enLabel: 'Glass Studio',
+      noteVi: 'Cân bằng giữa đẹp mắt và dễ quan sát.',
+      noteEn: 'Balanced clarity with a premium glass shell.',
+      settings: { fxGlass: 'crystal', fxMotion: 'calm', fxScene: 'nebula', fxDensity: 'compact', fxAccent: 'violet', fxRadius: 'rounded' }
+    },
+    {
+      key: 'calm_aurora',
+      viLabel: 'Aurora êm',
+      enLabel: 'Calm Aurora',
+      noteVi: 'Ánh xanh nhẹ, dịu mắt khi học ban đêm.',
+      noteEn: 'Soft aurora glow for night study.',
+      settings: { fxGlass: 'mist', fxMotion: 'calm', fxScene: 'aurora', fxDensity: 'compact', fxAccent: 'mint', fxRadius: 'rounded' }
+    },
+    {
+      key: 'sunset_pop',
+      viLabel: 'Sunset Pop',
+      enLabel: 'Sunset Pop',
+      noteVi: 'Nền ấm hơn, hợp khi muốn giao diện sống động.',
+      noteEn: 'Warmer, livelier glass for a fresh look.',
+      settings: { fxGlass: 'pearl', fxMotion: 'flow', fxScene: 'sunset', fxDensity: 'cozy', fxAccent: 'sunset', fxRadius: 'capsule' }
+    }
   ];
 
   const state = {
@@ -66,6 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
     studySupport: null,
     optimizerReport: null,
     clusterMissions: [],
+    setDoctorReport: null,
+    hintLadder: { wordId: '', reason: 'recall', level: 0 },
     settings: { ...DEFAULT_SETTINGS }
   };
 
@@ -83,7 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
 
   function syncCompactNav() {
-    document.body.classList.toggle('nav-condensed', window.scrollY > 56);
+    if (document.body.classList.contains('nav-condensed')) {
+      document.body.classList.remove('nav-condensed');
+    }
     if (window.scrollY > 16) closeLanguageModeMenu();
   }
 
@@ -94,11 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const languageMode = LANGUAGE_MODE_OPTIONS.some(option => option.value === settings?.languageMode)
       ? settings.languageMode
       : DEFAULT_SETTINGS.languageMode;
-    const fxGlass = ['crystal', 'mist', 'depth'].includes(settings?.fxGlass) ? settings.fxGlass : DEFAULT_SETTINGS.fxGlass;
-    const fxMotion = ['off', 'calm', 'flow'].includes(settings?.fxMotion) ? settings.fxMotion : DEFAULT_SETTINGS.fxMotion;
-    const fxScene = ['nebula', 'aurora', 'midnight'].includes(settings?.fxScene) ? settings.fxScene : DEFAULT_SETTINGS.fxScene;
-    const fxDensity = ['compact', 'cozy'].includes(settings?.fxDensity) ? settings.fxDensity : DEFAULT_SETTINGS.fxDensity;
-    return { languageMode, fxGlass, fxMotion, fxScene, fxDensity };
+    const fxGlass = ['crystal', 'mist', 'depth', 'pearl', 'obsidian'].includes(settings?.fxGlass) ? settings.fxGlass : DEFAULT_SETTINGS.fxGlass;
+    const fxMotion = ['off', 'calm', 'flow', 'pulse'].includes(settings?.fxMotion) ? settings.fxMotion : DEFAULT_SETTINGS.fxMotion;
+    const fxScene = ['nebula', 'aurora', 'midnight', 'sunset', 'forest', 'rose'].includes(settings?.fxScene) ? settings.fxScene : DEFAULT_SETTINGS.fxScene;
+    const fxDensity = ['micro', 'compact', 'cozy'].includes(settings?.fxDensity) ? settings.fxDensity : DEFAULT_SETTINGS.fxDensity;
+    const fxAccent = ['blue', 'violet', 'mint', 'sunset'].includes(settings?.fxAccent) ? settings.fxAccent : DEFAULT_SETTINGS.fxAccent;
+    const fxRadius = ['soft', 'rounded', 'capsule'].includes(settings?.fxRadius) ? settings.fxRadius : DEFAULT_SETTINGS.fxRadius;
+    return { languageMode, fxGlass, fxMotion, fxScene, fxDensity, fxAccent, fxRadius };
   }
 
   function getLanguageMode() {
@@ -219,6 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.dataset.fxMotion = settings.fxMotion || DEFAULT_SETTINGS.fxMotion;
     document.body.dataset.fxScene = settings.fxScene || DEFAULT_SETTINGS.fxScene;
     document.body.dataset.fxDensity = settings.fxDensity || DEFAULT_SETTINGS.fxDensity;
+    document.body.dataset.fxAccent = settings.fxAccent || DEFAULT_SETTINGS.fxAccent;
+    document.body.dataset.fxRadius = settings.fxRadius || DEFAULT_SETTINGS.fxRadius;
   }
 
   function getFxLabel(type, value) {
@@ -226,31 +272,69 @@ document.addEventListener('DOMContentLoaded', () => {
       glass: {
         crystal: uiText('Pha lê trong', 'Crystal Clear', 'Crystal Clear'),
         mist: uiText('Sương mờ', 'Mist Glow', 'Mist Glow'),
-        depth: uiText('Chiều sâu kính', 'Depth Glass', 'Depth Glass')
+        depth: uiText('Chiều sâu kính', 'Depth Glass', 'Depth Glass'),
+        pearl: uiText('Ngọc trai', 'Pearl Layer', 'Pearl Layer'),
+        obsidian: uiText('Obsidian', 'Obsidian Glass', 'Obsidian Glass')
       },
       motion: {
         off: uiText('Tĩnh', 'Still', 'Still'),
         calm: uiText('Êm', 'Calm', 'Calm'),
-        flow: uiText('Chuyển động', 'Flow', 'Flow')
+        flow: uiText('Dòng chảy', 'Flow', 'Flow'),
+        pulse: uiText('Nhịp sáng', 'Pulse', 'Pulse')
       },
       scene: {
         nebula: uiText('Nebula', 'Nebula', 'Nebula'),
         aurora: uiText('Aurora', 'Aurora', 'Aurora'),
-        midnight: uiText('Midnight', 'Midnight', 'Midnight')
+        midnight: uiText('Midnight', 'Midnight', 'Midnight'),
+        sunset: uiText('Sunset', 'Sunset', 'Sunset'),
+        forest: uiText('Forest', 'Forest', 'Forest'),
+        rose: uiText('Rose', 'Rose', 'Rose')
       },
       density: {
+        micro: uiText('Siêu gọn', 'Micro', 'Micro'),
         compact: uiText('Gọn', 'Compact', 'Compact'),
         cozy: uiText('Thoáng', 'Cozy', 'Cozy')
+      },
+      accent: {
+        blue: uiText('Xanh dương', 'Blue', 'Blue'),
+        violet: uiText('Tím', 'Violet', 'Violet'),
+        mint: uiText('Mint', 'Mint', 'Mint'),
+        sunset: uiText('Hoàng hôn', 'Sunset', 'Sunset')
+      },
+      radius: {
+        soft: uiText('Mềm', 'Soft', 'Soft'),
+        rounded: uiText('Bo tròn', 'Rounded', 'Rounded'),
+        capsule: uiText('Viên nang', 'Capsule', 'Capsule')
       }
     };
     return labels[type]?.[value] || value;
   }
 
+  function getEffectPresetLabel(preset) {
+    return uiText(preset.viLabel, preset.enLabel, preset.enLabel);
+  }
+
+  function getEffectPresetNote(preset) {
+    return uiText(preset.noteVi, preset.noteEn, preset.noteEn);
+  }
+
+  function applyEffectPreset(key) {
+    const preset = EFFECT_PRESETS.find(item => item.key === key);
+    if (!preset) return false;
+    state.settings = normalizeSettings({ ...state.settings, ...preset.settings });
+    return true;
+  }
+
+  function getActiveEffectPresetKey() {
+    const active = EFFECT_PRESETS.find(preset => Object.entries(preset.settings).every(([key, value]) => state.settings?.[key] === value));
+    return active?.key || '';
+  }
+
   function buildEffectsLabSummary() {
     return uiText(
-      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Cảnh: ${getFxLabel('scene', state.settings.fxScene)} • Chuyển động: ${getFxLabel('motion', state.settings.fxMotion)}`,
-      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Scene: ${getFxLabel('scene', state.settings.fxScene)} • Motion: ${getFxLabel('motion', state.settings.fxMotion)}`,
-      `Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Scene: ${getFxLabel('scene', state.settings.fxScene)} • Motion: ${getFxLabel('motion', state.settings.fxMotion)}`
+      `Preset: ${getEffectPresetLabel(EFFECT_PRESETS.find(preset => preset.key === getActiveEffectPresetKey()) || EFFECT_PRESETS[1])} • Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Accent: ${getFxLabel('accent', state.settings.fxAccent)} • Mật độ: ${getFxLabel('density', state.settings.fxDensity)}`,
+      `Preset: ${getEffectPresetLabel(EFFECT_PRESETS.find(preset => preset.key === getActiveEffectPresetKey()) || EFFECT_PRESETS[1])} • Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Accent: ${getFxLabel('accent', state.settings.fxAccent)} • Density: ${getFxLabel('density', state.settings.fxDensity)}`,
+      `Preset: ${getEffectPresetLabel(EFFECT_PRESETS.find(preset => preset.key === getActiveEffectPresetKey()) || EFFECT_PRESETS[1])} • Glass: ${getFxLabel('glass', state.settings.fxGlass)} • Accent: ${getFxLabel('accent', state.settings.fxAccent)} • Density: ${getFxLabel('density', state.settings.fxDensity)}`
     );
   }
 
@@ -388,10 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextValue('#saveSetNameBtn', uiText('Tạo bộ từ', 'Create set', 'Create set'));
 
     if (byId('effectsLabTitle')) setTextValue('#effectsLabTitle', uiText('Effects Lab', 'Effects Lab', 'Effects Lab'));
-    if (byId('effectsLabLead')) setTextValue('#effectsLabLead', uiText('Tinh chỉnh chất kính, cảnh nền và chuyển động để không gian học có chiều sâu nhưng vẫn tập trung.', 'Tune glass depth, scene, and motion so the interface feels alive without hurting focus.', 'Tune glass depth, scene, and motion so the interface feels alive without hurting focus.'));
+    if (byId('effectsLabLead')) setTextValue('#effectsLabLead', uiText('Thêm hiệu ứng mới nhưng vẫn giữ việc học là trung tâm: dùng preset nhanh trước, mở phần nâng cao khi thật sự cần.', 'Add richer effects without bloating the UI: start with quick presets, then open advanced controls only when needed.', 'Add richer effects without bloating the UI: start with quick presets, then open advanced controls only when needed.'));
+    if (byId('effectsPresetLabel')) setTextValue('#effectsPresetLabel', uiText('Preset nhanh', 'Quick presets', 'Quick presets'));
+    if (byId('effectsPresetHint')) setTextValue('#effectsPresetHint', uiText('Chọn một preset trước để giao diện đổi ngay mà không phải chỉnh quá nhiều.', 'Apply one preset first so the interface changes instantly without too many controls.', 'Apply one preset first so the interface changes instantly without too many controls.'));
+    if (byId('effectsResetBtn')) setTextValue('#effectsResetBtn', uiText('Khôi phục mặc định', 'Reset defaults', 'Reset defaults'));
     if (byId('fxGlassLabel')) setTextValue('#fxGlassLabel', uiText('Chất kính', 'Glass style', 'Glass style'));
+    if (byId('fxAccentLabel')) setTextValue('#fxAccentLabel', uiText('Tông nhấn', 'Accent', 'Accent'));
+    if (byId('fxDensityLabel')) setTextValue('#fxDensityLabel', uiText('Độ gọn UI', 'UI density', 'UI density'));
     if (byId('fxMotionLabel')) setTextValue('#fxMotionLabel', uiText('Nhịp chuyển động', 'Motion', 'Motion'));
-    if (byId('fxDensityLabel')) setTextValue('#fxDensityLabel', uiText('Mật độ shell', 'Shell density', 'Shell density'));
+    if (byId('fxRadiusLabel')) setTextValue('#fxRadiusLabel', uiText('Độ bo góc', 'Corner radius', 'Corner radius'));
+    if (byId('effectsAdvancedSummary')) setTextValue('#effectsAdvancedSummary', uiText('Mở thêm tuỳ chỉnh', 'More controls', 'More controls'));
     if (byId('effectsLabPreviewNote')) setTextValue('#effectsLabPreviewNote', buildEffectsLabSummary());
     document.querySelectorAll('[data-fx-scene-card]').forEach(node => {
       const value = node.dataset.fxSceneCard;
@@ -400,10 +490,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (title) title.textContent = getFxLabel('scene', value);
       if (note) {
         note.textContent = ({
-          nebula: uiText('Nền tím sâu, hợp với glass sáng và layout học hằng ngày.', 'Deep purple ambient scene for daily study.', 'Deep purple ambient scene for daily study.'),
-          aurora: uiText('Ánh xanh chuyển nhẹ, tạo cảm giác mới hơn cho giao diện.', 'Cool moving aurora glow for a fresher interface.', 'Cool moving aurora glow for a fresher interface.'),
-          midnight: uiText('Tối hơn, gọn hơn, hợp khi muốn giảm nhiễu thị giác.', 'Darker and tighter for low-distraction sessions.', 'Darker and tighter for low-distraction sessions.')
+          nebula: uiText('Nền tím sâu, hợp với học hằng ngày.', 'Deep purple ambient scene for daily study.', 'Deep purple ambient scene for daily study.'),
+          aurora: uiText('Ánh xanh dịu và hiện đại hơn.', 'Cool aurora glow for a fresher interface.', 'Cool aurora glow for a fresher interface.'),
+          midnight: uiText('Tối hơn, ít nhiễu hơn.', 'Darker and tighter for low-distraction sessions.', 'Darker and tighter for low-distraction sessions.'),
+          sunset: uiText('Ấm hơn và nổi bật hơn.', 'Warmer sunset tones for a lively workspace.', 'Warmer sunset tones for a lively workspace.'),
+          forest: uiText('Xanh dịu, thư giãn mắt.', 'Muted green scene for calmer studying.', 'Muted green scene for calmer studying.'),
+          rose: uiText('Hồng tím nhẹ, mềm hơn.', 'Rose-violet scene with a softer feel.', 'Rose-violet scene with a softer feel.')
         })[value] || '';
+      }
+    });
+    document.querySelectorAll('[data-fx-preset-button]').forEach(node => {
+      const title = node.querySelector('.effects-preset-name');
+      const note = node.querySelector('.effects-preset-note');
+      const preset = EFFECT_PRESETS.find(item => item.key === node.dataset.fxPresetButton);
+      if (preset) {
+        if (title) title.textContent = getEffectPresetLabel(preset);
+        if (note) note.textContent = getEffectPresetNote(preset);
       }
     });
 
@@ -416,6 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
   syncCompactNav();
 
   async function init() {
+    ensureSetDoctorPanel();
+    ensureMemoryCoachDock();
     bindStaticEvents();
     setupModals();
     ensureAdvancedReviewPanels();
@@ -471,6 +575,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     document.addEventListener('click', async (event) => {
+      const presetBtn = event.target.closest('[data-fx-preset]');
+      if (presetBtn) {
+        if (applyEffectPreset(presetBtn.dataset.fxPreset)) {
+          applyEffectSettings();
+          renderEffectsLabPanel();
+          await persistState();
+        }
+        return;
+      }
+      if (event.target.closest('#effectsResetBtn')) {
+        state.settings = normalizeSettings({ ...state.settings, ...DEFAULT_SETTINGS });
+        applyEffectSettings();
+        renderEffectsLabPanel();
+        await persistState();
+        return;
+      }
       const sceneBtn = event.target.closest('[data-fx-scene]');
       if (sceneBtn) {
         state.settings.fxScene = sceneBtn.dataset.fxScene;
@@ -513,9 +633,11 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('wordsetDropdown')?.addEventListener('change', () => {
       renderSmartSuggestions({ resetCycle: true });
       renderSetIntelligence();
+      renderSetDoctor();
     });
     byId('refreshSuggestionsBtn')?.addEventListener('click', refreshSmartSuggestions);
     byId('smartSuggestionGrid')?.addEventListener('click', handleSuggestionAction);
+    byId('setDoctorPanel')?.addEventListener('click', handleSetDoctorAction);
     byId('exportBackupBtn')?.addEventListener('click', exportBackup);
     byId('importBackupBtn')?.addEventListener('click', () => byId('fileInputBackup').click());
     byId('fileInputBackup')?.addEventListener('change', handleBackupImport);
@@ -569,18 +691,18 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('btnAlmostLearned')?.addEventListener('click', () => handleFlashcardOutcome('hard'));
     byId('btnLearned').addEventListener('click', () => handleFlashcardOutcome('good'));
     byId('fcCheckBtn').addEventListener('click', handleFlashcardMeaningCheck);
-    byId('fcHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('recall', { autoQueue: false, manual: true }));
-    byId('fcHintInlineBtn')?.addEventListener('click', () => openStudySupportForCurrent('meaning', { autoQueue: false, manual: true }));
+    byId('fcHintBtn')?.addEventListener('click', () => advanceHintLadderForCurrent('recall'));
+    byId('fcHintInlineBtn')?.addEventListener('click', () => advanceHintLadderForCurrent('meaning'));
     byId('fcTypingInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleFlashcardMeaningCheck();
     });
 
-    byId('typingHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('spelling', { autoQueue: false, manual: true }));
+    byId('typingHintBtn')?.addEventListener('click', () => advanceHintLadderForCurrent('spelling'));
     byId('typingSubmitBtn').addEventListener('click', handleTypingSubmit);
     byId('typingInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleTypingSubmit();
     });
-    byId('dictationHintBtn')?.addEventListener('click', () => openStudySupportForCurrent('listening', { autoQueue: false, manual: true }));
+    byId('dictationHintBtn')?.addEventListener('click', () => advanceHintLadderForCurrent('listening'));
     byId('dictationSubmitBtn').addEventListener('click', handleDictationSubmit);
     byId('dictationInput').addEventListener('keypress', (event) => {
       if (event.key === 'Enter') handleDictationSubmit();
@@ -589,8 +711,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = state.studyQueue[state.currentCardIdx];
       if (card) playWordAudio(card.word);
     });
-    byId('quizHintBtn')?.addEventListener('click', () => openStudySupportForCurrent(state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning', { autoQueue: false, manual: true }));
+    byId('quizHintBtn')?.addEventListener('click', () => advanceHintLadderForCurrent(state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning'));
     byId('studySupportCloseBtn')?.addEventListener('click', hideStudySupport);
+    byId('memoryHintAdvanceBtn')?.addEventListener('click', handleMemoryCoachAdvance);
+    byId('memoryHintRescueBtn')?.addEventListener('click', () => openStudySupportForCurrent(state.hintLadder?.reason || inferFailureReasonFromGame(state.currentGame), { autoQueue: false, manual: true }));
     byId('studySupportQueueBtn')?.addEventListener('click', handleStudySupportPrimaryAction);
     byId('studySupportGrid')?.addEventListener('click', handleStudySupportAction);
 
@@ -994,13 +1118,21 @@ document.addEventListener('DOMContentLoaded', () => {
     navBtns.forEach(btn => btn.classList.remove('active'));
     byId(viewIdToShow).classList.remove('hidden');
 
+    const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'];
+    const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view'];
+
+    document.body.dataset.currentView = viewIdToShow;
+    document.body.classList.toggle('is-review-view', reviewViews.includes(viewIdToShow));
+    document.body.classList.toggle('is-study-view', studyViews.includes(viewIdToShow));
+
     if (viewIdToShow === 'main-view') byId('navMainBtn').classList.add('active');
     if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn').classList.add('active');
-    if (['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'].includes(viewIdToShow)) {
+    if (reviewViews.includes(viewIdToShow)) {
       byId('navReviewBtn').classList.add('active');
     }
-    if (!['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view'].includes(viewIdToShow)) {
+    if (!studyViews.includes(viewIdToShow)) {
       hideStudySupport();
+      hideMemoryCoach();
     }
     window.dispatchEvent(new CustomEvent('vm:viewchange', { detail: { viewId: viewIdToShow } }));
   }
@@ -2316,38 +2448,44 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 id="effectsLabTitle">Effects Lab</h2>
           <p id="effectsLabLead" class="muted-text"></p>
         </div>
-        <div class="effects-lab-badge">${escapeHtml(uiText('Update lớn', 'Big update', 'Big update'))}</div>
+        <div class="effects-lab-badge">${escapeHtml(uiText('Studio', 'Studio', 'Studio'))}</div>
       </div>
-      <div class="effects-lab-grid">
+      <div class="effects-preset-row">
+        <div>
+          <div id="effectsPresetLabel" class="effects-section-title">Quick presets</div>
+          <p id="effectsPresetHint" class="muted-text effects-section-note"></p>
+        </div>
+        <button type="button" id="effectsResetBtn" class="secondary-btn effects-reset-btn">Reset defaults</button>
+      </div>
+      <div id="effectsPresetStrip" class="effects-preset-strip"></div>
+      <div class="effects-lab-grid effects-lab-grid-main">
         <label class="effects-field">
           <span id="fxGlassLabel">Glass style</span>
-          <select id="fxGlassSelect" class="modern-input" data-fx-setting="fxGlass">
-            <option value="crystal">Crystal Clear</option>
-            <option value="mist">Mist Glow</option>
-            <option value="depth">Depth Glass</option>
-          </select>
+          <select id="fxGlassSelect" class="modern-input" data-fx-setting="fxGlass"></select>
         </label>
         <label class="effects-field">
-          <span id="fxMotionLabel">Motion</span>
-          <select id="fxMotionSelect" class="modern-input" data-fx-setting="fxMotion">
-            <option value="off">Still</option>
-            <option value="calm">Calm</option>
-            <option value="flow">Flow</option>
-          </select>
+          <span id="fxAccentLabel">Accent</span>
+          <select id="fxAccentSelect" class="modern-input" data-fx-setting="fxAccent"></select>
         </label>
         <label class="effects-field">
-          <span id="fxDensityLabel">Shell density</span>
-          <select id="fxDensitySelect" class="modern-input" data-fx-setting="fxDensity">
-            <option value="compact">Compact</option>
-            <option value="cozy">Cozy</option>
-          </select>
+          <span id="fxDensityLabel">UI density</span>
+          <select id="fxDensitySelect" class="modern-input" data-fx-setting="fxDensity"></select>
         </label>
       </div>
-      <div id="fxSceneGrid" class="fx-scene-grid">
-        <button type="button" class="fx-scene-card" data-fx-scene="nebula" data-fx-scene-card="nebula"><strong class="fx-scene-name">Nebula</strong><span class="fx-scene-note"></span></button>
-        <button type="button" class="fx-scene-card" data-fx-scene="aurora" data-fx-scene-card="aurora"><strong class="fx-scene-name">Aurora</strong><span class="fx-scene-note"></span></button>
-        <button type="button" class="fx-scene-card" data-fx-scene="midnight" data-fx-scene-card="midnight"><strong class="fx-scene-name">Midnight</strong><span class="fx-scene-note"></span></button>
-      </div>
+      <div id="fxSceneGrid" class="fx-scene-grid fx-scene-grid-compact"></div>
+      <details class="effects-advanced" id="effectsAdvancedPanel">
+        <summary id="effectsAdvancedSummary">More controls</summary>
+        <div class="effects-lab-grid effects-lab-grid-advanced">
+          <label class="effects-field">
+            <span id="fxMotionLabel">Motion</span>
+            <select id="fxMotionSelect" class="modern-input" data-fx-setting="fxMotion"></select>
+          </label>
+          <label class="effects-field">
+            <span id="fxRadiusLabel">Corner radius</span>
+            <select id="fxRadiusSelect" class="modern-input" data-fx-setting="fxRadius"></select>
+          </label>
+        </div>
+      </details>
       <div id="effectsLabPreviewNote" class="effects-lab-preview muted-text"></div>
     `;
     const summary = byId('managementSummary');
@@ -2357,16 +2495,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderEffectsLabPanel() {
     ensureEffectsLabPanel();
-    const glass = byId('fxGlassSelect');
-    const motion = byId('fxMotionSelect');
-    const density = byId('fxDensitySelect');
-    if (glass) glass.value = state.settings.fxGlass || DEFAULT_SETTINGS.fxGlass;
-    if (motion) motion.value = state.settings.fxMotion || DEFAULT_SETTINGS.fxMotion;
-    if (density) density.value = state.settings.fxDensity || DEFAULT_SETTINGS.fxDensity;
-    document.querySelectorAll('[data-fx-scene]').forEach(button => {
-      button.classList.toggle('active', button.dataset.fxScene === (state.settings.fxScene || DEFAULT_SETTINGS.fxScene));
+
+    const presetsNode = byId('effectsPresetStrip');
+    const activePresetKey = getActiveEffectPresetKey();
+    if (presetsNode) {
+      presetsNode.innerHTML = EFFECT_PRESETS.map(preset => `
+        <button type="button" class="effects-preset-btn ${activePresetKey === preset.key ? 'active' : ''}" data-fx-preset="${preset.key}" data-fx-preset-button="${preset.key}">
+          <span class="effects-preset-name">${escapeHtml(getEffectPresetLabel(preset))}</span>
+          <span class="effects-preset-note">${escapeHtml(getEffectPresetNote(preset))}</span>
+        </button>`).join('');
+    }
+
+    const selectConfigs = [
+      ['fxGlassSelect', 'glass', ['crystal', 'mist', 'depth', 'pearl', 'obsidian']],
+      ['fxAccentSelect', 'accent', ['blue', 'violet', 'mint', 'sunset']],
+      ['fxDensitySelect', 'density', ['micro', 'compact', 'cozy']],
+      ['fxMotionSelect', 'motion', ['off', 'calm', 'flow', 'pulse']],
+      ['fxRadiusSelect', 'radius', ['soft', 'rounded', 'capsule']]
+    ];
+
+    selectConfigs.forEach(([id, type, values]) => {
+      const node = byId(id);
+      if (!node) return;
+      const current = state.settings[node.dataset.fxSetting] || DEFAULT_SETTINGS[node.dataset.fxSetting];
+      node.innerHTML = values.map(value => `<option value="${value}">${escapeHtml(getFxLabel(type, value))}</option>`).join('');
+      node.value = current;
     });
+
+    const sceneGrid = byId('fxSceneGrid');
+    if (sceneGrid) {
+      sceneGrid.innerHTML = ['nebula', 'aurora', 'midnight', 'sunset', 'forest', 'rose'].map(value => `
+        <button type="button" class="fx-scene-card ${value === (state.settings.fxScene || DEFAULT_SETTINGS.fxScene) ? 'active' : ''}" data-fx-scene="${value}" data-fx-scene-card="${value}">
+          <strong class="fx-scene-name">${escapeHtml(getFxLabel('scene', value))}</strong>
+          <span class="fx-scene-note"></span>
+        </button>`).join('');
+    }
+
     if (byId('effectsLabPreviewNote')) byId('effectsLabPreviewNote').textContent = buildEffectsLabSummary();
+    applyLanguageModeUI();
   }
 
   function ensureClusterMissionPanel() {
@@ -2391,8 +2557,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initMainView() {
     populateSetDropdown(byId('wordsetDropdown'));
+    ensureSetDoctorPanel();
     renderSmartSuggestions({ resetCycle: true });
     renderSetIntelligence();
+    renderSetDoctor();
   }
 
   function initManagementView() {
@@ -2713,9 +2881,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildClusterMissions(words) {
     const families = {};
     words.forEach(word => {
-      const key = getConceptFamilyKey(word);
-      if (!families[key]) families[key] = { key, sample: word, words: [], risk: 0, due: 0, weak: 0, types: new Set() };
-      const bucket = families[key];
+      const baseKey = getConceptFamilyKey(word);
+      const scopedKey = baseKey.startsWith('tag:')
+        ? `${baseKey}:${word.entryType || 'word'}`
+        : baseKey;
+      if (!families[scopedKey]) families[scopedKey] = {
+        key: scopedKey,
+        displayKey: baseKey,
+        sample: word,
+        words: [],
+        risk: 0,
+        due: 0,
+        weak: 0,
+        types: new Set()
+      };
+      const bucket = families[scopedKey];
       const risk = calculateForgettingRisk(word);
       bucket.words.push(word);
       bucket.types.add(word.entryType || 'word');
@@ -2724,57 +2904,71 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isWeakWord(word)) bucket.weak += 1;
       if (risk > calculateForgettingRisk(bucket.sample)) bucket.sample = word;
     });
+
     return Object.values(families)
-      .filter(item => item.words.length >= 2 || item.risk / Math.max(1, item.words.length) >= 54)
       .map(item => {
         const avgRisk = Math.round(item.risk / Math.max(1, item.words.length));
-        const queue = buildCoverageQueue(item.words, Math.min(10, item.words.length), item.due ? 'rescue' : item.weak ? 'drill' : 'balanced');
-        const gameType = item.due ? 'srs' : item.weak ? 'typing' : (item.types.has('pattern') ? 'flashcard' : 'quiz');
-        return {
+        const actionPool = item.words.filter(word => isDueWord(word) || isWeakWord(word) || calculateForgettingRisk(word) >= 62);
+        const focusedPool = actionPool.length >= 3 ? actionPool : item.words;
+        const queue = buildCoverageQueue(focusedPool, Math.min(8, focusedPool.length), item.due ? 'rescue' : 'drill');
+        const previewWords = queue.length ? queue : focusedPool.slice(0, 6);
+        const previewTokens = previewWords.slice(0, 4).map(word => word.word).filter(Boolean);
+        const gameType = item.due >= 3 ? 'srs' : item.weak >= 2 ? 'typing' : (item.types.has('pattern') ? 'flashcard' : 'quiz');
+        const actionable = queue.length;
+        const qualifies = actionable >= 3 && (item.due >= 2 || item.weak >= 2 || avgRisk >= 60 || (item.displayKey || '').startsWith('conf:'));
+        return qualifies ? {
           key: item.key,
-          title: getConceptFamilyDisplay(item.key, item.sample),
+          title: getConceptFamilyDisplay(item.displayKey, item.sample),
           sample: item.sample,
           avgRisk,
           queue,
           gameType,
-          itemCount: item.words.length,
+          itemCount: actionable,
+          sourceCount: item.words.length,
           due: item.due,
           weak: item.weak,
-          preview: item.words.slice(0, 4).map(word => word.word).join(', '),
-          reason: item.due
-            ? uiText('Cụm này có nhiều mục đến hạn và đang cần cứu theo nhóm.', 'This cluster has multiple due items and should be rescued as one memory zone.', 'This cluster has multiple due items and should be rescued as one memory zone.')
-            : item.weak
-              ? uiText('Cụm này đang sai hoặc nhớ yếu, hợp để drill theo nhóm liên quan.', 'This cluster is weak or error-prone, so a grouped drill works better than isolated review.', 'This cluster is weak or error-prone, so a grouped drill works better than isolated review.')
-              : uiText('Cụm này giúp mở rộng độ phủ mà không lặp lại đúng một từ duy nhất.', 'This cluster expands coverage without repeating one isolated item.', 'This cluster expands coverage without repeating one isolated item.')
-        };
+          previewTokens,
+          reason: item.due >= 3
+            ? uiText('Tập trung cứu các mục đến hạn trước để tránh rơi cả cụm.', 'Focus on the due items first so the whole cluster does not slip.', 'Focus on the due items first so the cluster does not slip.')
+            : item.weak >= 2
+              ? uiText('Cụm này đang yếu hoặc mới sai, hợp để drill ngắn theo nhóm.', 'This cluster is weak or recently missed, so a short grouped drill fits best.', 'This cluster is weak or recently missed, so a short grouped drill fits best.')
+              : uiText('Đây là cụm dễ nhầm, nên ôn phân biệt thật gọn.', 'This is a confusion-prone cluster, so a short contrast drill is best.', 'This is a confusion-prone cluster, so a short contrast drill is best.')
+        } : null;
       })
-      .sort((a, b) => b.avgRisk - a.avgRisk || b.itemCount - a.itemCount)
-      .slice(0, 4);
+      .filter(Boolean)
+      .sort((a, b) => (b.due + b.weak) - (a.due + a.weak) || b.avgRisk - a.avgRisk || b.itemCount - a.itemCount)
+      .slice(0, 3);
   }
 
   function renderClusterMissions(words) {
     ensureClusterMissionPanel();
+    const panel = byId('clusterMissionPanel');
     const grid = byId('clusterMissionGrid');
-    if (!grid) return;
+    if (!grid || !panel) return;
     const missions = buildClusterMissions(words);
     state.clusterMissions = missions;
     if (!missions.length) {
-      grid.innerHTML = `<div class="cluster-mission-empty">${escapeHtml(uiText('Khi bộ từ đủ dày hơn, Memory Constellation sẽ tự tạo các mission theo cụm nhầm lẫn, cụm chủ đề hoặc cụm risk cao.', 'Once the set gets denser, Memory Constellation will auto-build missions from confusion pairs, topic families, or high-risk clusters.', 'Once the set gets denser, Memory Constellation will auto-build missions from confusion pairs, topic families, or high-risk clusters.'))}</div>`;
+      panel.classList.add('hidden');
+      grid.innerHTML = '';
       return;
     }
+    panel.classList.remove('hidden');
     grid.innerHTML = missions.map(mission => `
       <article class="cluster-mission-card">
         <div class="cluster-mission-top">
           <span class="cluster-risk-pill">risk ${mission.avgRisk}%</span>
-          <span class="cluster-count-pill">${mission.itemCount} ${escapeHtml(uiText('mục', 'items', 'items'))}</span>
+          <span class="cluster-count-pill">${mission.itemCount} ${escapeHtml(uiText('mục ưu tiên', 'priority items', 'priority items'))}</span>
+          <span class="cluster-mode-pill">${escapeHtml(uiText(`Chế độ: ${mission.gameType}`, `Mode: ${mission.gameType}`, `Mode: ${mission.gameType}`))}</span>
         </div>
         <h3>${escapeHtml(mission.title)}</h3>
         <p class="cluster-mission-reason">${escapeHtml(mission.reason)}</p>
-        <div class="cluster-preview">${escapeHtml(mission.preview)}</div>
+        <div class="cluster-mission-tags">
+          ${mission.previewTokens.map(token => `<span class="cluster-token">${escapeHtml(token)}</span>`).join('')}
+        </div>
         <div class="cluster-mission-meta">
-          <span>${escapeHtml(uiText(`Đến hạn: ${mission.due}`, `Due: ${mission.due}`, `Due: ${mission.due}`))}</span>
-          <span>${escapeHtml(uiText(`Yếu: ${mission.weak}`, `Weak: ${mission.weak}`, `Weak: ${mission.weak}`))}</span>
-          <span>${escapeHtml(uiText(`Chế độ: ${mission.gameType}`, `Mode: ${mission.gameType}`, `Mode: ${mission.gameType}`))}</span>
+          <span class="cluster-meta-pill">${escapeHtml(uiText(`Đến hạn ${mission.due}`, `Due ${mission.due}`, `Due ${mission.due}`))}</span>
+          <span class="cluster-meta-pill">${escapeHtml(uiText(`Yếu ${mission.weak}`, `Weak ${mission.weak}`, `Weak ${mission.weak}`))}</span>
+          <span class="cluster-meta-pill">${escapeHtml(uiText(`Nguồn ${mission.sourceCount}`, `Source ${mission.sourceCount}`, `Source ${mission.sourceCount}`))}</span>
         </div>
         <button type="button" class="primary-btn cluster-launch-btn" data-cluster-mission="${escapeHtml(mission.key)}">${escapeHtml(uiText('▶ Mở mission cụm này', '▶ Launch this cluster mission', '▶ Launch this cluster mission'))}</button>
       </article>
@@ -3193,6 +3387,427 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Đã lưu xong: ${parts.join(' • ')}.`);
   }
 
+
+  function ensureSetDoctorPanel() {
+    const mainView = byId('main-view');
+    if (!mainView || byId('setDoctorPanel')) return;
+    const panel = document.createElement('section');
+    panel.id = 'setDoctorPanel';
+    panel.className = 'panel-card doctor-panel';
+    const anchor = byId('setIntelligencePanel');
+    if (anchor?.parentNode) anchor.insertAdjacentElement('afterend', panel);
+    else mainView.appendChild(panel);
+  }
+
+  function collectNearOverlapPairs(words, limit = 3) {
+    const pairs = [];
+    const sample = words.slice(0, 80);
+    for (let i = 0; i < sample.length; i += 1) {
+      for (let j = i + 1; j < sample.length; j += 1) {
+        const left = sample[i];
+        const right = sample[j];
+        const similarity = getWordSimilarityScore(left, right);
+        const sameFamily = getConceptFamilyKey(left) === getConceptFamilyKey(right);
+        if (similarity < 0.72 && !(sameFamily && isMeaningNear(left.meaning, right.meaning))) continue;
+        pairs.push({
+          left,
+          right,
+          similarity: Math.round(similarity * 100),
+          reason: sameFamily
+            ? uiText('Cùng vùng nhớ / cùng họ từ', 'Same memory family', 'Same memory family')
+            : uiText('Nghĩa hoặc hình thức khá gần', 'Close in meaning or form', 'Close in meaning or form')
+        });
+        if (pairs.length >= limit) return pairs;
+      }
+    }
+    return pairs;
+  }
+
+  function buildSetDoctorReport() {
+    const setName = byId('wordsetDropdown')?.value || 'Chưa phân loại';
+    const words = getWordsForSet(setName);
+    if (!words.length) {
+      return {
+        setName,
+        isEmpty: true,
+        cards: [],
+        alerts: [],
+        queue: [],
+        gameType: 'flashcard',
+        reason: uiText('Bộ từ còn trống nên Set Doctor chưa thể chuẩn đoán.', 'The set is still empty, so Set Doctor cannot diagnose it yet.', 'The set is still empty, so Set Doctor cannot diagnose it yet.')
+      };
+    }
+
+    const withExample = words.filter(word => word.example).length;
+    const withNotes = words.filter(word => word.notes).length;
+    const phraseCount = words.filter(word => ['phrase', 'pattern'].includes(word.entryType)).length;
+    const patternCount = words.filter(word => word.entryType === 'pattern').length;
+    const dueWords = words.filter(isDueWord);
+    const weakWords = words.filter(isWeakWord);
+    const riskWords = getAtRiskWords(words, Math.min(10, words.length));
+    const examplesCoverage = Math.round((withExample / Math.max(1, words.length)) * 100);
+    const notesCoverage = Math.round((withNotes / Math.max(1, words.length)) * 100);
+    const overlapPairs = collectNearOverlapPairs(words, 3);
+    const noExampleWords = words.filter(word => !word.example && !word.notes);
+    const typeCounts = words.reduce((acc, word) => {
+      const key = (word.wordType || word.entryType || 'other').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const nounCount = Object.entries(typeCounts).filter(([key]) => key.includes('noun')).reduce((sum, [, count]) => sum + count, 0);
+    const verbCount = Object.entries(typeCounts).filter(([key]) => key.includes('verb')).reduce((sum, [, count]) => sum + count, 0);
+    const familyMap = {};
+    words.forEach(word => {
+      const key = getConceptFamilyKey(word);
+      if (!familyMap[key]) familyMap[key] = { count: 0, sample: word, weak: 0 };
+      familyMap[key].count += 1;
+      if (isWeakWord(word) || calculateForgettingRisk(word) >= 65) familyMap[key].weak += 1;
+      if (calculateForgettingRisk(word) > calculateForgettingRisk(familyMap[key].sample)) familyMap[key].sample = word;
+    });
+    const familyList = Object.values(familyMap).sort((a, b) => b.weak - a.weak || b.count - a.count);
+    const weakestFamily = familyList.find(item => item.weak > 0) || familyList[0] || null;
+
+    let structureGap = uiText('Bộ này đang khá cân bằng.', 'This set is structurally fairly balanced.', 'This set is structurally fairly balanced.');
+    if (phraseCount < Math.max(1, Math.floor(words.length / 8))) {
+      structureGap = uiText('Từ đơn đang nhiều hơn phrase/pattern. Nên thêm vài cụm nhớ để dùng từ tốt hơn.', 'Single words outweigh phrase/pattern anchors. Add a few chunks to make the set more usable.', 'Single words outweigh phrase/pattern anchors. Add a few chunks to make the set more usable.');
+    } else if (nounCount >= Math.max(4, verbCount * 2)) {
+      structureGap = uiText('Bộ này thiên về danh từ. Hãy bù thêm động từ hoặc pattern hành động để dùng từ tự nhiên hơn.', 'This set leans heavily toward nouns. Add verbs or action patterns for better usage.', 'This set leans heavily toward nouns. Add verbs or action patterns for better usage.');
+    } else if (examplesCoverage < 45) {
+      structureGap = uiText('Ví dụ và ngữ cảnh vẫn còn mỏng. Thêm ví dụ sẽ làm Context Replay mạnh hơn.', 'Example coverage is still thin. Adding examples will strengthen Context Replay.', 'Example coverage is still thin. Adding examples will strengthen Context Replay.');
+    }
+
+    const healthScore = Math.max(36, Math.min(96,
+      92
+      - Math.round(dueWords.length * 2.6)
+      - Math.round(weakWords.length * 1.8)
+      - Math.round(overlapPairs.length * 6)
+      - Math.round(Math.max(0, 50 - examplesCoverage) * 0.28)
+      + Math.round(phraseCount * 0.8)
+      + Math.round(notesCoverage * 0.06)
+    ));
+
+    const repairSource = dueWords.length
+      ? dueWords
+      : weakWords.length
+        ? weakWords
+        : noExampleWords.length
+          ? noExampleWords
+          : riskWords.length
+            ? riskWords
+            : words;
+    const gameType = dueWords.length
+      ? 'srs'
+      : weakWords.length
+        ? 'typing'
+        : phraseCount
+          ? 'flashcard'
+          : 'quiz';
+    const queue = buildCoverageQueue(repairSource, Math.min(10, repairSource.length, words.length), dueWords.length ? 'rescue' : weakWords.length ? 'drill' : 'balanced');
+    const reason = dueWords.length
+      ? uiText(`Set Doctor phát hiện ${dueWords.length} mục đến hạn. Mở mission cứu trí nhớ trước sẽ an toàn hơn.`, `Set Doctor found ${dueWords.length} due item(s). Open a rescue mission first.`, `Set Doctor found ${dueWords.length} due item(s). Open a rescue mission first.`)
+      : weakWords.length
+        ? uiText(`Có ${weakWords.length} mục đang yếu. Nên drill chủ động trước khi mở rộng bộ từ.`, `There are ${weakWords.length} weak item(s). Repair them before expanding the set.`, `There are ${weakWords.length} weak item(s). Repair them before expanding the set.`)
+        : uiText('Set này khá ổn. Doctor mission sẽ ưu tiên các mục thiếu ngữ cảnh hoặc thiếu neo nhớ.', 'This set is fairly stable. The doctor mission will target items that still lack context anchors.', 'This set is fairly stable. The doctor mission will target items that still lack context anchors.');
+
+    return {
+      setName,
+      isEmpty: false,
+      cards: [
+        {
+          label: uiText('Điểm sức khỏe', 'Health score', 'Health score'),
+          value: `${healthScore}/100`,
+          foot: dueWords.length
+            ? uiText(`Còn ${dueWords.length} mục đến hạn và ${weakWords.length} mục yếu.`, `${dueWords.length} due item(s) and ${weakWords.length} weak item(s) remain.`, `${dueWords.length} due item(s) and ${weakWords.length} weak item(s) remain.`)
+            : uiText('Bộ này chưa có áp lực đến hạn quá lớn.', 'No major due pressure in this set right now.', 'No major due pressure in this set right now.')
+        },
+        {
+          label: uiText('Cụm cần cứu', 'Repair cluster', 'Repair cluster'),
+          value: weakestFamily?.sample?.word || uiText('Chưa rõ', 'No clear cluster', 'No clear cluster'),
+          foot: weakestFamily
+            ? uiText(`Cụm này có ${weakestFamily.weak} mục risk/weak và ${weakestFamily.count} mục liên quan.`, `This cluster has ${weakestFamily.weak} risk/weak item(s) across ${weakestFamily.count} related entries.`, `This cluster has ${weakestFamily.weak} risk/weak item(s) across ${weakestFamily.count} related entries.`)
+            : uiText('Chưa có cụm đủ dày để chẩn đoán.', 'No dense cluster yet.', 'No dense cluster yet.')
+        },
+        {
+          label: uiText('Độ phủ ngữ cảnh', 'Context coverage', 'Context coverage'),
+          value: `${examplesCoverage}%`,
+          foot: uiText(`Ví dụ: ${withExample}/${words.length} • Ghi chú: ${withNotes}/${words.length}`, `Examples: ${withExample}/${words.length} • Notes: ${withNotes}/${words.length}`, `Examples: ${withExample}/${words.length} • Notes: ${withNotes}/${words.length}`)
+        },
+        {
+          label: uiText('Tín hiệu cấu trúc', 'Structure signal', 'Structure signal'),
+          value: phraseCount
+            ? uiText(`${phraseCount} cụm / ${patternCount} pattern`, `${phraseCount} phrase(s) / ${patternCount} pattern(s)`, `${phraseCount} phrase(s) / ${patternCount} pattern(s)`)
+            : uiText('Từ đơn chiếm ưu thế', 'Mostly single words', 'Mostly single words'),
+          foot: structureGap
+        }
+      ],
+      alerts: [
+        overlapPairs.length
+          ? uiText(`Vùng trùng gần: ${overlapPairs.map(pair => `${pair.left.word} ↔ ${pair.right.word}`).join(', ')}`, `Near-overlap zone: ${overlapPairs.map(pair => `${pair.left.word} ↔ ${pair.right.word}`).join(', ')}`, `Near-overlap zone: ${overlapPairs.map(pair => `${pair.left.word} ↔ ${pair.right.word}`).join(', ')}`)
+          : uiText('Chưa thấy vùng trùng gần quá rõ trong bộ này.', 'No obvious near-overlap zone in this set.', 'No obvious near-overlap zone in this set.'),
+        structureGap,
+        reason
+      ],
+      queue,
+      gameType,
+      reason
+    };
+  }
+
+  function renderSetDoctor() {
+    ensureSetDoctorPanel();
+    const panel = byId('setDoctorPanel');
+    if (!panel) return;
+    const report = buildSetDoctorReport();
+    state.setDoctorReport = report;
+    if (report.isEmpty) {
+      panel.innerHTML = `
+        <div class="suggestion-panel-head">
+          <div>
+            <h2>${escapeHtml(uiText('Set Doctor', 'Set Doctor', 'Set Doctor'))}</h2>
+            <p class="muted-text">${escapeHtml(uiText('Bộ từ còn trống, nên chưa có dữ liệu để chẩn đoán.', 'The set is still empty, so there is not enough signal to diagnose it yet.', 'The set is still empty, so there is not enough signal to diagnose it yet.'))}</p>
+          </div>
+        </div>
+        <div class="doctor-empty">${escapeHtml(report.reason)}</div>`;
+      return;
+    }
+    panel.innerHTML = `
+      <div class="suggestion-panel-head doctor-head">
+        <div>
+          <h2>${escapeHtml(uiText('Set Doctor', 'Set Doctor', 'Set Doctor'))}</h2>
+          <p class="muted-text">${escapeHtml(uiText(`Chuẩn đoán nhanh cho bộ “${report.setName}” để giảm lặp, tăng ngữ cảnh và sửa vùng nhớ yếu trước.`, `Quick diagnosis for “${report.setName}” to reduce redundancy, strengthen context, and repair weak memory zones first.`, `Quick diagnosis for “${report.setName}” to reduce redundancy and repair weak memory zones first.`))}</p>
+        </div>
+        <div class="doctor-actions">
+          <button type="button" class="primary-btn" data-doctor-action="mission">${escapeHtml(uiText('▶ Mở doctor mission', '▶ Launch doctor mission', '▶ Launch doctor mission'))}</button>
+          <button type="button" class="secondary-btn" data-doctor-action="suggestions">${escapeHtml(uiText('Đổi làn gợi ý', 'Switch suggestion lane', 'Switch suggestion lane'))}</button>
+        </div>
+      </div>
+      <div class="doctor-grid">
+        ${report.cards.map(card => `
+          <article class="doctor-card">
+            <span class="doctor-label">${escapeHtml(card.label)}</span>
+            <strong class="doctor-value">${escapeHtml(card.value)}</strong>
+            <p class="doctor-foot">${escapeHtml(card.foot)}</p>
+          </article>
+        `).join('')}
+      </div>
+      <div class="doctor-alert-list">
+        ${report.alerts.map(item => `<div class="doctor-alert-item">${escapeHtml(item)}</div>`).join('')}
+      </div>`;
+  }
+
+  function handleSetDoctorAction(event) {
+    const button = event.target.closest('[data-doctor-action]');
+    if (!button) return;
+    const action = button.dataset.doctorAction;
+    const report = state.setDoctorReport || buildSetDoctorReport();
+    if (action === 'mission') {
+      if (!report.queue?.length) return showToast(uiText('Set Doctor chưa tìm thấy mission phù hợp.', 'Set Doctor could not build a mission yet.', 'Set Doctor could not build a mission yet.'));
+      startCustomQueue(report.queue, report.gameType || 'flashcard', uiText('Set Doctor Mission', 'Set Doctor Mission', 'Set Doctor Mission'), report.reason);
+      return;
+    }
+    if (action === 'suggestions') {
+      refreshSmartSuggestions();
+      showToast(uiText('Đã đổi làn gợi ý để tránh lặp cùng một vùng nhớ.', 'Suggestion lane switched to avoid repeating the same memory zone.', 'Suggestion lane switched to avoid repeating the same memory zone.'));
+    }
+  }
+
+  function ensureMemoryCoachDock() {
+    if (byId('memoryCoachDock')) return;
+    const dock = document.createElement('section');
+    dock.id = 'memoryCoachDock';
+    dock.className = 'memory-coach-dock hidden';
+    dock.innerHTML = `
+      <div class="coach-head">
+        <div>
+          <span class="support-kicker">${escapeHtml(uiText('Gợi nhớ từng bước', 'Memory Coach', 'Memory Coach'))}</span>
+          <h3 id="memoryCoachTitle">${escapeHtml(uiText('Bậc gợi nhớ', 'Retrieval Ladder', 'Retrieval Ladder'))}</h3>
+          <p id="memoryCoachLead" class="muted-text">${escapeHtml(uiText('Mở từng gợi ý nhỏ trước, rồi mới dùng hỗ trợ sâu hơn nếu vẫn bí.', 'Reveal one small cue at a time before using heavier support.', 'Reveal one small cue at a time before using heavier support.'))}</p>
+        </div>
+        <div class="coach-head-actions">
+          <button id="memoryHintAdvanceBtn" class="secondary-btn">${escapeHtml(uiText('Mở gợi ý kế', 'Reveal next cue', 'Reveal next cue'))}</button>
+          <button id="memoryHintRescueBtn" class="primary-btn">${escapeHtml(uiText('Gợi ý từ liên quan', 'Related word help', 'Related word help'))}</button>
+        </div>
+      </div>
+      <div class="memory-coach-grid">
+        <article class="coach-card hint-card">
+          <div class="coach-card-top">
+            <span class="coach-label">${escapeHtml(uiText('Bậc gợi nhớ', 'Retrieval Ladder', 'Retrieval Ladder'))}</span>
+            <span id="hintLadderProgress" class="coach-badge">0/0</span>
+          </div>
+          <div id="hintLadderIntro" class="coach-note"></div>
+          <ol id="hintLadderList" class="hint-ladder-list"></ol>
+        </article>
+        <article class="coach-card context-card hidden">
+          <div class="coach-card-top">
+            <span class="coach-label">${escapeHtml(uiText('Ngữ cảnh', 'Context Replay', 'Context Replay'))}</span>
+          </div>
+          <div id="contextReplayGrid" class="context-replay-grid"></div>
+        </article>
+        <article class="coach-card active-use-card hidden">
+          <div class="coach-card-top">
+            <span class="coach-label">${escapeHtml(uiText('Dùng ngay', 'Use It Now', 'Use It Now'))}</span>
+          </div>
+          <div id="activeUsePrompt" class="active-use-prompt"></div>
+          <p id="activeUseNote" class="coach-note"></p>
+        </article>
+      </div>`;
+    const supportDock = byId('studySupportDock');
+    if (supportDock?.parentNode) supportDock.insertAdjacentElement('beforebegin', dock);
+  }
+
+  function hideMemoryCoach() {
+    byId('memoryCoachDock')?.classList.add('hidden');
+    state.hintLadder = { wordId: '', reason: 'recall', level: 0 };
+  }
+
+  function getHintLadderState(card, reason = 'recall') {
+    if (!card) return { wordId: '', reason, level: 0 };
+    if (state.hintLadder.wordId !== card.id || state.hintLadder.reason !== reason) {
+      state.hintLadder = { wordId: card.id, reason, level: 0 };
+    }
+    return state.hintLadder;
+  }
+
+  function buildHintSequence(card, reason = 'recall') {
+    if (!card) return [];
+    const hints = [];
+    const pushHint = (label, value) => {
+      const cleanValue = String(value || '').trim();
+      if (!cleanValue) return;
+      if (hints.some(item => item.value === cleanValue)) return;
+      hints.push({ label, value: cleanValue });
+    };
+    const isFlashcardRecall = state.currentGame === 'flashcard' || state.currentGame === 'srs' || reason === 'meaning';
+    if (isFlashcardRecall && card.meaning) {
+      pushHint(uiText('Nghĩa tiếng Việt', 'Vietnamese meaning', 'Meaning cue'), card.meaning);
+    }
+    pushHint(uiText('Loại & vùng nhớ', 'Type & memory zone', 'Type & memory zone'), `${getEntryTypeLabel(card)} • ${card.wordType || card.wordset}`);
+    if (!isFlashcardRecall && card.meaning) {
+      pushHint(uiText('Neo nghĩa', 'Meaning anchor', 'Meaning anchor'), card.meaning);
+    }
+    if (card.example) {
+      const regex = new RegExp(escapeRegExp(card.word), 'gi');
+      pushHint(uiText('Ngữ cảnh', 'Context cue', 'Context cue'), card.example.replace(regex, '_____'));
+    }
+    if (card.word.length >= 4) pushHint(uiText('Khung chữ', 'Letter frame', 'Letter frame'), maskWord(card.word));
+    if (card.word.length >= 2) pushHint(uiText('Chữ cái đầu/cuối', 'First & last letters', 'First & last letters'), `${card.word[0]} • ${card.word.slice(-1)}`);
+    pushHint(uiText('Độ dài', 'Length', 'Length'), uiText(`${card.word.length} ký tự`, `${card.word.length} letters`, `${card.word.length} letters`));
+    if (card.phonetic) pushHint(uiText('Neo âm thanh', 'Sound anchor', 'Sound anchor'), card.phonetic);
+    if (card.notes) pushHint(uiText('Mẹo nhớ', 'Memory note', 'Memory note'), card.notes);
+    pushHint(uiText('Đáp án', 'Answer', 'Answer'), card.word);
+    return hints;
+  }
+
+  function buildUseItNowPrompt(card) {
+    if (!card) return '';
+    if (card.entryType === 'pattern') {
+      return uiText(`Tự viết 1 câu ngắn với pattern “${card.word}” rồi đổi chủ ngữ một lần nữa.`, `Write one short sentence with the pattern “${card.word}”, then rewrite it with a different subject.`, `Write one short sentence with the pattern “${card.word}”, then rewrite it with a different subject.`);
+    }
+    if (card.entryType === 'phrase') {
+      return uiText(`Viết 1 câu thật ngắn dùng cụm “${card.word}” trong đúng ngữ cảnh của bạn.`, `Write one short sentence using the phrase “${card.word}” in a situation that feels real to you.`, `Write one short sentence using the phrase “${card.word}” in a situation that feels real to you.`);
+    }
+    return uiText(`Dùng “${card.word}” trong 1 câu tiếng Anh thật ngắn, rồi tự giải thích câu đó bằng tiếng Việt.`, `Use “${card.word}” in one short English sentence, then explain that sentence in Vietnamese.`, `Use “${card.word}” in one short English sentence, then explain that sentence in Vietnamese.`);
+  }
+
+  function renderMemoryCoach(card, reason = state.hintLadder?.reason || inferFailureReasonFromGame(state.currentGame)) {
+    ensureMemoryCoachDock();
+    const dock = byId('memoryCoachDock');
+    const ladderList = byId('hintLadderList');
+    const progress = byId('hintLadderProgress');
+    const intro = byId('hintLadderIntro');
+    const contextGrid = byId('contextReplayGrid');
+    const prompt = byId('activeUsePrompt');
+    const note = byId('activeUseNote');
+    const title = byId('memoryCoachTitle');
+    const lead = byId('memoryCoachLead');
+    const advanceBtn = byId('memoryHintAdvanceBtn');
+    const rescueBtn = byId('memoryHintRescueBtn');
+    const contextCard = dock?.querySelector('.context-card');
+    const activeUseCard = dock?.querySelector('.active-use-card');
+    if (!dock || !ladderList || !progress || !contextGrid || !prompt || !note || !title || !lead || !advanceBtn || !rescueBtn || !card) return;
+
+    const ladder = getHintLadderState(card, reason);
+    const hints = buildHintSequence(card, reason);
+    const revealed = Math.min(ladder.level, hints.length);
+    const visibleHints = hints.slice(0, revealed);
+    const nextHint = revealed < hints.length ? hints[revealed] : null;
+    const showContext = revealed >= 3;
+    const showActiveUse = revealed >= hints.length;
+
+    title.textContent = `${uiText('Bậc gợi nhớ', 'Retrieval Ladder', 'Retrieval Ladder')} • ${card.word}`;
+    lead.textContent = getFailureReasonLead(reason, card);
+    intro.textContent = uiText('Chỉ hiện những gợi ý bạn đã mở. Mỗi lần mở thêm phải giúp gọi lại tốt hơn, không làm bạn lười nhớ.', 'Only the cues you have actually opened are shown. Each extra cue should support recall, not replace it.', 'Only opened cues are shown so recall stays active.');
+    progress.textContent = `${revealed}/${hints.length}`;
+    ladderList.innerHTML = [
+      ...visibleHints.map((hint, index) => `
+        <li class="hint-step revealed">
+          <span class="hint-step-index">${index + 1}</span>
+          <div>
+            <strong>${escapeHtml(hint.label)}</strong>
+            <span>${escapeHtml(hint.value)}</span>
+          </div>
+        </li>
+      `),
+      nextHint ? `
+        <li class="hint-step next-cue">
+          <span class="hint-step-index">${revealed + 1}</span>
+          <div>
+            <strong>${escapeHtml(nextHint.label)}</strong>
+            <span>${escapeHtml(uiText('Chưa mở', 'Locked', 'Locked'))}</span>
+          </div>
+        </li>
+      ` : ''
+    ].join('');
+
+    const contextItems = [
+      { label: uiText('Ví dụ', 'Example', 'Example'), value: card.example || uiText('Chưa có ví dụ', 'No example yet', 'No example yet') },
+      { label: uiText('Ghi chú', 'Note', 'Note'), value: card.notes || uiText('Chưa có ghi chú', 'No note yet', 'No note yet') }
+    ];
+    contextGrid.innerHTML = contextItems.map(item => `
+      <div class="context-chip">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+      </div>
+    `).join('');
+
+    if (contextCard) contextCard.classList.toggle('hidden', !showContext);
+    if (activeUseCard) activeUseCard.classList.toggle('hidden', !showActiveUse);
+    prompt.textContent = showActiveUse ? buildUseItNowPrompt(card) : '';
+    note.textContent = showActiveUse
+      ? uiText('Mẹo: chỉ cần 1 câu ngắn để kéo từ sang dùng chủ động.', 'Tip: one short sentence is enough for active use.', 'Tip: one short sentence is enough for active use.')
+      : '';
+    advanceBtn.textContent = revealed >= hints.length
+      ? uiText('Mở Rescue Lane', 'Open Rescue Lane', 'Open Rescue Lane')
+      : uiText(`Mở gợi ý kế (${revealed + 1}/${hints.length})`, `Reveal next cue (${revealed + 1}/${hints.length})`, `Reveal next cue (${revealed + 1}/${hints.length})`);
+    rescueBtn.textContent = uiText('Gợi ý từ liên quan', 'Related word help', 'Related word help');
+    dock.classList.remove('hidden');
+  }
+
+  function handleMemoryCoachAdvance() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return;
+    const reason = state.hintLadder?.reason || inferFailureReasonFromGame(state.currentGame);
+    const ladder = getHintLadderState(card, reason);
+    const hints = buildHintSequence(card, reason);
+    if (ladder.level >= hints.length) {
+      openStudySupportForCurrent(reason, { autoQueue: false, manual: true });
+      return;
+    }
+    ladder.level += 1;
+    state.hintLadder = ladder;
+    renderMemoryCoach(card, reason);
+    const hint = hints[ladder.level - 1];
+    showToast(`${hint.label}: ${hint.value}`);
+  }
+
+  function advanceHintLadderForCurrent(reason = 'recall') {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return;
+    getHintLadderState(card, reason);
+    renderMemoryCoach(card, reason);
+    handleMemoryCoachAdvance();
+  }
+
   function buildDedupKey(word, meaning) {
     return `${normalizeAnswer(word)}__${normalizeAnswer(meaning)}`;
   }
@@ -3200,6 +3815,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openStudySupportForCurrent(reason = 'recall', options = {}) {
     const card = state.studyQueue[state.currentCardIdx];
     if (!card) return;
+    renderMemoryCoach(card, reason);
     renderStudySupportForWord(card, reason, options);
     showToast('Đã mở Rescue Lane cho từ hiện tại.');
   }
@@ -3415,6 +4031,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const primaryBtn = byId('studySupportQueueBtn');
     if (!dock || !grid || !pills || !title || !lead || !primaryBtn || !card) return;
 
+    const ladder = getHintLadderState(card, reason);
+    ladder.level = Math.max(ladder.level, Math.min(3, buildHintSequence(card, reason).length));
+    state.hintLadder = ladder;
+
     const related = getRelatedWordsFromVocab(card, reason, 3);
     const external = getExternalSupportSuggestions(card, reason, 2);
     const items = [...related, ...external];
@@ -3481,6 +4101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.activeSet = setName;
     state.currentGame = gameType;
     hideStudySupport();
+    hideMemoryCoach();
     state.optionPool = [...words];
     state.currentCardIdx = 0;
     state.answerLocked = false;
@@ -3535,6 +4156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
     hideStudySupport();
+    hideMemoryCoach();
     state.studyQueue = [];
     state.currentCardIdx = 0;
     state.answerLocked = false;
@@ -3560,6 +4182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('fcTypingInput').value = '';
     state.pendingFailureReason = '';
     byId('activeFlashcard').classList.remove('flipped');
+    hideStudySupport();
+    hideMemoryCoach();
   }
 
   async function handleFlashcardOutcome(quality) {
@@ -3643,6 +4267,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     byId('quizQuestionWord').textContent = promptText;
+    hideStudySupport();
+    hideMemoryCoach();
 
     const wrongOptions = shuffle(state.optionPool.filter(item => item.id !== card.id)).slice(0, 3);
     const options = shuffle([card, ...wrongOptions]);
@@ -3703,6 +4329,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     byId('typingInput').focus();
+    hideStudySupport();
+    hideMemoryCoach();
   }
 
   async function handleTypingSubmit() {
@@ -3748,6 +4376,8 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('dictationInput').value = '';
     byId('dictationInput').focus();
     playWordAudio(card.word);
+    hideStudySupport();
+    hideMemoryCoach();
   }
 
   async function handleDictationSubmit() {
@@ -3959,6 +4589,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
     hideStudySupport();
+    hideMemoryCoach();
 
     if (state.sessionStats) {
       state.sessionStats.durationSeconds = Math.max(1, Math.round((Date.now() - state.sessionStats.startAt) / 1000));

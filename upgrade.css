@@ -1982,3 +1982,20 @@ body[data-ui-theme="film-diary"] .modal-content {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ---- v7.1.1 pomodoro dock tuning ---- */
+.pomodoro-mini-widget.study-dock {
+  left: auto;
+  top: auto;
+  right: 18px;
+  bottom: 18px;
+  transform: scale(0.88);
+  transform-origin: bottom right;
+}
+.pomodoro-mini-widget.study-dock .pomodoro-mini-main {
+  padding: 9px 12px;
+}
+.pomodoro-mini-widget.study-dock .pomodoro-mini-text strong {
+  font-size: 15px;
+}
