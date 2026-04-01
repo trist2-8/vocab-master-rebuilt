@@ -1775,6 +1775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let fresh = 0;
     let weak = 0;
     let mastered = 0;
+    let progressUnits = 0;
 
     words.forEach(word => {
       if (isDueWord(word)) due += 1;
@@ -1782,9 +1783,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isWeakWord(word)) weak += 1;
       if (isMasteredWord(word)) mastered += 1;
       const confidence = getConfidenceValue(word);
+      const seenCount = Number(word?.review?.seenCount || 0);
+      const hintPenalty = Number(word?.review?.hintPenalty || 0);
+      const streakBoost = seenCount > 0 ? Math.min(0.35, Number(word?.review?.streak || 0) * 0.08) : 0;
+      const hintDrag = hintPenalty > 0 ? Math.min(0.18, hintPenalty * 0.05) : 0;
+      const progressScore = Math.max(0, Math.min(1, (confidence / 4) + streakBoost - hintDrag));
+      progressUnits += progressScore;
       if (stageCounts[confidence]) stageCounts[confidence].count += 1;
     });
 
+    const masteryProgress = words.length ? Math.round((mastered / words.length) * 100) : 0;
     return {
       total: words.length,
       due,
@@ -1792,7 +1800,8 @@ document.addEventListener('DOMContentLoaded', () => {
       weak,
       mastered,
       stageCounts,
-      progress: words.length ? Math.round((mastered / words.length) * 100) : 0
+      masteryProgress,
+      progress: words.length ? Math.round((progressUnits / words.length) * 100) : 0
     };
   }
 
@@ -7494,9 +7503,63 @@ document.addEventListener('DOMContentLoaded', () => {
       `${words.length} item(s) • ${stats.due} due • ${stats.fresh} new • ${stats.weak} need reinforcement • ${buildEntryTypeSummary(words)}${topRisk ? ` • Highest risk: ${topRisk.word}` : ''} • ${buildMemoryStageSummary(words)}`,
       `${words.length} item(s) • ${stats.due} due • ${stats.fresh} new • ${stats.weak} need reinforcement • ${buildEntryTypeSummary(words)}${topRisk ? ` • Highest risk: ${topRisk.word}` : ''} • ${buildMemoryStageSummary(words)}`
     );
+    vm831RenderSetDetailsMeta(words, stats);
     state.viewRenderCache.details = vmGetViewSignature('details');
     applyLanguageModeUI();
   };
+
+
+  function vm831RenderSetDetailsMeta(words = [], stats = getSetStats(words)) {
+    const host = byId('setDetailsMetaBar');
+    if (!host) return;
+    const customCap = Math.max(0, Math.min(30, Number(state.vm830?.prefs?.customSessionCap) || 0));
+    host.innerHTML = `
+      <div class="set-details-meta-grid">
+        <div class="set-details-meta-card emphasis">
+          <span class="set-details-meta-label">${escapeHtml(uiText('Tiến độ học', 'Learning progress', 'Learning progress'))}</span>
+          <strong>${stats.progress}%</strong>
+          <small>${escapeHtml(uiText(`${stats.mastered}/${stats.total || 0} từ đã vững • ${stats.masteryProgress}% mastery`, `${stats.mastered}/${stats.total || 0} strong • ${stats.masteryProgress}% mastery`, `${stats.mastered}/${stats.total || 0} strong • ${stats.masteryProgress}% mastery`))}</small>
+        </div>
+        <div class="set-details-meta-card">
+          <span class="set-details-meta-label">${escapeHtml(uiText('Nhịp học bộ này', 'Study pace for this set', 'Study pace for this set'))}</span>
+          <div class="set-details-cap-row">
+            <input id="detailsSessionCapInput" class="modern-input set-details-cap-input" type="number" min="4" max="30" step="1" placeholder="${escapeHtml(uiText('Tự động', 'Adaptive', 'Adaptive'))}" value="${customCap >= 4 ? customCap : ''}">
+            <button type="button" id="detailsSessionCapSaveBtn" class="secondary-btn slim-btn">${escapeHtml(uiText('Lưu', 'Save', 'Save'))}</button>
+            <button type="button" id="detailsSessionCapResetBtn" class="secondary-btn slim-btn">${escapeHtml(uiText('Tự động', 'Auto', 'Auto'))}</button>
+          </div>
+          <small>${escapeHtml(uiText('Điều chỉnh số từ cho mỗi phiên ôn khi học bộ này.', 'Tune how many words each review round should use.', 'Tune how many words each review round should use.'))}</small>
+        </div>
+      </div>
+    `;
+  }
+
+  document.addEventListener('click', async (event) => {
+    const saveBtn = event.target.closest('#detailsSessionCapSaveBtn');
+    if (saveBtn) {
+      const input = byId('detailsSessionCapInput');
+      const nextCap = Math.max(4, Math.min(30, Number(input?.value) || 0));
+      if (!nextCap) {
+        showToast(uiText('Hãy nhập từ 4 đến 30 từ mỗi phiên.', 'Enter a session size from 4 to 30 words.', 'Enter a session size from 4 to 30 words.'));
+        return;
+      }
+      state.vm830.prefs.customSessionCap = nextCap;
+      await vm830SavePrefs();
+      if (state.currentDetailsSet && document.body.dataset.currentView === 'set-details-view') {
+        vm831RenderSetDetailsMeta(getWordsForSet(state.currentDetailsSet));
+      }
+      showToast(uiText(`Đã đặt ${nextCap} từ mỗi phiên.`, `Set ${nextCap} words per session.`, `Set ${nextCap} words per session.`));
+      return;
+    }
+    const resetBtn = event.target.closest('#detailsSessionCapResetBtn');
+    if (resetBtn) {
+      state.vm830.prefs.customSessionCap = 0;
+      await vm830SavePrefs();
+      if (state.currentDetailsSet && document.body.dataset.currentView === 'set-details-view') {
+        vm831RenderSetDetailsMeta(getWordsForSet(state.currentDetailsSet));
+      }
+      showToast(uiText('Đã trở về nhịp phiên tự động.', 'Returned to adaptive session sizing.', 'Returned to adaptive session sizing.'));
+    }
+  });
 
   const originalHandleBackupImport = handleBackupImport;
   handleBackupImport = async function(event) {
@@ -8459,7 +8522,1225 @@ document.addEventListener('DOMContentLoaded', () => {
     state.vmPendingReviewSet = studyBtn.dataset.setName || '';
   }, true);
 
+
+
+  // ===== v8.3.0 momentum cockpit, adaptive session caps, and review cache prewarm =====
+  state.vm830 = state.vm830 || {
+    prefs: { sessionSize: 'flow', autoPrewarm: true, customSessionCap: 0 },
+    warmTimer: 0,
+    warmKey: '',
+    mounted: false
+  };
+
+  const VM830_SESSION_SIZE_OPTIONS = ['sprint', 'flow', 'deep'];
+
+  function vm830NormalizePrefs(raw = {}) {
+    const sessionSize = VM830_SESSION_SIZE_OPTIONS.includes(raw?.sessionSize) ? raw.sessionSize : 'flow';
+    const customSessionCap = Math.max(0, Math.min(30, Number(raw?.customSessionCap) || 0));
+    return {
+      sessionSize,
+      autoPrewarm: raw?.autoPrewarm !== false,
+      customSessionCap
+    };
+  }
+
+  async function vm830LoadPrefs() {
+    try {
+      const result = await storage.get({ vm830_prefs: null });
+      state.vm830.prefs = vm830NormalizePrefs(result?.vm830_prefs || {});
+    } catch (error) {
+      state.vm830.prefs = vm830NormalizePrefs({});
+    }
+  }
+
+  async function vm830SavePrefs() {
+    await storage.set({ vm830_prefs: state.vm830.prefs });
+    if (document.body.dataset.currentView === 'review-dashboard-view') {
+      const setName = byId('reviewSetDropdown')?.value || 'all';
+      const context = typeof vmGetReviewContext === 'function'
+        ? vmGetReviewContext(setName)
+        : { words: getWordsForSet(setName), stats: getSetStats(getWordsForSet(setName)) };
+      vm830RenderGrowthDock(context.words, context.stats);
+    }
+    vm830SchedulePrewarm('prefs-save');
+  }
+
+  function vm830GetSessionSize() {
+    return VM830_SESSION_SIZE_OPTIONS.includes(state.vm830?.prefs?.sessionSize)
+      ? state.vm830.prefs.sessionSize
+      : 'flow';
+  }
+
+  function vm830GetSessionCap(gameType = 'flashcard') {
+    const customCap = Math.max(0, Math.min(30, Number(state.vm830?.prefs?.customSessionCap) || 0));
+    if (customCap >= 4) return customCap;
+    const mode = vm830GetSessionSize();
+    const caps = {
+      sprint: { flashcard: 8, srs: 8, quiz: 6, typing: 6, dictation: 6, contrast: 6, matching: 4 },
+      flow: { flashcard: 12, srs: 12, quiz: 8, typing: 8, dictation: 8, contrast: 8, matching: 6 },
+      deep: { flashcard: 20, srs: 18, quiz: 10, typing: 10, dictation: 10, contrast: 10, matching: 8 }
+    };
+    return caps[mode]?.[gameType] || 12;
+  }
+
+  function vm830TrimQueue(queue, gameType = 'flashcard') {
+    if (!Array.isArray(queue) || !queue.length) return [];
+    const cap = Math.max(4, vm830GetSessionCap(gameType));
+    if (queue.length <= cap) return queue;
+    if (gameType === 'srs' || gameType === 'typing' || gameType === 'dictation' || gameType === 'contrast') {
+      return queue.slice(0, cap);
+    }
+    return diversifyStudyQueue(queue, cap);
+  }
+
+  function vm830GetSessionSizeLabel() {
+    const labels = {
+      sprint: uiText('Sprint 5 phút', 'Sprint 5 min', 'Sprint 5 min'),
+      flow: uiText('Flow cân bằng', 'Balanced flow', 'Balanced flow'),
+      deep: uiText('Deep review', 'Deep review', 'Deep review')
+    };
+    return labels[vm830GetSessionSize()] || labels.flow;
+  }
+
+  function vm830GetGrowthTone(words, stats) {
+    if (!words.length) {
+      return {
+        title: uiText('Chưa có dữ liệu học', 'No learning data yet', 'No learning data yet'),
+        note: uiText('Thêm vài từ rồi hệ thống sẽ gợi ý nhịp học phù hợp nhất.', 'Add a few words and the system will guide the best learning rhythm.', 'Add a few words and the system will guide the best learning rhythm.')
+      };
+    }
+    const today = getDailyProgressRecord();
+    const remaining = Math.max(0, Number(state.stats?.dailyGoal || 12) - Number(today.studied || 0));
+    if (stats.due > 0) {
+      return {
+        title: uiText('Giải cứu trí nhớ trước', 'Rescue memory first', 'Rescue memory first'),
+        note: uiText(`Bạn còn ${stats.due} mục đến hạn. Dọn lane này trước để tốc độ nhớ tăng bền hơn.`, `You still have ${stats.due} due item(s). Clear this lane first for steadier retention.`, `You still have ${stats.due} due item(s). Clear this lane first for steadier retention.`)
+      };
+    }
+    if (stats.weak > 0) {
+      return {
+        title: uiText('Đẩy sang nhớ chủ động', 'Push into active recall', 'Push into active recall'),
+        note: uiText(`Có ${stats.weak} mục yếu. Một lượt typing hoặc context burst ngắn sẽ kéo tốc độ nhớ lên nhanh hơn.`, `There are ${stats.weak} weak item(s). A short typing or context burst should raise retention faster.`, `There are ${stats.weak} weak item(s). A short typing or context burst should raise retention faster.`)
+      };
+    }
+    if (remaining > 0) {
+      return {
+        title: uiText('Giữ nhịp tăng trưởng hôm nay', 'Keep today\'s growth alive', 'Keep today\'s growth alive'),
+        note: uiText(`Bạn chỉ còn ${remaining} lượt nữa là chạm mục tiêu hôm nay.`, `Only ${remaining} more rep(s) to hit today\'s goal.`, `Only ${remaining} more rep(s) to hit today\'s goal.`)
+      };
+    }
+    return {
+      title: uiText('Tăng phản xạ qua ngữ cảnh', 'Build speed through context', 'Build speed through context'),
+      note: uiText('Mở một context burst hoặc contrast lane để chuyển từ nhớ sang dùng thật.', 'Open a context burst or contrast lane to shift from remembering to using.', 'Open a context burst or contrast lane to shift from remembering to using.')
+    };
+  }
+
+  function vm830GetContextReadyCount(words = []) {
+    return words.filter(word => (typeof getWordSentenceBank === 'function' && getWordSentenceBank(word).length > 0) || word.example).length;
+  }
+
+  function vm830StartContextBurst() {
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    const words = getWordsForSet(setName);
+    const sentenceReady = words.filter(word => (typeof getWordSentenceBank === 'function' && getWordSentenceBank(word).length > 0));
+    if (sentenceReady.length) {
+      startSentenceBankClozeSession(setName);
+      return;
+    }
+    const exampleReady = words.filter(word => String(word.example || '').trim());
+    if (exampleReady.length >= 4) {
+      startGame('quiz', setName, {
+        queue: vm830TrimQueue(diversifyStudyQueue(exampleReady, Math.min(exampleReady.length, 12)), 'quiz'),
+        forceQuizMode: 'context',
+        planTitle: uiText('Context Burst', 'Context Burst', 'Context Burst'),
+        planReason: uiText('Đi nhanh qua các ví dụ để kéo từ vào ngữ cảnh thật.', 'Run through examples quickly to pull the words into real context.', 'Run through examples quickly to pull the words into real context.')
+      });
+      return;
+    }
+    showToast(uiText('Hãy thêm ví dụ hoặc lưu vài câu của bạn để mở Context Burst.', 'Add examples or save a few of your own sentences to open Context Burst.', 'Add examples or save a few of your own sentences to open Context Burst.'));
+  }
+
+  function vm830EnsureGrowthDock() {
+    const hero = byId('reviewFocusHero');
+    if (!hero || byId('growthDockPanel')) return;
+    const panel = document.createElement('section');
+    panel.id = 'growthDockPanel';
+    panel.className = 'growth-dock-panel';
+    panel.innerHTML = `
+      <div class="growth-dock-shell">
+        <div class="growth-dock-copy">
+          <div class="growth-dock-kicker">${escapeHtml(uiText('Growth cockpit', 'Growth cockpit', 'Growth cockpit'))}</div>
+          <strong id="growthDockTitle">${escapeHtml(uiText('Giữ nhịp học đều hơn', 'Keep the learning rhythm steady', 'Keep the learning rhythm steady'))}</strong>
+          <p id="growthDockNote" class="muted-text">${escapeHtml(uiText('Chọn nhịp phiên và mở đúng lane để nhớ nhanh nhưng không quá tải.', 'Pick the session tempo and launch the right lane so retention grows without overload.', 'Pick the session tempo and launch the right lane so retention grows without overload.'))}</p>
+        </div>
+        <div class="growth-dock-metrics">
+          <div class="growth-chip-card">
+            <span>${escapeHtml(uiText('Chuỗi học', 'Streak', 'Streak'))}</span>
+            <strong id="growthDockStreak">0</strong>
+            <small id="growthDockStreakNote">${escapeHtml(uiText('giữ nhiệt', 'keep momentum', 'keep momentum'))}</small>
+          </div>
+          <div class="growth-chip-card">
+            <span>${escapeHtml(uiText('Mục tiêu hôm nay', 'Today\'s goal', 'Today\'s goal'))}</span>
+            <strong id="growthDockGoal">0/12</strong>
+            <small id="growthDockGoalNote">${escapeHtml(uiText('đang nạp', 'loading', 'loading'))}</small>
+          </div>
+          <div class="growth-chip-card">
+            <span>${escapeHtml(uiText('Điểm yếu nhất', 'Weakest lane', 'Weakest lane'))}</span>
+            <strong id="growthDockWeakSkill">—</strong>
+            <small id="growthDockWeakSkillNote">${escapeHtml(uiText('chưa có', 'no signal yet', 'no signal yet'))}</small>
+          </div>
+        </div>
+        <div class="growth-dock-controls">
+          <div class="growth-session-size" role="group" aria-label="Session size">
+            <button type="button" class="growth-size-btn" data-session-size="sprint">${escapeHtml(uiText('Sprint', 'Sprint', 'Sprint'))}</button>
+            <button type="button" class="growth-size-btn" data-session-size="flow">${escapeHtml(uiText('Flow', 'Flow', 'Flow'))}</button>
+            <button type="button" class="growth-size-btn" data-session-size="deep">${escapeHtml(uiText('Deep', 'Deep', 'Deep'))}</button>
+          </div>
+          <div class="growth-session-customizer">
+            <label for="growthCustomCapInput">${escapeHtml(uiText('Số từ mỗi phiên', 'Words per session', 'Words per session'))}</label>
+            <div class="growth-session-customizer-row">
+              <input id="growthCustomCapInput" class="modern-input growth-cap-input" type="number" min="4" max="30" step="1" placeholder="${escapeHtml(uiText('Theo nhịp tự động', 'Use adaptive cap', 'Use adaptive cap'))}">
+              <button type="button" class="secondary-btn slim-btn" data-growth-action="save-cap">${escapeHtml(uiText('Lưu', 'Save', 'Save'))}</button>
+              <button type="button" class="secondary-btn slim-btn" data-growth-action="reset-cap">${escapeHtml(uiText('Tự động', 'Auto', 'Auto'))}</button>
+            </div>
+          </div>
+          <div class="growth-quick-actions">
+            <button type="button" class="secondary-btn slim-btn" data-growth-action="due">${escapeHtml(uiText('⚡ Rescue', '⚡ Rescue', '⚡ Rescue'))}</button>
+            <button type="button" class="secondary-btn slim-btn" data-growth-action="weak">${escapeHtml(uiText('🧠 Recall', '🧠 Recall', '🧠 Recall'))}</button>
+            <button type="button" class="secondary-btn slim-btn" data-growth-action="context">${escapeHtml(uiText('✍ Context', '✍ Context', '✍ Context'))}</button>
+          </div>
+          <div id="growthDockMeta" class="growth-dock-meta"></div>
+        </div>
+      </div>
+    `;
+    const strip = hero.querySelector('.review-priority-strip');
+    if (strip) strip.insertAdjacentElement('afterend', panel);
+    else hero.appendChild(panel);
+  }
+
+  function vm830RenderGrowthDock(words = [], stats = getSetStats(words)) {
+    vm830EnsureGrowthDock();
+    const titleNode = byId('growthDockTitle');
+    const noteNode = byId('growthDockNote');
+    const streakNode = byId('growthDockStreak');
+    const streakNote = byId('growthDockStreakNote');
+    const goalNode = byId('growthDockGoal');
+    const goalNote = byId('growthDockGoalNote');
+    const weakNode = byId('growthDockWeakSkill');
+    const weakNote = byId('growthDockWeakSkillNote');
+    const metaNode = byId('growthDockMeta');
+    if (!titleNode || !noteNode || !streakNode || !goalNode || !weakNode || !metaNode) return;
+
+    const tone = vm830GetGrowthTone(words, stats);
+    const today = getDailyProgressRecord();
+    const weakestSkill = typeof getWeakestSkillAcrossWords === 'function' ? getWeakestSkillAcrossWords(words) : null;
+    const contextReady = vm830GetContextReadyCount(words);
+    const cap = vm830GetSessionCap(stats.due > 0 ? 'srs' : stats.weak > 0 ? 'typing' : 'flashcard');
+
+    titleNode.textContent = tone.title;
+    noteNode.textContent = tone.note;
+    streakNode.textContent = `${state.stats?.currentStreak || 0}`;
+    streakNote.textContent = uiText(
+      state.stats?.currentStreak ? `Best ${state.stats.bestStreak || state.stats.currentStreak}` : 'Bắt đầu lại nhẹ nhàng',
+      state.stats?.currentStreak ? `Best ${state.stats.bestStreak || state.stats.currentStreak}` : 'Restart gently',
+      state.stats?.currentStreak ? `Best ${state.stats.bestStreak || state.stats.currentStreak}` : 'Restart gently'
+    );
+    goalNode.textContent = `${Math.min(today.studied || 0, state.stats.dailyGoal || 12)}/${state.stats.dailyGoal || 12}`;
+    goalNote.textContent = today.studied >= (state.stats.dailyGoal || 12)
+      ? uiText('đã chạm mục tiêu', 'goal reached', 'goal reached')
+      : uiText(`còn ${Math.max(0, (state.stats.dailyGoal || 12) - (today.studied || 0))} lượt`, `${Math.max(0, (state.stats.dailyGoal || 12) - (today.studied || 0))} rep(s) left`, `${Math.max(0, (state.stats.dailyGoal || 12) - (today.studied || 0))} rep(s) left`);
+    weakNode.textContent = weakestSkill ? getSkillLabel(weakestSkill.key) : uiText('Ổn định', 'Stable', 'Stable');
+    weakNote.textContent = weakestSkill
+      ? uiText(`avg ${weakestSkill.average}`, `avg ${weakestSkill.average}`, `avg ${weakestSkill.average}`)
+      : uiText('chưa có lane yếu', 'no weak lane yet', 'no weak lane yet');
+    metaNode.textContent = uiText(
+      `${vm830GetSessionSizeLabel()} • ${cap} mục / phiên • ${contextReady} mục sẵn context`,
+      `${vm830GetSessionSizeLabel()} • ${cap} items / session • ${contextReady} context-ready`,
+      `${vm830GetSessionSizeLabel()} • ${cap} items / session • ${contextReady} context-ready`
+    );
+
+    const customCapInput = byId('growthCustomCapInput');
+    if (customCapInput && document.activeElement !== customCapInput) {
+      customCapInput.value = state.vm830?.prefs?.customSessionCap >= 4 ? String(state.vm830.prefs.customSessionCap) : '';
+    }
+
+    document.querySelectorAll('#growthDockPanel [data-session-size]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.sessionSize === vm830GetSessionSize());
+    });
+    const dueBtn = document.querySelector('#growthDockPanel [data-growth-action="due"]');
+    const weakBtn = document.querySelector('#growthDockPanel [data-growth-action="weak"]');
+    const contextBtn = document.querySelector('#growthDockPanel [data-growth-action="context"]');
+    if (dueBtn) dueBtn.disabled = !stats.due;
+    if (weakBtn) weakBtn.disabled = !stats.weak;
+    if (contextBtn) contextBtn.disabled = contextReady < 1 && words.filter(word => String(word.example || '').trim()).length < 4;
+  }
+
+  function vm830SchedulePrewarm(reason = 'idle') {
+    if (!state.vm830?.prefs?.autoPrewarm) return;
+    if (state.vm830.warmTimer) window.clearTimeout(state.vm830.warmTimer);
+    const currentKey = `${state.dataRevision}|${state.vocab.length}|${document.body.dataset.currentView || ''}|${reason}`;
+    if (state.vm830.warmKey === currentKey) return;
+    state.vm830.warmKey = currentKey;
+    state.vm830.warmTimer = window.setTimeout(() => {
+      const run = () => {
+        try {
+          const index = typeof vm82GetSetIndex === 'function' ? vm82GetSetIndex() : [];
+          const warmNames = ['all', ...index
+            .slice()
+            .sort((a, b) => (b.stats?.due || 0) - (a.stats?.due || 0) || (b.stats?.weak || 0) - (a.stats?.weak || 0) || (b.latest || 0) - (a.latest || 0))
+            .slice(0, 4)
+            .map((entry) => entry.setName)
+          ];
+          warmNames.forEach((setName) => {
+            if (typeof vmGetReviewContext === 'function') {
+              const context = vmGetReviewContext(setName);
+              if (typeof getContrastQueue === 'function' && context?.words?.length) getContrastQueue(context.words, vm830GetSessionCap('contrast'));
+            } else {
+              const words = getWordsForSet(setName);
+              getSetStats(words);
+            }
+          });
+        } catch (error) {}
+      };
+      if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 220 });
+      else run();
+    }, 90);
+  }
+
+  const vm830OriginalInit = init;
+  init = async function() {
+    await vm830LoadPrefs();
+    await vm830OriginalInit();
+    vm830EnsureGrowthDock();
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    const context = typeof vmGetReviewContext === 'function'
+      ? vmGetReviewContext(setName)
+      : { words: getWordsForSet(setName), stats: getSetStats(getWordsForSet(setName)) };
+    vm830RenderGrowthDock(context.words, context.stats);
+    vm830SchedulePrewarm('init');
+  };
+
+  const vm830OriginalRenderReviewDashboardShell = renderReviewDashboardShell;
+  renderReviewDashboardShell = function(words, stats) {
+    vm830OriginalRenderReviewDashboardShell(words, stats);
+    vm830RenderGrowthDock(words, stats);
+  };
+
+  const vm830OriginalGetSessionQueue = getSessionQueue;
+  getSessionQueue = function(words, gameType) {
+    return vm830TrimQueue(vm830OriginalGetSessionQueue(words, gameType), gameType);
+  };
+
+  startRecommendedStudy = function() {
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    const words = getWordsForSet(setName);
+    const plan = getRecommendedStudyPlan(words);
+    if (!plan.gameType) return showToast(uiText('Hãy thêm vài từ trước khi bắt đầu học.', 'Add a few words before you start learning.', 'Add a few words before you start learning.'));
+    if (plan.gameType === 'contrast') {
+      startContrastLane(setName);
+      return;
+    }
+    const queue = plan.gameType === 'srs'
+      ? vm830TrimQueue(getRecommendedQueue(words, 20), 'srs')
+      : vm830TrimQueue(getSessionQueue(words, plan.gameType), plan.gameType);
+    startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason, queue });
+  };
+
+  startTargetedFocus = function(type) {
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    const words = getWordsForSet(setName);
+    const filters = {
+      due: words.filter(isDueWord),
+      weak: words.filter(isWeakWord),
+      new: words.filter(isNewWord)
+    };
+    const config = {
+      due: { gameType: 'srs', title: uiText('Ôn từ đến hạn', 'Review due words', 'Review due words'), reason: uiText('Giữ nền tảng trí nhớ không bị tụt.', 'Keep the memory base from slipping.', 'Keep the memory base from slipping.') },
+      weak: { gameType: 'typing', title: uiText('Ôn từ yếu', 'Drill weak words', 'Drill weak words'), reason: uiText('Kéo các từ còn yếu sang nhớ chủ động.', 'Pull weak items into active recall.', 'Pull weak items into active recall.') },
+      new: { gameType: 'flashcard', title: uiText('Làm quen từ mới', 'Warm up new words', 'Warm up new words'), reason: uiText('Xây lớp ghi nhớ đầu tiên thật nhẹ nhàng.', 'Build the first memory layer gently.', 'Build the first memory layer gently.') }
+    }[type];
+    const queue = vm830TrimQueue(diversifyStudyQueue(filters[type] || [], type === 'weak' ? 12 : 20), config?.gameType || 'flashcard');
+    if (!queue.length || !config) return showToast(uiText('Hiện chưa có nhóm từ phù hợp để mở nhanh.', 'There is no suitable group to launch right now.', 'There is no suitable group to launch right now.'));
+    startGame(config.gameType, setName, { queue, planTitle: config.title, planReason: config.reason });
+  };
+
+  const vm830OriginalStartSentenceBankClozeSession = startSentenceBankClozeSession;
+  startSentenceBankClozeSession = function(setName = state.currentDetailsSet || byId('reviewSetDropdown')?.value || 'all') {
+    const words = getWordsForSet(setName).filter(word => getWordSentenceBank(word).length > 0);
+    const queue = vm830TrimQueue(diversifyStudyQueue(words, Math.min(words.length, 12)), 'quiz');
+    if (!queue.length) return showToast(uiText('Hãy lưu vài câu của chính bạn trước khi mở cloze review.', 'Save a few of your own sentences before opening cloze review.', 'Save a few of your own sentences before opening cloze review.'));
+    startGame('quiz', setName, {
+      queue,
+      forceQuizMode: 'context',
+      planTitle: uiText('Cloze Review', 'Cloze Review', 'Cloze Review'),
+      planReason: uiText('Dùng câu ví dụ và câu tự viết để kéo từ vào ngữ cảnh thật.', 'Use examples and your own sentences to pull the word into real context.', 'Use examples and your own sentences to pull the word into real context.')
+    });
+  };
+
+  const vm830OriginalStartContrastLane = startContrastLane;
+  startContrastLane = function(setName = byId('reviewSetDropdown')?.value || 'all') {
+    const words = getWordsForSet(setName);
+    const queue = vm830TrimQueue(getContrastQueue(words, 10), 'contrast');
+    if (queue.length < 4) return showToast(uiText('Contrast lane cần ít nhất 4 mục có vùng dễ nhầm.', 'Contrast lane needs at least 4 confusion-linked items.', 'Contrast lane needs at least 4 confusion-linked items.'));
+    startGame('contrast', setName, {
+      queue,
+      planTitle: uiText('Contrast Lane', 'Contrast Lane', 'Contrast Lane'),
+      planReason: uiText('Tách rõ các từ gần nghĩa hoặc gần hình thức trước khi chúng nhập làm một.', 'Separate near-meaning or near-form words before they merge together.', 'Separate near-meaning or near-form words before they merge together.')
+    });
+  };
+
+  const vm830OriginalPersistState = persistState;
+  persistState = async function(reason = 'auto-save') {
+    const result = await vm830OriginalPersistState(reason);
+    vm830SchedulePrewarm(reason);
+    return result;
+  };
+
+  const vm830OriginalRenderSessionSummary = renderSessionSummary;
+  renderSessionSummary = function(message) {
+    vm830OriginalRenderSessionSummary(message);
+    const textNode = byId('sessionSummaryText');
+    if (!textNode || !state.sessionStats) return;
+    const today = getDailyProgressRecord();
+    const nextGoalLeft = Math.max(0, (state.stats.dailyGoal || 12) - (today.studied || 0));
+    const extraLine = uiText(
+      ` • Nhịp phiên: ${vm830GetSessionSizeLabel()} • Còn ${nextGoalLeft} lượt để chạm mục tiêu hôm nay.`,
+      ` • Session tempo: ${vm830GetSessionSizeLabel()} • ${nextGoalLeft} rep(s) left to hit today\'s goal.`,
+      ` • Session tempo: ${vm830GetSessionSizeLabel()} • ${nextGoalLeft} rep(s) left to hit today\'s goal.`
+    );
+    textNode.textContent = `${textNode.textContent}${extraLine}`;
+  };
+
+  document.addEventListener('click', async (event) => {
+    const sizeBtn = event.target.closest('#growthDockPanel [data-session-size]');
+    if (sizeBtn) {
+      const nextSize = sizeBtn.dataset.sessionSize || 'flow';
+      if (!VM830_SESSION_SIZE_OPTIONS.includes(nextSize)) return;
+      state.vm830.prefs.sessionSize = nextSize;
+      await vm830SavePrefs();
+      return;
+    }
+    const actionBtn = event.target.closest('#growthDockPanel [data-growth-action]');
+    if (actionBtn) {
+      const action = actionBtn.dataset.growthAction || '';
+      if (action === 'due') startTargetedFocus('due');
+      else if (action === 'weak') startTargetedFocus('weak');
+      else if (action === 'context') vm830StartContextBurst();
+      else if (action === 'save-cap') {
+        const input = byId('growthCustomCapInput');
+        const nextCap = Math.max(4, Math.min(30, Number(input?.value) || 0));
+        if (!nextCap) {
+          showToast(uiText('Hãy nhập từ 4 đến 30 từ mỗi phiên.', 'Enter a session size from 4 to 30 words.', 'Enter a session size from 4 to 30 words.'));
+          return;
+        }
+        state.vm830.prefs.customSessionCap = nextCap;
+        await vm830SavePrefs();
+        showToast(uiText(`Đã đặt ${nextCap} từ mỗi phiên.`, `Set ${nextCap} words per session.`, `Set ${nextCap} words per session.`));
+      } else if (action === 'reset-cap') {
+        state.vm830.prefs.customSessionCap = 0;
+        await vm830SavePrefs();
+        const input = byId('growthCustomCapInput');
+        if (input) input.value = '';
+        showToast(uiText('Đã trở về nhịp phiên tự động.', 'Returned to adaptive session sizing.', 'Returned to adaptive session sizing.'));
+      }
+    }
+  });
+
+  byId('reviewSetDropdown')?.addEventListener('change', () => {
+    window.setTimeout(() => {
+      const setName = byId('reviewSetDropdown')?.value || 'all';
+      const context = typeof vmGetReviewContext === 'function'
+        ? vmGetReviewContext(setName)
+        : { words: getWordsForSet(setName), stats: getSetStats(getWordsForSet(setName)) };
+      vm830RenderGrowthDock(context.words, context.stats);
+      vm830SchedulePrewarm('review-set-change');
+    }, 0);
+  });
+
+  const VM830_EFFECT_PRESETS = [
+    {
+      key: 'prism_frost',
+      viLabel: 'Prism Frost',
+      enLabel: 'Prism Frost',
+      noteVi: 'Trong hơn, sáng cạnh hơn để vẫn glass nhưng đỡ mờ.',
+      noteEn: 'Sharper edges and clearer glass without losing the liquid feel.',
+      settings: { fxGlass: 'crystal', fxMotion: 'calm', fxScene: 'midnight', fxDensity: 'compact', fxAccent: 'mint', fxRadius: 'rounded' }
+    },
+    {
+      key: 'ink_glass',
+      viLabel: 'Ink Glass',
+      enLabel: 'Ink Glass',
+      noteVi: 'Nền tối rõ nét hơn cho library và studio nhiều thông tin.',
+      noteEn: 'A cleaner dark shell for denser library and studio screens.',
+      settings: { fxGlass: 'obsidian', fxMotion: 'off', fxScene: 'forest', fxDensity: 'compact', fxAccent: 'blue', fxRadius: 'soft' }
+    }
+  ];
+  VM830_EFFECT_PRESETS.forEach((preset) => {
+    if (!EFFECT_PRESETS.some((item) => item.key === preset.key)) EFFECT_PRESETS.push(preset);
+  });
   vmResetReviewContextCache();
+
+
+  // ===== v8.3.2 stability-first hotfix =====
+  document.body.classList.add('vm-performance-lite');
+  state.vm832 = state.vm832 || {
+    navToken: 0,
+    initSig: { main: '', management: '', review: '' },
+    setSummaryCache: { key: '', entries: [] },
+    lastReviewHeavyKey: ''
+  };
+
+  if (state.vm830?.prefs) state.vm830.prefs.autoPrewarm = false;
+  if (typeof vm830SchedulePrewarm === 'function') {
+    vm830SchedulePrewarm = function() {};
+  }
+  if (typeof vm830OriginalRenderReviewDashboardShell === 'function') {
+    renderReviewDashboardShell = vm830OriginalRenderReviewDashboardShell;
+  }
+
+  function vm832Sig(bucket, extra = '') {
+    return `${bucket}|${state.dataRevision}|${state.vocab.length}|${extra}`;
+  }
+
+  function vm832ShouldSkipInit(bucket, sig) {
+    if (state.vm832.initSig[bucket] === sig) return true;
+    state.vm832.initSig[bucket] = sig;
+    return false;
+  }
+
+  function vm832BuildSetSummaries() {
+    const cacheKey = `${state.dataRevision}|${state.vocab.length}`;
+    if (state.vm832.setSummaryCache.key === cacheKey) return state.vm832.setSummaryCache.entries;
+    const entries = vm82GetSetIndex().map((entry) => {
+      const words = Array.isArray(entry.words) ? entry.words : [];
+      const stats = getSetStats(words);
+      const latest = words.reduce((best, word) => Math.max(best, Number(word?.updatedAt || word?.createdAt || 0)), 0);
+      const searchBlob = normalizeAnswer(`${entry.setName} ${words.map(word => `${word.word || ''} ${word.meaning || ''} ${word.wordType || ''} ${word.entryType || ''}`).join(' ')}`);
+      return {
+        setName: entry.setName,
+        words,
+        stats,
+        latest,
+        searchBlob
+      };
+    });
+    state.vm832.setSummaryCache = { key: cacheKey, entries };
+    return entries;
+  }
+
+  const vm832OriginalPersistState = persistState;
+  persistState = async function(reason = 'auto-save') {
+    const result = await vm832OriginalPersistState(reason);
+    state.vm832.setSummaryCache.key = '';
+    state.vm832.lastReviewHeavyKey = '';
+    return result;
+  };
+
+  renderWordsetsGrid = function() {
+    const grid = byId('wordsetGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const frag = document.createDocumentFragment();
+    const createCard = document.createElement('button');
+    createCard.className = 'set-card create-new-card';
+    createCard.type = 'button';
+    createCard.innerHTML = `<div class="create-new-content"><span class="create-icon">+</span><h2>${escapeHtml(uiText('Tạo bộ từ mới', 'Create a new set', 'Create a new set'))}</h2><p class="muted-text">${escapeHtml(uiText('Bắt đầu một nhóm từ mới và thêm dữ liệu ngay.', 'Start a fresh set and add data right away.', 'Start a fresh set and add data right away.'))}</p></div>`;
+    createCard.addEventListener('click', () => {
+      showView('main-view');
+      openModal('createSetModal');
+    });
+    frag.appendChild(createCard);
+
+    if (!state.vocab.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `<strong>${escapeHtml(uiText('Chưa có từ vựng nào', 'No vocabulary yet', 'No vocabulary yet'))}</strong><div>${escapeHtml(uiText('Thêm vài từ đầu tiên để bắt đầu học và theo dõi tiến độ.', 'Add your first entries to start studying and tracking progress.', 'Add your first entries to start studying and tracking progress.'))}</div>`;
+      frag.appendChild(empty);
+      grid.appendChild(frag);
+      return;
+    }
+
+    const query = normalizeAnswer(byId('setSearchInput')?.value || '');
+    const sortBy = byId('setSortSelect')?.value || 'due';
+    const sets = vm832BuildSetSummaries().filter(item => !query || item.searchBlob.includes(query));
+
+    const sorters = {
+      due: (a, b) => b.stats.due - a.stats.due || b.stats.weak - a.stats.weak || a.setName.localeCompare(b.setName, 'vi'),
+      recent: (a, b) => b.latest - a.latest || a.setName.localeCompare(b.setName, 'vi'),
+      size: (a, b) => b.stats.total - a.stats.total || a.setName.localeCompare(b.setName, 'vi'),
+      progress: (a, b) => b.stats.progress - a.stats.progress || a.setName.localeCompare(b.setName, 'vi'),
+      name: (a, b) => a.setName.localeCompare(b.setName, 'vi')
+    };
+    sets.sort(sorters[sortBy] || sorters.due);
+
+    if (!sets.length) {
+      const emptySearch = document.createElement('div');
+      emptySearch.className = 'set-card-search-empty';
+      emptySearch.innerHTML = `<strong>${escapeHtml(uiText('Không tìm thấy bộ từ phù hợp', 'No matching set found', 'No matching set found'))}</strong><div>${escapeHtml(uiText('Thử đổi từ khóa hoặc thứ tự sắp xếp.', 'Try a different keyword or sorting order.', 'Try a different keyword or sorting order.'))}</div>`;
+      frag.appendChild(emptySearch);
+      grid.appendChild(frag);
+      return;
+    }
+
+    sets.forEach(({ setName, words, stats }) => {
+      const card = document.createElement('div');
+      card.className = 'set-card set-card-lite';
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-title-icon-wrapper">
+            <span class="set-icon">🏷️</span>
+            <span class="set-title">${escapeHtml(setName)}</span>
+          </div>
+          <span class="summary-note">${stats.progress}%</span>
+        </div>
+        <div class="card-details">
+          <div class="card-metrics compact-metrics">
+            <span>${words.length} ${escapeHtml(uiText('từ', 'words', 'words'))}</span>
+            <span>${stats.due} ${escapeHtml(uiText('đến hạn', 'due', 'due'))}</span>
+            <span>${stats.weak} ${escapeHtml(uiText('yếu', 'weak', 'weak'))}</span>
+          </div>
+          <div class="progress-bar-container"><div class="progress-bar" style="width:${stats.progress}%"></div></div>
+          <div class="card-metrics compact-metrics">
+            <span>${stats.mastered}/${stats.total || 0} ${escapeHtml(uiText('đã vững', 'strong', 'strong'))}</span>
+            <span>${stats.fresh} ${escapeHtml(uiText('mới', 'new', 'new'))}</span>
+          </div>
+        </div>
+        <div class="card-action-bar">
+          <button class="card-btn btn-view" type="button">${escapeHtml(uiText('Xem / sửa', 'View / edit', 'View / edit'))}</button>
+          <button class="card-btn btn-study" type="button">${escapeHtml(uiText('Ôn ngay', 'Review now', 'Review now'))}</button>
+          <button class="card-btn btn-delete" type="button">${escapeHtml(uiText('Xóa', 'Delete', 'Delete'))}</button>
+        </div>
+      `;
+      card.querySelector('.btn-view')?.addEventListener('click', () => openSetDetails(setName));
+      card.querySelector('.btn-study')?.addEventListener('click', () => {
+        state.vmPendingReviewSet = setName;
+        showView('review-dashboard-view');
+      });
+      card.querySelector('.btn-delete')?.addEventListener('click', async () => {
+        if (!confirm(uiText(`Bạn có chắc muốn xóa toàn bộ bộ từ "${setName}"?`, `Delete the full set "${setName}"?`, `Delete the full set "${setName}"?`))) return;
+        state.vocab = state.vocab.filter(word => word.wordset !== setName);
+        await saveAndRefresh({ showManagement: true });
+        showToast(uiText(`Đã xóa bộ từ "${setName}".`, `Deleted set "${setName}".`, `Deleted set "${setName}".`));
+      });
+      frag.appendChild(card);
+    });
+
+    grid.appendChild(frag);
+  };
+
+  const vm832OriginalInitMainView = initMainView;
+  initMainView = function(force = false) {
+    const sig = vm832Sig('main', `${byId('wordsetDropdown')?.value || ''}|${state.settings?.languageMode || ''}`);
+    if (!force && vm832ShouldSkipInit('main', sig)) return;
+    vm832OriginalInitMainView(force);
+  };
+
+  initManagementView = function(force = false) {
+    const panel = state.vmManagementPanel || 'library';
+    const sig = vm832Sig('management', `${panel}|${byId('setSortSelect')?.value || 'due'}|${normalizeAnswer(byId('setSearchInput')?.value || '')}`);
+    if (!force && vm832ShouldSkipInit('management', sig)) return;
+    renderManagementSummary();
+    if (typeof ensureManagementWorkbench === 'function') ensureManagementWorkbench();
+    renderWordsetsGrid();
+    if (typeof setManagementWorkbenchPanel === 'function') setManagementWorkbenchPanel(panel);
+    if (panel === 'appearance') renderEffectsLabPanel();
+    if (panel === 'recovery') {
+      if (typeof ensureRecoveryPanel === 'function') ensureRecoveryPanel();
+      if (typeof renderRecoveryPanel === 'function') renderRecoveryPanel();
+    }
+    if (panel === 'studio') {
+      window.dispatchEvent(new CustomEvent('vm:studio-visible'));
+    }
+  };
+
+  function vm832RenderReviewShell(setName) {
+    const safeSetName = setName || 'all';
+    const words = typeof vmGetReviewContext === 'function'
+      ? vmGetReviewContext(safeSetName).words
+      : getWordsForSet(safeSetName);
+    const stats = typeof vmGetReviewContext === 'function'
+      ? vmGetReviewContext(safeSetName).stats
+      : getSetStats(words);
+    renderReviewDashboardShell(words, stats);
+
+    const badgeText = {
+      flashcard: uiText(`${Math.min(words.length, 12)} thẻ`, `${Math.min(words.length, 12)} cards`, `${Math.min(words.length, 12)} cards`),
+      quiz: uiText(`${Math.min(words.length, 8)} câu`, `${Math.min(words.length, 8)} questions`, `${Math.min(words.length, 8)} questions`),
+      matching: uiText(`${Math.min(words.length, 6)} cặp`, `${Math.min(words.length, 6)} pairs`, `${Math.min(words.length, 6)} pairs`),
+      typing: uiText(`${Math.min(words.length, 8)} câu`, `${Math.min(words.length, 8)} prompts`, `${Math.min(words.length, 8)} prompts`),
+      dictation: uiText(`${Math.min(words.length, 8)} câu`, `${Math.min(words.length, 8)} prompts`, `${Math.min(words.length, 8)} prompts`),
+      contrast: uiText(`${Math.min(getContrastQueue(words, 8).length, 8)} cặp`, `${Math.min(getContrastQueue(words, 8).length, 8)} pairs`, `${Math.min(getContrastQueue(words, 8).length, 8)} pairs`),
+      srs: uiText(`${Math.min(getRecommendedQueue(words, 12).length, 12)} từ`, `${Math.min(getRecommendedQueue(words, 12).length, 12)} words`, `${Math.min(getRecommendedQueue(words, 12).length, 12)} words`)
+    };
+    document.querySelectorAll('[data-badge]').forEach((node) => {
+      node.textContent = badgeText[node.dataset.badge] || '0';
+    });
+    document.querySelectorAll('.mode-lab-card').forEach(card => card.classList.remove('recommended-mode-card'));
+    const plan = getRecommendedStudyPlan(words, stats);
+    document.querySelector(`[data-game="${plan.gameType || ''}"]`)?.classList.add('recommended-mode-card');
+    if (byId('recommendedModeTitle')) byId('recommendedModeTitle').textContent = plan.title;
+    if (byId('recommendedModeReason')) byId('recommendedModeReason').textContent = plan.reason;
+    if (byId('startRecommendedBtn')) byId('startRecommendedBtn').disabled = !plan.gameType;
+    if (byId('startDueFocusBtn')) byId('startDueFocusBtn').disabled = !stats.due;
+    if (byId('startWeakFocusBtn')) byId('startWeakFocusBtn').disabled = !stats.weak;
+    if (byId('startNewFocusBtn')) byId('startNewFocusBtn').disabled = !stats.fresh;
+    if (byId('reviewOpenDeepDiveBtn')) {
+      byId('reviewOpenDeepDiveBtn').textContent = uiText('Hiện phân tích sâu', 'Show deeper insights', 'Show deeper insights');
+    }
+    if (byId('reviewDeepDiveDetails') && !forceOpenReviewDetails) {
+      byId('reviewDeepDiveDetails').open = false;
+      syncReviewDeepDiveState();
+    }
+    return { words, stats };
+  }
+
+  let forceOpenReviewDetails = false;
+  renderReviewDashboard = function(forceDeepDive = false) {
+    const setName = state.vmPendingReviewSet || byId('reviewSetDropdown')?.value || 'all';
+    const context = vm832RenderReviewShell(setName);
+    const details = byId('reviewDeepDiveDetails');
+    if (!details) return;
+    if (!context.words.length) {
+      details.open = true;
+      syncReviewDeepDiveState();
+      return;
+    }
+    const shouldOpen = Boolean(forceDeepDive || details.open || forceOpenReviewDetails);
+    forceOpenReviewDetails = false;
+    if (!shouldOpen) {
+      cancelPendingReviewRender();
+      return;
+    }
+    cancelPendingReviewRender();
+    const reviewKey = `${setName}|${state.dataRevision}|${context.words.length}`;
+    if (state.vm832.lastReviewHeavyKey === reviewKey && details.dataset.vm832Hydrated === 'true') return;
+    const token = state.reviewRenderToken;
+    state.reviewDeferredTimer = window.setTimeout(() => {
+      state.reviewDeferredTimer = 0;
+      if (token !== state.reviewRenderToken) return;
+      if (document.body.dataset.currentView !== 'review-dashboard-view') return;
+      details.dataset.vm832Hydrated = 'true';
+      state.vm832.lastReviewHeavyKey = reviewKey;
+      renderDailyFocus(context.words);
+      renderClusterMissions(context.words);
+      renderReviewInsights(context.words);
+      renderAdvancedReviewPanels(context.words);
+      renderIntegratedReviewSignals();
+    }, 90);
+  };
+
+  initReviewView = function(force = false) {
+    const select = byId('reviewSetDropdown');
+    const targetSet = state.vmPendingReviewSet || select?.value || 'all';
+    populateSetDropdown(select, true);
+    if (select && Array.from(select.options).some(option => option.value === targetSet)) {
+      select.value = targetSet;
+    }
+    const sig = vm832Sig('review', targetSet);
+    if (!force && vm832ShouldSkipInit('review', sig)) return;
+    state.vmPendingReviewSet = '';
+    ensureClusterMissionPanel();
+    if (byId('reviewDeepDiveDetails')) {
+      byId('reviewDeepDiveDetails').dataset.vm832Hydrated = 'false';
+      byId('reviewDeepDiveDetails').open = false;
+      syncReviewDeepDiveState();
+    }
+    renderReviewDashboard(false);
+  };
+
+  showView = function(viewIdToShow) {
+    cancelPendingReviewRender();
+    state.vm832.navToken += 1;
+    const token = state.vm832.navToken;
+
+    views.forEach(view => view.classList.add('hidden'));
+    navBtns.forEach(btn => btn.classList.remove('active'));
+    byId(viewIdToShow)?.classList.remove('hidden');
+
+    const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'];
+    const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view'];
+
+    document.body.dataset.currentView = viewIdToShow;
+    document.body.classList.toggle('is-review-view', reviewViews.includes(viewIdToShow));
+    document.body.classList.toggle('is-study-view', studyViews.includes(viewIdToShow));
+
+    if (viewIdToShow === 'main-view') byId('navMainBtn')?.classList.add('active');
+    if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn')?.classList.add('active');
+    if (reviewViews.includes(viewIdToShow)) byId('navReviewBtn')?.classList.add('active');
+    if (!studyViews.includes(viewIdToShow)) {
+      hideStudySupport();
+      hideMemoryCoach();
+    }
+    window.dispatchEvent(new CustomEvent('vm:viewchange', { detail: { viewId: viewIdToShow } }));
+
+    if (viewIdToShow === 'set-details-view') return;
+    window.requestAnimationFrame(() => {
+      if (token !== state.vm832.navToken) return;
+      if (viewIdToShow === 'main-view') initMainView(false);
+      else if (viewIdToShow === 'management-view') initManagementView(false);
+      else if (viewIdToShow === 'review-dashboard-view') initReviewView(false);
+    });
+  };
+
+  if (byId('reviewDeepDiveDetails') && byId('reviewDeepDiveDetails').dataset.vm832Bound !== 'true') {
+    byId('reviewDeepDiveDetails').dataset.vm832Bound = 'true';
+    byId('reviewDeepDiveDetails').addEventListener('toggle', () => {
+      if (byId('reviewDeepDiveDetails').open && document.body.dataset.currentView === 'review-dashboard-view') {
+        forceOpenReviewDetails = true;
+        renderReviewDashboard(true);
+      }
+    });
+  }
+
+  if (typeof setManagementWorkbenchPanel === 'function') {
+    const vm832OriginalSetManagementWorkbenchPanel = setManagementWorkbenchPanel;
+    setManagementWorkbenchPanel = function(panel) {
+      vm832OriginalSetManagementWorkbenchPanel(panel);
+      state.vmManagementPanel = panel || 'library';
+      if (state.vmManagementPanel === 'appearance') {
+        renderEffectsLabPanel();
+      } else if (state.vmManagementPanel === 'recovery') {
+        if (typeof ensureRecoveryPanel === 'function') ensureRecoveryPanel();
+        if (typeof renderRecoveryPanel === 'function') renderRecoveryPanel();
+      } else if (state.vmManagementPanel === 'studio') {
+        window.dispatchEvent(new CustomEvent('vm:studio-visible'));
+      }
+    };
+  }
+
+
+
+  // ===== v8.3.3 stable navigation + cached review shell =====
+  state.vm833 = state.vm833 || {
+    dirty: { main: true, management: true, review: true, details: true },
+    mounted: { main: false, management: false, review: false, details: false },
+    token: 0,
+    rafId: 0,
+    timerId: 0,
+    statsCache: { key: '', map: new WeakMap() },
+    queueCacheKey: '',
+    queueCache: new Map(),
+    reviewShellKey: ''
+  };
+
+  function vm833BaseKey() {
+    return `${state.dataRevision}|${state.vocab.length}|${getLanguageMode()}|${state.settings?.languageMode || ''}`;
+  }
+
+  function vm833MarkDirty(keys = ['main', 'management', 'review', 'details']) {
+    keys.forEach((key) => {
+      if (state.vm833?.dirty) state.vm833.dirty[key] = true;
+    });
+  }
+
+  function vm833ResetCaches() {
+    state.vm833.statsCache = { key: vm833BaseKey(), map: new WeakMap() };
+    state.vm833.queueCacheKey = vm833BaseKey();
+    state.vm833.queueCache = new Map();
+    state.vm833.reviewShellKey = '';
+    vm833MarkDirty(['main', 'management', 'review', 'details']);
+  }
+
+  function vm833EnsureStatsCache() {
+    const key = vm833BaseKey();
+    if (!state.vm833.statsCache || state.vm833.statsCache.key !== key) {
+      state.vm833.statsCache = { key, map: new WeakMap() };
+    }
+    return state.vm833.statsCache.map;
+  }
+
+  const vm833OriginalGetSetStats = getSetStats;
+  getSetStats = function(words) {
+    if (!Array.isArray(words)) return vm833OriginalGetSetStats(words || []);
+    const cache = vm833EnsureStatsCache();
+    if (cache.has(words)) return cache.get(words);
+    const stats = vm833OriginalGetSetStats(words);
+    cache.set(words, stats);
+    return stats;
+  };
+
+  function vm833QueueCacheGet(words, limit, profile) {
+    const key = vm833BaseKey();
+    if (state.vm833.queueCacheKey !== key) {
+      state.vm833.queueCacheKey = key;
+      state.vm833.queueCache = new Map();
+    }
+    const queueKey = `${profile}|${limit}|${Array.isArray(words) ? words.length : 0}|${Array.isArray(words) && words.length ? `${words[0]?.id || ''}:${words[words.length - 1]?.id || ''}` : 'empty'}`;
+    return state.vm833.queueCache.get(queueKey);
+  }
+
+  function vm833QueueCacheSet(words, limit, profile, value) {
+    const queueKey = `${profile}|${limit}|${Array.isArray(words) ? words.length : 0}|${Array.isArray(words) && words.length ? `${words[0]?.id || ''}:${words[words.length - 1]?.id || ''}` : 'empty'}`;
+    state.vm833.queueCache.set(queueKey, value);
+  }
+
+  const vm833OriginalBuildCoverageQueue = buildCoverageQueue;
+  buildCoverageQueue = function(words, limit = 20, profile = 'balanced') {
+    if (!Array.isArray(words) || !words.length) return [];
+    const cached = vm833QueueCacheGet(words, limit, profile);
+    if (cached) return cached;
+    const queue = vm833OriginalBuildCoverageQueue(words, limit, profile);
+    vm833QueueCacheSet(words, limit, profile, queue);
+    return queue;
+  };
+
+  const vm833OriginalPersistState = persistState;
+  persistState = async function(reason = 'auto-save') {
+    const result = await vm833OriginalPersistState(reason);
+    vm833ResetCaches();
+    return result;
+  };
+
+  const vm833OriginalLoadState = loadState;
+  loadState = async function() {
+    await vm833OriginalLoadState();
+    vm833ResetCaches();
+  };
+
+  function vm833GetBucketForView(viewId) {
+    if (viewId === 'main-view') return 'main';
+    if (viewId === 'management-view') return 'management';
+    if (viewId === 'review-dashboard-view') return 'review';
+    if (viewId === 'set-details-view') return 'details';
+    return '';
+  }
+
+  function vm833CancelMount() {
+    if (state.vm833.rafId) {
+      window.cancelAnimationFrame(state.vm833.rafId);
+      state.vm833.rafId = 0;
+    }
+    if (state.vm833.timerId) {
+      window.clearTimeout(state.vm833.timerId);
+      state.vm833.timerId = 0;
+    }
+  }
+
+  const vm833FinalInitMainView = initMainView;
+  const vm833FinalInitManagementView = initManagementView;
+  const vm833FinalInitReviewView = initReviewView;
+
+  function vm833MountView(viewId, force = false) {
+    const bucket = vm833GetBucketForView(viewId);
+    if (!bucket || viewId === 'set-details-view') return;
+    if (!force && state.vm833.mounted[bucket] && !state.vm833.dirty[bucket]) return;
+    if (viewId === 'main-view') vm833FinalInitMainView(true);
+    else if (viewId === 'management-view') vm833FinalInitManagementView(true);
+    else if (viewId === 'review-dashboard-view') vm833FinalInitReviewView(true);
+    state.vm833.mounted[bucket] = true;
+    state.vm833.dirty[bucket] = false;
+  }
+
+  const vm833OriginalSetManagementWorkbenchPanel = typeof setManagementWorkbenchPanel === 'function' ? setManagementWorkbenchPanel : null;
+  if (vm833OriginalSetManagementWorkbenchPanel) {
+    setManagementWorkbenchPanel = function(panel) {
+      state.vmManagementPanel = panel || 'library';
+      return vm833OriginalSetManagementWorkbenchPanel(panel);
+    };
+  }
+
+  function vm833ShowView(viewIdToShow, options = {}) {
+    vm833CancelMount();
+    cancelPendingReviewRender();
+    if (state.vm830?.warmTimer) {
+      window.clearTimeout(state.vm830.warmTimer);
+      state.vm830.warmTimer = 0;
+    }
+
+    views.forEach(view => view.classList.add('hidden'));
+    navBtns.forEach(btn => btn.classList.remove('active'));
+    byId(viewIdToShow)?.classList.remove('hidden');
+
+    const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'];
+    const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view'];
+    document.body.dataset.currentView = viewIdToShow;
+    document.body.classList.toggle('is-review-view', reviewViews.includes(viewIdToShow));
+    document.body.classList.toggle('is-study-view', studyViews.includes(viewIdToShow));
+
+    if (viewIdToShow === 'main-view') byId('navMainBtn')?.classList.add('active');
+    if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn')?.classList.add('active');
+    if (reviewViews.includes(viewIdToShow)) byId('navReviewBtn')?.classList.add('active');
+    if (!studyViews.includes(viewIdToShow)) {
+      hideStudySupport();
+      hideMemoryCoach();
+    }
+    window.dispatchEvent(new CustomEvent('vm:viewchange', { detail: { viewId: viewIdToShow } }));
+
+    if (viewIdToShow === 'set-details-view' || studyViews.includes(viewIdToShow)) return;
+
+    const force = Boolean(options.force);
+    const token = ++state.vm833.token;
+    state.vm833.rafId = window.requestAnimationFrame(() => {
+      if (token !== state.vm833.token) return;
+      state.vm833.rafId = 0;
+      state.vm833.timerId = window.setTimeout(() => {
+        if (token !== state.vm833.token) return;
+        state.vm833.timerId = 0;
+        vm833MountView(viewIdToShow, force);
+      }, 0);
+    });
+  }
+
+  showView = vm833ShowView;
+
+  renderAll = function(force = false) {
+    applyEffectSettings();
+    applyLanguageModeUI();
+    if (typeof renderIntegratedUITexts === 'function') renderIntegratedUITexts();
+    if (typeof ensureRecoveryPanel === 'function') ensureRecoveryPanel();
+    if (force) vm833MarkDirty(['main', 'management', 'review', 'details']);
+    const currentView = document.body.dataset.currentView || getPreferredInitialView();
+    if (currentView === 'set-details-view' && state.currentDetailsSet) {
+      openSetDetails(state.currentDetailsSet);
+      return;
+    }
+    vm833MountView(currentView, force || !state.vm833.mounted[vm833GetBucketForView(currentView)]);
+  };
+
+  saveAndRefresh = async function({ showManagement = false, showReview = false } = {}) {
+    await persistState('save-and-refresh');
+    if (showManagement) {
+      showView('management-view', { force: true });
+      return;
+    }
+    if (showReview) {
+      showView('review-dashboard-view', { force: true });
+      return;
+    }
+    renderAll(true);
+  };
+
+  exitCurrentGame = function() {
+    stopMatchingTimer();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    state.currentGame = null;
+    hideStudySupport();
+    hideMemoryCoach();
+    state.studyQueue = [];
+    state.currentCardIdx = 0;
+    state.answerLocked = false;
+    vm833MarkDirty(['review']);
+    showView('review-dashboard-view');
+  };
+
+  if (byId('backToManagementBtn') && byId('backToManagementBtn').dataset.vm833Patched !== 'true') {
+    const replacement = byId('backToManagementBtn').cloneNode(true);
+    replacement.dataset.vm833Patched = 'true';
+    byId('backToManagementBtn').replaceWith(replacement);
+    replacement.addEventListener('click', () => {
+      showView('management-view');
+    });
+  }
+
+  const vm833OriginalStartGame = startGame;
+  startGame = function(gameType, setName, options = {}) {
+    vm833MarkDirty(['review']);
+    return vm833OriginalStartGame(gameType, setName, options);
+  };
+
+  const vm833OriginalOpenSetDetails = openSetDetails;
+  openSetDetails = function(setName) {
+    vm833MarkDirty(['management']);
+    return vm833OriginalOpenSetDetails(setName);
+  };
+
+  if (typeof vm830SchedulePrewarm === 'function') {
+    vm830SchedulePrewarm = function() {};
+  }
+  if (state.vm830?.prefs) state.vm830.prefs.autoPrewarm = false;
+
+  function vm833BuildFastReviewPlan(words, stats) {
+    if (!words.length) {
+      return {
+        gameType: null,
+        title: uiText('Chưa có dữ liệu để ôn', 'No data to review yet', 'No data to review yet'),
+        reason: uiText('Hãy thêm vài từ trước khi bắt đầu ôn tập.', 'Add a few words before starting review.', 'Add a few words before starting review.')
+      };
+    }
+    if (stats.due > 0) {
+      return {
+        gameType: 'srs',
+        title: uiText(`Memory Rescue • ${Math.min(stats.due, Math.max(4, Math.min(words.length, 12)))} mục ưu tiên`, `Memory Rescue • ${Math.min(stats.due, Math.max(4, Math.min(words.length, 12)))} priority item(s)`, `Memory Rescue • ${Math.min(stats.due, Math.max(4, Math.min(words.length, 12)))} priority item(s)`),
+        reason: uiText('Ôn các mục đến hạn trước để giữ nhịp nhớ ổn định.', 'Review due items first to keep retention stable.', 'Review due items first to keep retention stable.')
+      };
+    }
+    if (stats.weak > 0) {
+      return {
+        gameType: 'typing',
+        title: uiText(`Recall Drill • ${Math.min(stats.weak, Math.min(words.length, 10))} mục yếu`, `Recall Drill • ${Math.min(stats.weak, Math.min(words.length, 10))} weak item(s)`, `Recall Drill • ${Math.min(stats.weak, Math.min(words.length, 10))} weak item(s)`),
+        reason: uiText('Kéo các mục còn yếu sang nhớ chủ động để sửa lỗi nhanh hơn.', 'Move weak items into active recall to fix them faster.', 'Move weak items into active recall to fix them faster.')
+      };
+    }
+    if (stats.fresh > 0) {
+      return {
+        gameType: 'flashcard',
+        title: uiText(`Flashcard • ${Math.min(stats.fresh, Math.min(words.length, 12))} mục mới`, `Flashcard • ${Math.min(stats.fresh, Math.min(words.length, 12))} new item(s)`, `Flashcard • ${Math.min(stats.fresh, Math.min(words.length, 12))} new item(s)`),
+        reason: uiText('Lướt qua các mục mới trước rồi mới tăng độ khó.', 'Glance through new items first before increasing difficulty.', 'Glance through new items first before increasing difficulty.')
+      };
+    }
+    return {
+      gameType: words.length >= 4 ? 'quiz' : 'flashcard',
+      title: words.length >= 4
+        ? uiText(`Quick Check • ${Math.min(words.length, 8)} câu`, `Quick Check • ${Math.min(words.length, 8)} checks`, `Quick Check • ${Math.min(words.length, 8)} checks`)
+        : uiText(`Flashcard • ${Math.min(words.length, 8)} thẻ`, `Flashcard • ${Math.min(words.length, 8)} cards`, `Flashcard • ${Math.min(words.length, 8)} cards`),
+      reason: uiText('Giữ phiên học ngắn và mượt để quay lại thường xuyên hơn.', 'Keep sessions short and smooth so you return more often.', 'Keep sessions short and smooth so you return more often.')
+    };
+  }
+
+  function vm833RenderReviewShellFast(setName) {
+    const safeSetName = setName || 'all';
+    const context = typeof vmGetReviewContext === 'function'
+      ? vmGetReviewContext(safeSetName)
+      : { words: getWordsForSet(safeSetName), stats: getSetStats(getWordsForSet(safeSetName)) };
+    const words = context.words || [];
+    const stats = context.stats || getSetStats(words);
+    const shellKey = `${safeSetName}|${vm833BaseKey()}|${words.length}|${stats.due}|${stats.weak}|${stats.fresh}|${stats.progress}`;
+    const needsShell = state.vm833.reviewShellKey !== shellKey;
+    if (needsShell) {
+      renderReviewDashboardShell(words, stats);
+      state.vm833.reviewShellKey = shellKey;
+    }
+
+    const badgeMap = {
+      flashcard: Math.min(words.length, 12),
+      quiz: Math.min(words.length, 8),
+      matching: Math.min(words.length, 6),
+      typing: Math.min(Math.max(stats.weak, 1), 8),
+      dictation: Math.min(Math.max(stats.weak, Math.min(words.length, 1)), 8),
+      contrast: Math.min(Math.max(stats.weak, 0), 8),
+      srs: Math.min(Math.max(stats.due, words.length ? 1 : 0), 12)
+    };
+    document.querySelectorAll('[data-badge]').forEach((node) => {
+      const count = badgeMap[node.dataset.badge] || 0;
+      const suffix = node.dataset.badge === 'contrast'
+        ? uiText(' cặp', ' pairs', ' pairs')
+        : (node.dataset.badge === 'flashcard' ? uiText(' thẻ', ' cards', ' cards') : uiText(' mục', ' items', ' items'));
+      node.textContent = `${count}${suffix}`;
+    });
+
+    document.querySelectorAll('.mode-lab-card').forEach(card => card.classList.remove('recommended-mode-card'));
+    const plan = vm833BuildFastReviewPlan(words, stats);
+    document.querySelector(`[data-game="${plan.gameType || ''}"]`)?.classList.add('recommended-mode-card');
+    if (byId('recommendedModeTitle')) byId('recommendedModeTitle').textContent = plan.title;
+    if (byId('recommendedModeReason')) byId('recommendedModeReason').textContent = plan.reason;
+    if (byId('startRecommendedBtn')) byId('startRecommendedBtn').disabled = !plan.gameType;
+    if (byId('startDueFocusBtn')) byId('startDueFocusBtn').disabled = !stats.due;
+    if (byId('startWeakFocusBtn')) byId('startWeakFocusBtn').disabled = !stats.weak;
+    if (byId('startNewFocusBtn')) byId('startNewFocusBtn').disabled = !stats.fresh;
+    if (byId('reviewOpenDeepDiveBtn')) {
+      byId('reviewOpenDeepDiveBtn').textContent = uiText('Hiện phân tích sâu', 'Show deeper insights', 'Show deeper insights');
+    }
+    if (typeof vm830RenderGrowthDock === 'function') vm830RenderGrowthDock(words, stats);
+    return { words, stats };
+  }
+
+  renderReviewDashboard = function(forceDeepDive = false) {
+    const setName = state.vmPendingReviewSet || byId('reviewSetDropdown')?.value || 'all';
+    const context = vm833RenderReviewShellFast(setName);
+    state.vmPendingReviewSet = '';
+    const details = byId('reviewDeepDiveDetails');
+    if (!details) return;
+    if (!context.words.length) {
+      details.open = true;
+      syncReviewDeepDiveState();
+      return;
+    }
+    const shouldOpen = Boolean(forceDeepDive || details.open);
+    if (!shouldOpen) {
+      details.open = false;
+      syncReviewDeepDiveState();
+      cancelPendingReviewRender();
+      return;
+    }
+    cancelPendingReviewRender();
+    const token = ++state.reviewRenderToken;
+    state.reviewDeferredTimer = window.setTimeout(() => {
+      if (token !== state.reviewRenderToken) return;
+      if (document.body.dataset.currentView !== 'review-dashboard-view') return;
+      renderDailyFocus(context.words);
+      renderClusterMissions(context.words);
+      renderReviewInsights(context.words);
+      renderAdvancedReviewPanels(context.words);
+      renderIntegratedReviewSignals();
+    }, 80);
+  };
+
+  initReviewView = function(force = false) {
+    const select = byId('reviewSetDropdown');
+    const targetSet = state.vmPendingReviewSet || select?.value || 'all';
+    populateSetDropdown(select, true);
+    if (select && Array.from(select.options).some(option => option.value === targetSet)) {
+      select.value = targetSet;
+    }
+    if (!force && state.vm833.mounted.review && !state.vm833.dirty.review && !state.vmPendingReviewSet) return;
+    ensureClusterMissionPanel();
+    if (byId('reviewDeepDiveDetails')) {
+      byId('reviewDeepDiveDetails').open = false;
+      byId('reviewDeepDiveDetails').dataset.vm832Hydrated = 'false';
+      syncReviewDeepDiveState();
+    }
+    renderReviewDashboard(false);
+    state.vm833.mounted.review = true;
+    state.vm833.dirty.review = false;
+  };
+
+  initManagementView = function(force = false) {
+    const panel = state.vmManagementPanel || 'library';
+    if (!force && state.vm833.mounted.management && !state.vm833.dirty.management) return;
+    renderManagementSummary();
+    if (typeof ensureManagementWorkbench === 'function') ensureManagementWorkbench();
+    renderWordsetsGrid();
+    if (typeof setManagementWorkbenchPanel === 'function') setManagementWorkbenchPanel(panel);
+    if (panel === 'appearance') renderEffectsLabPanel();
+    if (panel === 'recovery') {
+      if (typeof ensureRecoveryPanel === 'function') ensureRecoveryPanel();
+      if (typeof renderRecoveryPanel === 'function') renderRecoveryPanel();
+    }
+    if (panel === 'studio') window.dispatchEvent(new CustomEvent('vm:studio-visible'));
+    state.vm833.mounted.management = true;
+    state.vm833.dirty.management = false;
+  };
+
+  initMainView = function(force = false) {
+    if (!force && state.vm833.mounted.main && !state.vm833.dirty.main) return;
+    populateSetDropdown(byId('wordsetDropdown'));
+    ensureSetDoctorPanel();
+    renderSmartSuggestions({ resetCycle: true });
+    renderSetIntelligence();
+    renderSetDoctor();
+    state.vm833.mounted.main = true;
+    state.vm833.dirty.main = false;
+  };
+
+  const vm833OriginalCreateSetFromModal = createSetFromModal;
+  createSetFromModal = function(...args) {
+    vm833MarkDirty(['main', 'management', 'review']);
+    return vm833OriginalCreateSetFromModal.apply(this, args);
+  };
+
+  const vm833OriginalSavePreviewWords = savePreviewWords;
+  savePreviewWords = function(...args) {
+    vm833MarkDirty(['main', 'management', 'review']);
+    return vm833OriginalSavePreviewWords.apply(this, args);
+  };
+
+  const vm833OriginalSaveQuickWord = saveQuickWord;
+  saveQuickWord = function(...args) {
+    vm833MarkDirty(['main', 'management', 'review']);
+    return vm833OriginalSaveQuickWord.apply(this, args);
+  };
+
+  const vm833ReviewSetDropdown = byId('reviewSetDropdown');
+  if (vm833ReviewSetDropdown && vm833ReviewSetDropdown.dataset.vm833Bound !== 'true') {
+    vm833ReviewSetDropdown.dataset.vm833Bound = 'true';
+    vm833ReviewSetDropdown.addEventListener('change', () => {
+      state.vm833.reviewShellKey = '';
+      vm833MarkDirty(['review']);
+    }, true);
+  }
+
+  vm833ResetCaches();
 
   syncCompactNav();
   init().catch(error => {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "8.2.0",
-  "description": "Vocab Master with faster library rendering, a tabbed workbench, quick command palette, and lighter studio updates.",
+  "version": "8.3.0",
+  "description": "Vocab Master with faster review prewarm, adaptive session sizes, and a new growth cockpit for steadier learning.",
   "permissions": [
     "storage"
   ],

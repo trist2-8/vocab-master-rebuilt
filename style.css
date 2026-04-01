@@ -5756,3 +5756,167 @@ body[data-management-panel="library"] #managementWorkbenchBar {
     border-radius: 22px;
   }
 }
+
+
+/* ===== v8.3.1 readability boost + set progress clarity ===== */
+.header-subtext,
+.muted-text,
+.card-metrics,
+.growth-dock-meta,
+.recovery-meta-note,
+.recovery-snapshot-note {
+  font-size: 15px;
+  line-height: 1.58;
+}
+
+.summary-note,
+.stat-note,
+.summary-label,
+.stat-label,
+.growth-chip-card span,
+.growth-chip-card small {
+  font-size: 13px;
+}
+
+.modern-input,
+select.modern-input,
+.game-input,
+#fcTypingInput,
+.table-input,
+#bulkInput {
+  font-size: 15px;
+}
+
+.data-table thead th {
+  font-size: 13px;
+}
+
+.data-table td {
+  padding: 10px 9px;
+}
+
+.table-input {
+  padding: 11px 12px;
+}
+
+.set-title {
+  font-size: 19px;
+}
+
+.progress-bar-container {
+  height: 12px;
+}
+
+.set-details-meta-shell {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.set-details-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.set-details-meta-card {
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-details-meta-card.emphasis {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.18), rgba(255,255,255,0.06));
+}
+
+.set-details-meta-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(235, 242, 255, 0.72);
+}
+
+.set-details-meta-card strong {
+  font-size: 1.45rem;
+  line-height: 1.05;
+}
+
+.set-details-meta-card small {
+  color: rgba(236, 242, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.set-details-cap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.set-details-cap-input,
+.growth-cap-input {
+  max-width: 164px;
+}
+
+
+/* ===== v8.3.2 stability-first hotfix ===== */
+body.vm-performance-lite,
+body.vm-performance-lite * {
+  scroll-behavior: auto;
+}
+
+body.vm-performance-lite .panel-card,
+body.vm-performance-lite .set-card,
+body.vm-performance-lite .mode-lab-card,
+body.vm-performance-lite .hero-card,
+body.vm-performance-lite .glass-panel,
+body.vm-performance-lite .management-workbench,
+body.vm-performance-lite .effects-lab-panel,
+body.vm-performance-lite #upgradeRewardBar,
+body.vm-performance-lite #upgradeHub,
+body.vm-performance-lite .recovery-panel {
+  backdrop-filter: blur(10px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.14) !important;
+}
+
+body.vm-performance-lite .set-card,
+body.vm-performance-lite .panel-card,
+body.vm-performance-lite .mode-lab-card,
+body.vm-performance-lite .review-hero,
+body.vm-performance-lite .review-dashboard-shell,
+body.vm-performance-lite .management-workbench,
+body.vm-performance-lite #upgradeHub,
+body.vm-performance-lite .effects-lab-shell,
+body.vm-performance-lite .recovery-panel-body,
+body.vm-performance-lite .growth-dock {
+  transition: opacity 120ms ease, transform 120ms ease, border-color 120ms ease !important;
+}
+
+body.vm-performance-lite .ambient-companion,
+body.vm-performance-lite .weather-layer,
+body.vm-performance-lite .bg-orb,
+body.vm-performance-lite .glass-noise,
+body.vm-performance-lite .reward-burst,
+body.vm-performance-lite .floating-particle {
+  animation: none !important;
+  display: none !important;
+}
+
+body.vm-performance-lite .set-card-lite .card-details {
+  gap: 8px;
+}
+
+body.vm-performance-lite .set-card-lite .card-metrics {
+  font-size: 0.9rem;
+}
+
+body.vm-performance-lite #reviewDeepDiveDetails:not([open]) .review-deep-dive-body,
+body.vm-performance-lite #reviewDeepDiveDetails:not([open]) .advanced-review-panels,
+body.vm-performance-lite #reviewDeepDiveDetails:not([open]) .review-insight-panel {
+  display: none !important;
+}

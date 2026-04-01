@@ -2943,4 +2943,29 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+  // ===== v8.3.2 stability-first hotfix =====
+  function vm832StudioVisible() {
+    const hub = byId('upgradeHub');
+    return !!hub && !hub.classList.contains('vm-dock-hidden');
+  }
+
+  const vm832OriginalScheduleUpgradeLayerRender = scheduleUpgradeLayerRender;
+  scheduleUpgradeLayerRender = function(mode = 'summary') {
+    if (mode === 'summary' && !vm832StudioVisible()) return;
+    return vm832OriginalScheduleUpgradeLayerRender(mode);
+  };
+
+  const vm832OriginalRenderUpgradeLayer = renderUpgradeLayer;
+  renderUpgradeLayer = function(mode = 'full') {
+    if (!vm832StudioVisible() && mode === 'summary') return;
+    return vm832OriginalRenderUpgradeLayer(mode);
+  };
+
+  window.addEventListener('vm:studio-visible', () => {
+    window.setTimeout(() => {
+      if (vm832StudioVisible()) scheduleUpgradeLayerRender('summary');
+    }, 0);
+  });
+
 });
