@@ -52,10 +52,43 @@ textarea:focus-visible {
 }
 .hidden { display: none !important; }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--bg-dark-body); }
-::-webkit-scrollbar-thumb { background: #313b49; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #465367; }
+/* Viewport scrollbar: slimmer and flush to the edge like the web layout */
+html {
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(137, 148, 168, 0.62) rgba(255, 255, 255, 0.02);
+}
+body {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(153, 164, 184, 0.72) 0%, rgba(104, 114, 134, 0.74) 100%);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(171, 182, 201, 0.82) 0%, rgba(118, 128, 149, 0.82) 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: transparent;
+}
 
 #main-container { max-width: 1440px; margin: 0 auto; }
 #content-area { padding: 0 32px 48px; }
@@ -3741,10 +3774,10 @@ body[data-fx-density="compact"] #languageModeHint { font-size: 12px; }
 
 /* ---- v7.0.1 review stabilization patch ---- */
 html {
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: auto !important;
 }
 body {
-  overflow-y: scroll;
+  overflow-y: auto !important;
 }
 .main-nav {
   top: 10px !important;
