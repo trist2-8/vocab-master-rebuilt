@@ -1999,3 +1999,271 @@ body[data-ui-theme="film-diary"] .modal-content {
 .pomodoro-mini-widget.study-dock .pomodoro-mini-text strong {
   font-size: 15px;
 }
+
+/* Integrated upgrade surfaces: shell -> panel -> control */
+:root {
+  --vm-shell-bg: linear-gradient(180deg, rgba(18, 24, 33, 0.82), rgba(13, 18, 25, 0.78));
+  --vm-shell-border: rgba(255, 255, 255, 0.1);
+  --vm-shell-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+  --vm-panel-bg: linear-gradient(180deg, rgba(22, 29, 39, 0.94), rgba(17, 22, 31, 0.92));
+  --vm-panel-border: rgba(255, 255, 255, 0.08);
+  --vm-control-bg: rgba(255, 255, 255, 0.07);
+  --vm-control-border: rgba(255, 255, 255, 0.1);
+  --vm-soft-text: rgba(236, 243, 251, 0.72);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(63, 143, 255, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(148, 84, 255, 0.12), transparent 26%),
+    linear-gradient(180deg, #0b0f15 0%, #101520 100%);
+}
+
+.main-nav,
+.review-focus-hero,
+.fc-top-bar,
+.memory-coach-dock,
+.study-support-dock,
+.modal-content,
+.toolbar-card,
+.review-deep-dive,
+.cluster-mission-panel {
+  background: var(--vm-shell-bg) !important;
+  border: 1px solid var(--vm-shell-border) !important;
+  box-shadow: var(--vm-shell-shadow) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+}
+
+.panel-card,
+.summary-card,
+.stat-card,
+.focus-card,
+.doctor-card,
+.doctor-repair-card,
+.insight-card,
+.review-queue-card,
+.support-card,
+.sentence-bank-card,
+.context-chip,
+.wordset-card,
+.mode-lab-card,
+.match-card,
+.quiz-container,
+.typing-container,
+.matching-container,
+.audio-box,
+.flashcard,
+.fc-bottom-controls,
+.fc-typing-check,
+#setDetailsTableContainer {
+  background: var(--vm-panel-bg) !important;
+  border: 1px solid var(--vm-panel-border) !important;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: blur(16px) saturate(132%);
+}
+
+.modern-input,
+input,
+select,
+textarea,
+.secondary-btn,
+.fc-icon-btn,
+.fc-ctrl-btn,
+.quiz-option-btn,
+.quiz-mode-selector,
+.match-card,
+.priority-stat-card,
+.audio-box,
+.nav-select-trigger,
+.nav-select-option {
+  background: var(--vm-control-bg) !important;
+  border: 1px solid var(--vm-control-border) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(12px) saturate(128%);
+}
+
+.primary-btn {
+  box-shadow: 0 14px 28px rgba(47, 127, 233, 0.24);
+}
+
+.panel-card p,
+.muted-text,
+.doctor-foot,
+.sentence-bank-card small,
+.dictation-prompt-help,
+.active-use-preview-item span {
+  color: var(--vm-soft-text);
+}
+
+.card-amber {
+  border-color: rgba(255, 191, 79, 0.26) !important;
+}
+
+.dictation-audio-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+
+.dictation-audio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.dictation-prompt-panel {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+}
+
+.dictation-prompt-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.muted-chip {
+  opacity: 0.8;
+}
+
+.dictation-prompt-help {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dictation-prompt-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.active-use-textarea {
+  min-height: 96px;
+  resize: vertical;
+  margin-top: 12px;
+}
+
+.active-use-gloss {
+  margin-top: 10px;
+}
+
+.active-use-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.active-use-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.active-use-preview-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.active-use-preview-item strong,
+.sentence-bank-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sentence-bank-panel {
+  margin-top: 22px;
+}
+
+.sentence-bank-head {
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.sentence-bank-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sentence-bank-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--vm-soft-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sentence-bank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.sentence-bank-card {
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.sentence-bank-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.sentence-bank-empty {
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--vm-soft-text);
+}
+
+.doctor-repair-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.doctor-repair-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.doctor-repair-card p {
+  margin-bottom: 0;
+}
+
+.priority-stat-card strong {
+  display: block;
+}
+
+@media (max-width: 820px) {
+  .dictation-audio-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sentence-bank-head {
+    align-items: stretch;
+  }
+}

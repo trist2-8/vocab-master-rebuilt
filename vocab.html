@@ -178,184 +178,232 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
       </section>
 
       <section id="review-dashboard-view" class="view hidden">
-        <div class="filter-row-section">
-          <div class="filter-box">
-            <label for="reviewSetDropdown">Bộ từ vựng</label>
-            <select id="reviewSetDropdown">
-              <option value="all">Tất cả bộ từ</option>
-            </select>
-          </div>
-          <div class="filter-box filter-box-wide">
-            <label>Gợi ý hôm nay</label>
-            <div id="reviewRecommendation" class="dashboard-recommendation">Hãy chọn một bộ từ để bắt đầu ôn tập.</div>
-            <div class="recommended-study-row">
-              <div class="recommended-study-copy">
-                <span class="recommended-study-label">Bắt đầu theo lộ trình gợi ý</span>
-                <strong id="recommendedModeTitle">Chưa có đề xuất</strong>
-                <span id="recommendedModeReason" class="recommended-study-reason">Khi có dữ liệu, hệ thống sẽ gợi ý bước học đầu tiên an toàn nhất cho trí nhớ dài hạn.</span>
-              </div>
-              <button id="startRecommendedBtn" class="primary-btn start-recommended-btn">▶ Học theo gợi ý</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="dailyFocusGrid" class="daily-focus-grid"></div>
-
-        <div class="quick-focus-row">
-          <button id="startDueFocusBtn" class="secondary-btn">Ôn từ đến hạn</button>
-          <button id="startWeakFocusBtn" class="secondary-btn">Ôn từ yếu</button>
-          <button id="startNewFocusBtn" class="secondary-btn">Làm quen từ mới</button>
-        </div>
-
-        <div class="stats-overview">
-          <div class="stat-card">
-            <span class="stat-label">Đến hạn</span>
-            <strong id="reviewDueCount">0</strong>
-            <span class="stat-note">Nên ôn ngay hôm nay</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Từ mới</span>
-            <strong id="reviewNewCount">0</strong>
-            <span class="stat-note">Chưa ôn lần nào</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Cần củng cố</span>
-            <strong id="reviewWeakCount">0</strong>
-            <span class="stat-note">Sai nhiều hoặc mức nhớ còn thấp</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Đã vững</span>
-            <strong id="reviewMasteredCount">0</strong>
-            <span class="stat-note">Qua nhiều lượt nhớ tốt</span>
-          </div>
-        </div>
-
-        <div id="memoryStageStrip" class="memory-stage-strip"></div>
-        <div id="reviewInsightPanel" class="insight-panel panel-card"></div>
-
-        <div class="dashboard-body-section panel-card learning-mode-shell">
-          <div class="mode-board-hero">
-            <div class="mode-board-copy">
-              <span class="mode-board-kicker">Learning Lab</span>
-              <h2>Chọn chế độ học theo trạng thái trí nhớ hiện tại</h2>
-              <p id="dashboardSubtext" class="muted-text">Hệ thống sẽ cân bằng giữa cứu từ sắp quên, sửa lỗi và mở rộng vùng nhớ mà không học lặp vô ích.</p>
-              <div class="mode-chip-row">
-                <span id="modeBoardSummaryLine" class="mode-info-chip">Chờ dữ liệu ôn tập</span>
-                <span id="modeBoardTension" class="mode-info-chip">Chưa có nhịp căng</span>
-                <span id="modeBoardCoverage" class="mode-info-chip">Chưa có độ phủ</span>
-                <span id="modeBoardGap" class="mode-info-chip">Chưa có khoảng trống</span>
+        <div id="reviewFocusHero" class="panel-card review-focus-hero">
+          <div class="review-focus-head">
+            <div class="review-focus-copy">
+              <span class="review-focus-kicker">Bước tiếp theo</span>
+              <h2 id="reviewFocusTitle">Chưa có đề xuất</h2>
+              <p id="reviewFocusReason" class="muted-text">Khi có dữ liệu, hệ thống sẽ đề xuất một lượt học rõ ràng để bạn chỉ cần mở và bắt đầu.</p>
+              <div class="review-focus-chip-row">
+                <span id="reviewFocusSetChip" class="mode-info-chip">Tất cả bộ từ</span>
+                <span id="reviewFocusSnapshotChip" class="mode-info-chip">Chưa có dữ liệu ôn</span>
               </div>
             </div>
-            <div class="mode-board-spotlight">
-              <span class="spotlight-label">Bước nên mở trước</span>
-              <strong id="spotlightModeName">Chưa có đề xuất</strong>
-              <p id="spotlightModeReason">Khi đã có dữ liệu, hệ thống sẽ chọn lượt học đầu tiên để giảm quên và tránh lặp lại cùng một vùng nhớ.</p>
-              <div class="spotlight-actions">
-                <button id="spotlightLaunchBtn" class="primary-btn">▶ Mở lượt này</button>
-                <button id="openStrategyBtn" class="secondary-btn strategy-btn">🧠 Lộ trình học</button>
-              </div>
+            <div class="review-focus-actions">
+              <button id="reviewStartPrimaryBtn" class="primary-btn">▶ Học bước này</button>
+              <button id="reviewOpenDeepDiveBtn" class="secondary-btn" type="button">Mở toàn bộ mode</button>
             </div>
           </div>
-
-          <div class="learning-mode-grid">
-            <button class="vibrant-card mode-lab-card card-pink" data-game="srs">
-              <div class="mode-card-head">
-                <div class="v-icon">🧠</div>
-                <div>
-                  <span class="mode-mini-label">Ưu tiên số 1</span>
-                  <h3>Memory Rescue</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Kéo ngay những từ sắp rơi trí nhớ, vừa sai hoặc đang chệch nhịp học.</p>
-              <div class="mode-card-metrics"><span>Rescue queue</span><span>Giảm quên dài hạn</span></div>
-              <div class="mode-card-when">Dùng khi: có từ đến hạn, risk cao hoặc vừa quên xong.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral hot-neutral">Auto-priority</span>
-                <span class="v-badge" data-badge="srs">0 từ</span>
-              </div>
+          <div class="review-priority-strip">
+            <button id="reviewDueHeroCard" class="priority-stat-card" type="button" data-focus-target="due">
+              <span class="priority-label">Đến hạn</span>
+              <strong id="reviewHeroDueCount">0</strong>
+              <span class="priority-note">Cứu trước</span>
             </button>
-            <button class="vibrant-card mode-lab-card card-purple" data-game="flashcard">
-              <div class="mode-card-head">
-                <div class="v-icon">≡</div>
-                <div>
-                  <span class="mode-mini-label">Khởi động</span>
-                  <h3>Flashcard</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Lật thẻ, tự nhớ nghĩa rồi chấm nhanh mức độ nhớ để tạo dấu vết ban đầu.</p>
-              <div class="mode-card-metrics"><span>Recall nhẹ</span><span>Từ mới & ôn mềm</span></div>
-              <div class="mode-card-when">Dùng khi: cần vào nhịp an toàn trước khi viết hoặc nghe.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Nhớ lại</span>
-                <span class="v-badge" data-badge="flashcard">20 thẻ</span>
-              </div>
+            <button id="reviewWeakHeroCard" class="priority-stat-card" type="button" data-focus-target="weak">
+              <span class="priority-label">Cần củng cố</span>
+              <strong id="reviewHeroWeakCount">0</strong>
+              <span class="priority-note">Luyện chủ động</span>
             </button>
-            <button class="vibrant-card mode-lab-card card-green" data-game="typing">
-              <div class="mode-card-head">
-                <div class="v-icon">T</div>
-                <div>
-                  <span class="mode-mini-label">Chữa lỗi chủ động</span>
-                  <h3>Gõ từ</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nhìn gợi ý, tự kéo từ ra khỏi trí nhớ và sửa chính tả lẫn tốc độ gọi từ.</p>
-              <div class="mode-card-metrics"><span>Active recall</span><span>Sửa spelling</span></div>
-              <div class="mode-card-when">Dùng khi: bạn nhận ra nghĩa nhưng chưa gọi chữ ra đủ nhanh.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Viết ra</span>
-                <span class="v-badge" data-badge="typing">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-orange" data-game="quiz">
-              <div class="mode-card-head">
-                <div class="v-icon">☑️</div>
-                <div>
-                  <span class="mode-mini-label">Kiểm tra tốc độ</span>
-                  <h3>Trắc nghiệm</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nhận diện nhanh qua từ, nghĩa và ngữ cảnh để đo phản xạ thật sự.</p>
-              <div class="mode-card-metrics"><span>Nhận diện nhanh</span><span>Ngữ cảnh</span></div>
-              <div class="mode-card-when">Dùng khi: bộ từ đã khá quen và bạn muốn kiểm tra tốc độ nhận biết.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Speed check</span>
-                <span class="v-badge" data-badge="quiz">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-cyan" data-game="dictation">
-              <div class="mode-card-head">
-                <div class="v-icon">🎧</div>
-                <div>
-                  <span class="mode-mini-label">Âm → chữ</span>
-                  <h3>Nghe viết</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nối phát âm với mặt chữ để giảm lỗi nghe gần âm và ghi sai chính tả.</p>
-              <div class="mode-card-metrics"><span>Listening bridge</span><span>Spelling</span></div>
-              <div class="mode-card-when">Dùng khi: bạn nghe ra lờ mờ nhưng chưa viết lại thật chắc.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Nghe rồi viết</span>
-                <span class="v-badge" data-badge="dictation">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-blue" data-game="matching">
-              <div class="mode-card-head">
-                <div class="v-icon">⧉</div>
-                <div>
-                  <span class="mode-mini-label">Tăng phản xạ</span>
-                  <h3>Nối cặp</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Ghép từ và nghĩa nhanh để dọn lỗi nhầm lẫn và tăng tốc truy xuất.</p>
-              <div class="mode-card-metrics"><span>Confusion drill</span><span>Phản xạ</span></div>
-              <div class="mode-card-when">Dùng khi: bạn hay nhầm những từ gần nghĩa hoặc gần hình thức.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Ghép nhanh</span>
-                <span class="v-badge" data-badge="matching">6 cặp</span>
-              </div>
+            <button id="reviewNewHeroCard" class="priority-stat-card" type="button" data-focus-target="new">
+              <span class="priority-label">Từ mới</span>
+              <strong id="reviewHeroNewCount">0</strong>
+              <span class="priority-note">Làm quen nhẹ</span>
             </button>
           </div>
         </div>
+
+        <details id="reviewDeepDiveDetails" class="review-deep-dive panel-card">
+          <summary>
+            <div class="review-deep-dive-summary">
+              <div>
+                <strong id="reviewDeepDiveTitle">Toàn bộ chế độ & insight</strong>
+                <span id="reviewDeepDiveLead">Mở dashboard đầy đủ khi bạn muốn xem tất cả mode, cluster mission và insight chi tiết.</span>
+              </div>
+              <span class="review-deep-dive-chevron" aria-hidden="true"></span>
+            </div>
+          </summary>
+          <div class="review-deep-dive-body">
+            <div class="filter-row-section">
+              <div class="filter-box">
+                <label for="reviewSetDropdown">Bộ từ vựng</label>
+                <select id="reviewSetDropdown">
+                  <option value="all">Tất cả bộ từ</option>
+                </select>
+              </div>
+              <div class="filter-box filter-box-wide">
+                <label>Gợi ý hôm nay</label>
+                <div id="reviewRecommendation" class="dashboard-recommendation">Hãy chọn một bộ từ để bắt đầu ôn tập.</div>
+                <div class="recommended-study-row">
+                  <div class="recommended-study-copy">
+                    <span class="recommended-study-label">Bắt đầu theo lộ trình gợi ý</span>
+                    <strong id="recommendedModeTitle">Chưa có đề xuất</strong>
+                    <span id="recommendedModeReason" class="recommended-study-reason">Khi có dữ liệu, hệ thống sẽ gợi ý bước học đầu tiên an toàn nhất cho trí nhớ dài hạn.</span>
+                  </div>
+                  <button id="startRecommendedBtn" class="primary-btn start-recommended-btn">▶ Học theo gợi ý</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="dailyFocusGrid" class="daily-focus-grid"></div>
+
+            <div class="quick-focus-row">
+              <button id="startDueFocusBtn" class="secondary-btn">Ôn từ đến hạn</button>
+              <button id="startWeakFocusBtn" class="secondary-btn">Ôn từ yếu</button>
+              <button id="startNewFocusBtn" class="secondary-btn">Làm quen từ mới</button>
+            </div>
+
+            <div class="stats-overview">
+              <div class="stat-card">
+                <span class="stat-label">Đến hạn</span>
+                <strong id="reviewDueCount">0</strong>
+                <span class="stat-note">Nên ôn ngay hôm nay</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Từ mới</span>
+                <strong id="reviewNewCount">0</strong>
+                <span class="stat-note">Chưa ôn lần nào</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Cần củng cố</span>
+                <strong id="reviewWeakCount">0</strong>
+                <span class="stat-note">Sai nhiều hoặc mức nhớ còn thấp</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Đã vững</span>
+                <strong id="reviewMasteredCount">0</strong>
+                <span class="stat-note">Qua nhiều lượt nhớ tốt</span>
+              </div>
+            </div>
+
+            <div id="memoryStageStrip" class="memory-stage-strip"></div>
+            <div id="reviewInsightPanel" class="insight-panel panel-card"></div>
+
+            <div class="dashboard-body-section panel-card learning-mode-shell">
+              <div class="mode-board-hero">
+                <div class="mode-board-copy">
+                  <span class="mode-board-kicker">Learning Lab</span>
+                  <h2>Chọn chế độ học theo trạng thái trí nhớ hiện tại</h2>
+                  <p id="dashboardSubtext" class="muted-text">Hệ thống sẽ cân bằng giữa cứu từ sắp quên, sửa lỗi và mở rộng vùng nhớ mà không học lặp vô ích.</p>
+                  <div class="mode-chip-row">
+                    <span id="modeBoardSummaryLine" class="mode-info-chip">Chờ dữ liệu ôn tập</span>
+                    <span id="modeBoardTension" class="mode-info-chip">Chưa có nhịp căng</span>
+                    <span id="modeBoardCoverage" class="mode-info-chip">Chưa có độ phủ</span>
+                    <span id="modeBoardGap" class="mode-info-chip">Chưa có khoảng trống</span>
+                  </div>
+                </div>
+                <div class="mode-board-spotlight">
+                  <span class="spotlight-label">Bước nên mở trước</span>
+                  <strong id="spotlightModeName">Chưa có đề xuất</strong>
+                  <p id="spotlightModeReason">Khi đã có dữ liệu, hệ thống sẽ chọn lượt học đầu tiên để giảm quên và tránh lặp lại cùng một vùng nhớ.</p>
+                  <div class="spotlight-actions">
+                    <button id="spotlightLaunchBtn" class="primary-btn">▶ Mở lượt này</button>
+                    <button id="openStrategyBtn" class="secondary-btn strategy-btn">🧠 Lộ trình học</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="learning-mode-grid">
+                <button class="vibrant-card mode-lab-card card-pink" data-game="srs">
+                  <div class="mode-card-head">
+                    <div class="v-icon">🧠</div>
+                    <div>
+                      <span class="mode-mini-label">Ưu tiên số 1</span>
+                      <h3>Memory Rescue</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Kéo ngay những từ sắp rơi trí nhớ, vừa sai hoặc đang chệch nhịp học.</p>
+                  <div class="mode-card-metrics"><span>Rescue queue</span><span>Giảm quên dài hạn</span></div>
+                  <div class="mode-card-when">Dùng khi: có từ đến hạn, risk cao hoặc vừa quên xong.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral hot-neutral">Auto-priority</span>
+                    <span class="v-badge" data-badge="srs">0 từ</span>
+                  </div>
+                </button>
+                <button class="vibrant-card mode-lab-card card-purple" data-game="flashcard">
+                  <div class="mode-card-head">
+                    <div class="v-icon">≡</div>
+                    <div>
+                      <span class="mode-mini-label">Khởi động</span>
+                      <h3>Flashcard</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Lật thẻ, tự nhớ nghĩa rồi chấm nhanh mức độ nhớ để tạo dấu vết ban đầu.</p>
+                  <div class="mode-card-metrics"><span>Recall nhẹ</span><span>Từ mới & ôn mềm</span></div>
+                  <div class="mode-card-when">Dùng khi: cần vào nhịp an toàn trước khi viết hoặc nghe.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral">Nhớ lại</span>
+                    <span class="v-badge" data-badge="flashcard">20 thẻ</span>
+                  </div>
+                </button>
+                <button class="vibrant-card mode-lab-card card-green" data-game="typing">
+                  <div class="mode-card-head">
+                    <div class="v-icon">T</div>
+                    <div>
+                      <span class="mode-mini-label">Chữa lỗi chủ động</span>
+                      <h3>Gõ từ</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Nhìn gợi ý, tự kéo từ ra khỏi trí nhớ và sửa chính tả lẫn tốc độ gọi từ.</p>
+                  <div class="mode-card-metrics"><span>Active recall</span><span>Sửa spelling</span></div>
+                  <div class="mode-card-when">Dùng khi: bạn nhận ra nghĩa nhưng chưa gọi chữ ra đủ nhanh.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral">Viết ra</span>
+                    <span class="v-badge" data-badge="typing">10 câu</span>
+                  </div>
+                </button>
+                <button class="vibrant-card mode-lab-card card-orange" data-game="quiz">
+                  <div class="mode-card-head">
+                    <div class="v-icon">☑️</div>
+                    <div>
+                      <span class="mode-mini-label">Kiểm tra tốc độ</span>
+                      <h3>Trắc nghiệm</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Nhận diện nhanh qua từ, nghĩa và ngữ cảnh để đo phản xạ thật sự.</p>
+                  <div class="mode-card-metrics"><span>Nhận diện nhanh</span><span>Ngữ cảnh</span></div>
+                  <div class="mode-card-when">Dùng khi: bộ từ đã khá quen và bạn muốn kiểm tra tốc độ nhận biết.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral">Speed check</span>
+                    <span class="v-badge" data-badge="quiz">10 câu</span>
+                  </div>
+                </button>
+                <button class="vibrant-card mode-lab-card card-cyan" data-game="dictation">
+                  <div class="mode-card-head">
+                    <div class="v-icon">🎧</div>
+                    <div>
+                      <span class="mode-mini-label">Âm → chữ</span>
+                      <h3>Nghe viết</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Nối phát âm với mặt chữ để giảm lỗi nghe gần âm và ghi sai chính tả.</p>
+                  <div class="mode-card-metrics"><span>Listening bridge</span><span>Spelling</span></div>
+                  <div class="mode-card-when">Dùng khi: bạn nghe ra lờ mờ nhưng chưa viết lại thật chắc.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral">Nghe rồi viết</span>
+                    <span class="v-badge" data-badge="dictation">10 câu</span>
+                  </div>
+                </button>
+                <button class="vibrant-card mode-lab-card card-blue" data-game="matching">
+                  <div class="mode-card-head">
+                    <div class="v-icon">⧉</div>
+                    <div>
+                      <span class="mode-mini-label">Tăng phản xạ</span>
+                      <h3>Nối cặp</h3>
+                    </div>
+                  </div>
+                  <p class="mode-card-copy">Ghép từ và nghĩa nhanh để dọn lỗi nhầm lẫn và tăng tốc truy xuất.</p>
+                  <div class="mode-card-metrics"><span>Confusion drill</span><span>Phản xạ</span></div>
+                  <div class="mode-card-when">Dùng khi: bạn hay nhầm những từ gần nghĩa hoặc gần hình thức.</div>
+                  <div class="mode-card-footer">
+                    <span class="mode-chip-neutral">Ghép nhanh</span>
+                    <span class="v-badge" data-badge="matching">6 cặp</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section id="study-mode-view" class="view hidden">
