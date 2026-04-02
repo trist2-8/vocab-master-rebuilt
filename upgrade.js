@@ -44,6 +44,22 @@ document.addEventListener('DOMContentLoaded', () => {
   state.collections = normalizeCollectionsState({});
   state.admin = normalizeAdminState({});
 
+  const EFFECTS_LAB_PRESETS = [
+    { id: 'study-focus', name: 'Study Focus', note: 'Compact and calm for long study sessions.', theme: 'midnight', cardStyle: 'focusboard', density: 'compact', effect: 'off' },
+    { id: 'glass-studio', name: 'Glass Studio', note: 'Balanced clarity with a premium glass shell.', theme: 'liquidglass', cardStyle: 'glass', density: 'balanced', effect: 'prism' },
+    { id: 'calm-aurora', name: 'Calm Aurora', note: 'Soft aurora glow for night study.', theme: 'aurora', cardStyle: 'glass', density: 'comfortable', effect: 'aurora' },
+    { id: 'sunset-pop', name: 'Sunset Pop', note: 'Warmer, livelier glass for a fresh look.', theme: 'latte', cardStyle: 'rounded', density: 'comfortable', effect: 'stardust' }
+  ];
+
+  const EFFECTS_SCENES = [
+    { id: 'nebula', label: 'Nebula', note: 'Deep purple ambient scene for daily study.', theme: 'liquidglass' },
+    { id: 'aurora', label: 'Aurora', note: 'Cool aurora glow for a fresher interface.', theme: 'aurora' },
+    { id: 'midnight', label: 'Midnight', note: 'Darker and tighter for low-distraction sessions.', theme: 'midnight' },
+    { id: 'sunset', label: 'Sunset', note: 'Warmer sunset tones for a lively workspace.', theme: 'latte' },
+    { id: 'forest', label: 'Forest', note: 'Muted green scene for calmer studying.', theme: 'forest' },
+    { id: 'rose', label: 'Rose', note: 'Rose-violet scene with a softer feel.', theme: 'rose' }
+  ];
+
   init().catch((error) => {
     console.error('Vocab Master upgrade layer failed to initialize', error);
   });
@@ -60,12 +76,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function injectUpgradeUi() {
-    const studioView = byId('management-view');
+    const studioView = byId('interface-view') || byId('management-view');
     if (studioView && !byId('upgradeHub')) {
-      const anchor = byId('managementSummary') || studioView.firstElementChild;
+      const anchor = byId('interfaceHubAnchor') || byId('managementSummary') || studioView.firstElementChild;
       const wrapper = document.createElement('div');
       wrapper.id = 'upgradeHub';
       wrapper.innerHTML = `
+        <div id="interfaceQuickDeck" class="panel-card interface-quick-deck">
+          <div class="section-title-row interface-quick-head">
+            <div>
+              <h3>Control center</h3>
+              <span class="muted-text">Một chạm để mở nhanh hiệu ứng, admin, pomodoro và các tiện ích giao diện.</span>
+            </div>
+          </div>
+          <div class="interface-quick-grid">
+            <article class="interface-quick-card interface-quick-card-effects">
+              <div class="interface-quick-card-top">
+                <span class="interface-quick-icon">✨</span>
+                <div>
+                  <strong>Effects Lab</strong>
+                  <p class="muted-text">Hiệu ứng động mới cho nền liquid glass.</p>
+                </div>
+              </div>
+              <div class="interface-quick-meta">
+                <span id="effectsQuickLabel" class="interface-quick-chip">Đang tắt</span>
+                <span id="effectsQuickDetail" class="muted-text">Thử Aurora, Fireflies, Stardust hoặc Prism.</span>
+              </div>
+              <div class="interface-quick-actions">
+                <button id="openEffectsLabBtn" class="secondary-btn" type="button">Mở Effects Lab</button>
+              </div>
+            </article>
+            <article class="interface-quick-card interface-quick-card-admin">
+              <div class="interface-quick-card-top">
+                <span class="interface-quick-icon">🛠</span>
+                <div>
+                  <strong>Admin wallet tools</strong>
+                  <p class="muted-text">Bật, sửa số dư hoặc đồng bộ lại ví UI.</p>
+                </div>
+              </div>
+              <div class="interface-quick-meta interface-quick-meta-stack">
+                <span id="adminDeckStatus" class="interface-quick-chip">Admin OFF</span>
+                <span id="adminDeckWallet" class="muted-text">Số dư khả dụng: 0</span>
+              </div>
+              <div class="interface-quick-actions">
+                <button id="openAdminDeckBtn" class="secondary-btn" type="button">Mở Admin</button>
+                <button id="toggleAdminDeckBtn" class="primary-btn" type="button">Bật nhanh</button>
+                <button id="repairAdminDeckBtn" class="ghost-btn" type="button">Sửa ví</button>
+              </div>
+            </article>
+            <article class="interface-quick-card interface-quick-card-focus">
+              <div class="interface-quick-card-top">
+                <span class="interface-quick-icon">🍅</span>
+                <div>
+                  <strong>Pomodoro + Focus</strong>
+                  <p class="muted-text">Giữ nhịp học, âm báo và mini widget gọn hơn.</p>
+                </div>
+              </div>
+              <div class="interface-quick-meta">
+                <span id="focusQuickStatus" class="interface-quick-chip">25 phút</span>
+                <span id="focusQuickDetail" class="muted-text">0 pomodoro hôm nay</span>
+              </div>
+              <div class="interface-quick-actions">
+                <button id="openFocusDeckBtn" class="secondary-btn" type="button">Mở Pomodoro</button>
+                <button id="openFocusRoomDeckBtn" class="ghost-btn" type="button">Focus Room</button>
+              </div>
+            </article>
+            <article class="interface-quick-card interface-quick-card-quote">
+              <div class="interface-quick-card-top">
+                <span class="interface-quick-icon">🌌</span>
+                <div>
+                  <strong>Daily mood</strong>
+                  <p class="muted-text">Quote, collections và preset để giao diện bớt nhàm chán.</p>
+                </div>
+              </div>
+              <div class="interface-quick-meta">
+                <span id="quoteQuickStyle" class="interface-quick-chip">Soft quote</span>
+                <span id="quoteQuickDetail" class="muted-text">Preset + collections + câu nói mỗi ngày.</span>
+              </div>
+              <div class="interface-quick-actions">
+                <button id="openDailyDeckBtn" class="secondary-btn" type="button">Mở quote</button>
+                <button id="openCollectionsDeckBtn" class="ghost-btn" type="button">Collections</button>
+              </div>
+            </article>
+          </div>
+        </div>
         <div id="upgradeRewardBar" class="upgrade-reward-bar panel-card">
           <div class="reward-bar-head">
             <strong>Studio & Rewards</strong>
@@ -206,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="muted-text">Thêm mưa hoặc tuyết rất nhẹ phía sau giao diện để tạo mood mà vẫn giữ chữ rõ.</span>
               </div>
               <div class="toggle-grid atmosphere-control-grid">
-                <label class="toggle-card select-card"><span>Hiệu ứng</span><select id="weatherEffectSelect" class="modern-input"><option value="off">Tắt</option><option value="rain">Mưa mềm</option><option value="window-rain">Mưa kính</option><option value="snow">Tuyết</option><option value="dust">Bụi sáng</option><option value="mist">Sương mờ</option><option value="neon">Phản chiếu neon</option><option value="petals">Cánh hoa</option></select></label>
+                <label class="toggle-card select-card"><span>Hiệu ứng</span><select id="weatherEffectSelect" class="modern-input"><option value="off">Tắt</option><option value="aurora">Aurora ribbon</option><option value="fireflies">Fireflies</option><option value="stardust">Stardust</option><option value="prism">Prism wave</option><option value="comets">Comet trails</option><option value="orbs">Glass orbs</option><option value="bubbles">Floating bubbles</option><option value="rain">Mưa mềm</option><option value="window-rain">Mưa kính</option><option value="snow">Tuyết</option><option value="dust">Bụi sáng</option><option value="mist">Sương mờ</option><option value="neon">Phản chiếu neon</option><option value="petals">Cánh hoa</option></select></label>
                 <label class="toggle-card range-card"><span>Mật độ hiệu ứng</span><input id="weatherIntensityRange" type="range" min="20" max="100" step="5"></label>
                 <label class="toggle-card range-card"><span>Tốc độ hiệu ứng</span><input id="weatherSpeedRange" type="range" min="40" max="140" step="5"></label>
               </div>
@@ -226,6 +320,64 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         </div>
+
+                <div id="effectsLabModal" class="modal hidden">
+          <div class="modal-content tutorial-modal-content wide-modal vm-effects-modal vm-effects-modal-rich">
+            <button class="close-modal" data-close-modal="effectsLabModal" aria-label="Đóng">×</button>
+            <div class="effects-lab-head">
+              <div>
+                <h2 id="effectsLabTitle">Effects Lab</h2>
+                <p id="effectsLabLead" class="muted-text">Add richer effects without bloating the UI: start with quick presets, then open advanced controls only when needed.</p>
+              </div>
+              <button id="openStudioFromEffectsBtn" class="secondary-btn slim-btn" type="button">Studio</button>
+            </div>
+            <div class="effects-preset-row">
+              <div>
+                <div id="effectsPresetLabel" class="effects-section-title">Quick presets</div>
+                <p id="effectsPresetHint" class="muted-text effects-section-note">Apply one preset first so the interface changes instantly without too many controls.</p>
+              </div>
+              <button type="button" id="effectsResetBtn" class="secondary-btn effects-reset-btn">Reset defaults</button>
+            </div>
+            <div id="effectsPresetStrip" class="effects-preset-strip"></div>
+            <div class="effects-lab-grid effects-lab-grid-main">
+              <label class="effects-field">
+                <span id="fxGlassLabel">Glass style</span>
+                <select id="fxGlassSelect" class="modern-input"></select>
+              </label>
+              <label class="effects-field">
+                <span id="fxAccentLabel">Accent</span>
+                <select id="fxAccentSelect" class="modern-input"></select>
+              </label>
+              <label class="effects-field">
+                <span id="fxDensityLabel">UI density</span>
+                <select id="fxDensitySelect" class="modern-input"></select>
+              </label>
+            </div>
+            <div id="fxSceneGrid" class="fx-scene-grid fx-scene-grid-compact"></div>
+            <details class="effects-advanced" id="effectsAdvancedPanel">
+              <summary id="effectsAdvancedSummary">More controls</summary>
+              <div class="effects-lab-grid effects-lab-grid-advanced">
+                <label class="effects-field">
+                  <span>Atmosphere effect</span>
+                  <select id="effectsLabSelect" class="modern-input">
+                    <option value="off">Tắt</option><option value="aurora">Aurora ribbon</option><option value="fireflies">Fireflies</option><option value="stardust">Stardust</option><option value="prism">Prism wave</option><option value="comets">Comet trails</option><option value="orbs">Glass orbs</option><option value="bubbles">Floating bubbles</option><option value="rain">Mưa mềm</option><option value="window-rain">Mưa kính</option><option value="snow">Tuyết</option><option value="dust">Bụi sáng</option><option value="mist">Sương mờ</option><option value="neon">Phản chiếu neon</option><option value="petals">Cánh hoa</option>
+                  </select>
+                </label>
+                <label class="effects-field range-card">
+                  <span>Mật độ hiệu ứng <strong id="effectsLabIntensityText">55%</strong></span>
+                  <input id="effectsLabIntensityRange" type="range" min="20" max="100" step="5">
+                </label>
+                <label class="effects-field range-card">
+                  <span>Tốc độ hiệu ứng <strong id="effectsLabSpeedText">100%</strong></span>
+                  <input id="effectsLabSpeedRange" type="range" min="40" max="140" step="5">
+                </label>
+              </div>
+            </details>
+            <div id="effectsOptionGrid" class="effects-option-grid"></div>
+            <div id="effectsLabPreviewNote" class="effects-lab-preview muted-text"></div>
+          </div>
+        </div>
+
 
         <div id="pomodoroModal" class="modal hidden">
           <div class="modal-content tutorial-modal-content wide-modal pomodoro-modal-content">
@@ -599,10 +751,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function bindEvents() {
+    const openAdminSafely = () => { void syncWalletStateFromStorage().then(() => { renderAdminModal(); renderUpgradeLayer(); openModal('adminModal'); }); };
+    const openEffectsLabSafely = () => { renderEffectsLabModal(); openModal('effectsLabModal'); };
     byId('openCustomizationBtn')?.addEventListener('click', () => openModal('customizationModal'));
-    byId('openAdminPanelBtn')?.addEventListener('click', () => { renderAdminModal(); openModal('adminModal'); });
-    byId('openAdminFromCustomizationBtn')?.addEventListener('click', () => { renderAdminModal(); openModal('adminModal'); });
+    byId('openEffectsLabBtn')?.addEventListener('click', openEffectsLabSafely);
+    byId('openStudioFromEffectsBtn')?.addEventListener('click', () => { closeModal('effectsLabModal'); openModal('customizationModal'); });
+    byId('openAdminPanelBtn')?.addEventListener('click', openAdminSafely);
+    byId('openAdminFromCustomizationBtn')?.addEventListener('click', openAdminSafely);
+    byId('openAdminDeckBtn')?.addEventListener('click', openAdminSafely);
+    byId('toggleAdminDeckBtn')?.addEventListener('click', toggleAdminMode);
+    byId('repairAdminDeckBtn')?.addEventListener('click', repairAdminWallet);
     byId('openPomodoroBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openFocusDeckBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openFocusRoomDeckBtn')?.addEventListener('click', () => { renderFocusRoomModal(); openModal('focusRoomModal'); });
+    byId('openDailyDeckBtn')?.addEventListener('click', openDailySayingModal);
+    byId('openCollectionsDeckBtn')?.addEventListener('click', () => { renderCollectionsModal(); openModal('collectionsModal'); });
     byId('openProgressBoosterBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
     byId('openDailySayingBtn')?.addEventListener('click', openDailySayingModal);
     byId('dailySayingLauncher')?.addEventListener('click', openDailySayingModal);
@@ -673,10 +836,10 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('adminApplyTargetBtn')?.addEventListener('click', applyAdminTargetAvailable);
     byId('adminResetSpentBtn')?.addEventListener('click', resetAdminSpentCoins);
     byId('adminRepairWalletBtn')?.addEventListener('click', repairAdminWallet);
-    byId('adminModal')?.addEventListener('click', (event) => {
+    byId('adminModal')?.addEventListener('click', async (event) => {
       const addButton = event.target.closest('[data-admin-add]');
       if (addButton) {
-        adjustAdminAvailableBy(Number(addButton.dataset.adminAdd) || 0);
+        await adjustAdminAvailableBy(Number(addButton.dataset.adminAdd) || 0);
       }
     });
 
@@ -691,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
     });
 
-    ['customizationModal', 'pomodoroModal', 'dailySayingModal', 'memoryPathModal', 'weakRescueModal', 'patternVaultModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal', 'adminModal'].forEach((modalId) => {
+    ['customizationModal', 'effectsLabModal', 'pomodoroModal', 'dailySayingModal', 'memoryPathModal', 'weakRescueModal', 'patternVaultModal', 'focusRoomModal', 'collectionsModal', 'weeklyRecapModal', 'adminModal'].forEach((modalId) => {
       const modal = byId(modalId);
       modal?.addEventListener('click', (event) => {
         if (event.target === modal) closeModal(modalId);
@@ -714,20 +877,65 @@ document.addEventListener('DOMContentLoaded', () => {
       state.ui.density = event.target.value;
       await saveUiState();
     });
-    byId('weatherEffectSelect')?.addEventListener('change', async (event) => {
-      state.ui.weatherEffect = getSupportedWeatherEffect(event.target.value);
+    byId('effectsResetBtn')?.addEventListener('click', resetEffectsLabDefaults);
+    byId('effectsPresetStrip')?.addEventListener('click', handleEffectsLabPresetClick);
+    byId('fxSceneGrid')?.addEventListener('click', handleEffectsLabSceneClick);
+    byId('effectsOptionGrid')?.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-effect-card]');
+      if (!button) return;
+      state.ui.weatherEffect = getSupportedWeatherEffect(button.dataset.effectCard || 'off');
       applyUiPreferences();
+      renderEffectsLabModal();
       await saveUiState();
+    });
+    byId('fxGlassSelect')?.addEventListener('change', async (event) => {
+      state.ui.cardStyle = event.target.value;
+      await saveUiState();
+    });
+    byId('fxAccentSelect')?.addEventListener('change', async (event) => {
+      state.ui.theme = event.target.value;
+      await saveUiState();
+    });
+    byId('fxDensitySelect')?.addEventListener('change', async (event) => {
+      state.ui.density = event.target.value;
+      await saveUiState();
+    });
+
+    const handleEffectChange = async (rawValue) => {
+      state.ui.weatherEffect = getSupportedWeatherEffect(rawValue);
+      applyUiPreferences();
+      renderEffectsLabModal();
+      await saveUiState();
+    };
+    const handleEffectIntensity = async (rawValue) => {
+      state.ui.weatherIntensity = clampRange(rawValue, 20, 100, 55);
+      applyUiPreferences();
+      renderEffectsLabModal();
+      await saveUiState();
+    };
+    const handleEffectSpeed = async (rawValue) => {
+      state.ui.weatherSpeed = clampRange(rawValue, 40, 140, 100);
+      applyUiPreferences();
+      renderEffectsLabModal();
+      await saveUiState();
+    };
+    byId('weatherEffectSelect')?.addEventListener('change', async (event) => {
+      await handleEffectChange(event.target.value);
+    });
+    byId('effectsLabSelect')?.addEventListener('change', async (event) => {
+      await handleEffectChange(event.target.value);
     });
     byId('weatherIntensityRange')?.addEventListener('input', async (event) => {
-      state.ui.weatherIntensity = clampRange(event.target.value, 20, 100, 55);
-      applyUiPreferences();
-      await saveUiState();
+      await handleEffectIntensity(event.target.value);
+    });
+    byId('effectsLabIntensityRange')?.addEventListener('input', async (event) => {
+      await handleEffectIntensity(event.target.value);
     });
     byId('weatherSpeedRange')?.addEventListener('input', async (event) => {
-      state.ui.weatherSpeed = clampRange(event.target.value, 40, 140, 100);
-      applyUiPreferences();
-      await saveUiState();
+      await handleEffectSpeed(event.target.value);
+    });
+    byId('effectsLabSpeedRange')?.addEventListener('input', async (event) => {
+      await handleEffectSpeed(event.target.value);
     });
     byId('pomodoroAudioToggle')?.addEventListener('change', async (event) => {
       state.ui.pomodoroAudioEnabled = event.target.checked;
@@ -889,10 +1097,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function normalizeStats(stats = {}) {
-    const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
-    const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
-    const sessionHistory = Array.isArray(stats.sessionHistory)
-      ? stats.sessionHistory
+    const source = stats && typeof stats === 'object' ? { ...stats } : {};
+    const dailyProgress = source.dailyProgress && typeof source.dailyProgress === 'object' ? { ...source.dailyProgress } : {};
+    const studyLog = Array.isArray(source.studyLog) ? source.studyLog.slice(0, 40) : [];
+    const sessionHistory = Array.isArray(source.sessionHistory)
+      ? source.sessionHistory
           .filter((entry) => entry && (typeof entry.dateKey === 'string' || Number(entry.finishedAt) > 0))
           .map((entry) => ({
             dateKey: typeof entry.dateKey === 'string' && entry.dateKey ? entry.dateKey : toDateKey(entry.finishedAt || Date.now()),
@@ -909,14 +1118,15 @@ document.addEventListener('DOMContentLoaded', () => {
       : [];
 
     return {
-      coins: Math.max(0, Number(stats.coins) || 0),
-      dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
+      ...source,
+      coins: Math.max(0, Number(source.coins) || 0),
+      dailyGoal: Math.max(5, Number(source.dailyGoal) || 12),
       dailyProgress,
       studyLog,
       sessionHistory,
-      currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
-      bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
-      totalSessions: Math.max(0, Number(stats.totalSessions) || sessionHistory.length || 0)
+      currentStreak: Math.max(0, Number(source.currentStreak) || 0),
+      bestStreak: Math.max(0, Number(source.bestStreak) || 0),
+      totalSessions: Math.max(0, Number(source.totalSessions) || sessionHistory.length || 0)
     };
   }
 
@@ -932,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getSupportedWeatherEffect(value) {
-    return ['off', 'rain', 'window-rain', 'snow', 'dust', 'mist', 'neon', 'petals'].includes(value) ? value : 'off';
+    return ['off', 'aurora', 'fireflies', 'stardust', 'prism', 'comets', 'orbs', 'bubbles', 'rain', 'window-rain', 'snow', 'dust', 'mist', 'neon', 'petals'].includes(value) ? value : 'off';
   }
 
   function ensureUpgradeState() {
@@ -1246,6 +1456,30 @@ document.addEventListener('DOMContentLoaded', () => {
     return getWalletSnapshot().availableCoins;
   }
 
+  async function mergeStatsBeforeWalletWrite() {
+    const result = await storage.get({ stats: {} });
+    const storedStats = result?.stats && typeof result.stats === 'object' ? result.stats : {};
+    state.stats = normalizeStats({
+      ...storedStats,
+      ...state.stats,
+      coins: Math.max(0, Number(state.stats?.coins) || 0)
+    });
+    return state.stats;
+  }
+
+  async function syncWalletStateFromStorage() {
+    const result = await storage.get({
+      stats: state.stats,
+      vm_spentCoins: state.spentCoins,
+      vm_bonusCoins: state.bonusCoins,
+      vm_admin: state.admin
+    });
+    state.stats = normalizeStats(result.stats || state.stats || {});
+    state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
+    state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
+    state.admin = normalizeAdminState(result.vm_admin || state.admin || {});
+  }
+
   async function ensureWalletConsistency() {
     const wallet = getWalletSnapshot();
     const spentChanged = wallet.spentCoins !== state.spentCoins;
@@ -1254,6 +1488,16 @@ document.addEventListener('DOMContentLoaded', () => {
     state.spentCoins = wallet.spentCoins;
     state.bonusCoins = wallet.bonusCoins;
     await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+  }
+
+  function refreshWalletUi(message = '') {
+    renderAdminModal();
+    renderWalletBar();
+    renderUpgradeHubState();
+    const wallet = applyWalletSnapshotToUi();
+    setText('adminDeckStatus', state.admin?.enabled ? 'Admin ON' : 'Admin OFF');
+    if (message) showToast(message);
+    return wallet;
   }
 
   function applyUiPreferences() {
@@ -1296,6 +1540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWeakRescueModal();
     renderFocusRoomModal();
     renderAdminModal();
+    renderEffectsLabModal();
     renderPomodoroWidgets();
     renderUpgradeHubState();
   }
@@ -1376,6 +1621,143 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function getEffectsPresetSummary(preset) {
+    return `${preset.name} • ${getMeta('card', preset.cardStyle)?.name || preset.cardStyle} • ${getMeta('theme', preset.theme)?.name || preset.theme}`;
+  }
+
+  function getActiveEffectsPresetId() {
+    const active = EFFECTS_LAB_PRESETS.find((preset) => (
+      state.ui.theme === preset.theme &&
+      state.ui.cardStyle === preset.cardStyle &&
+      state.ui.density === preset.density &&
+      (state.ui.weatherEffect || 'off') === preset.effect
+    ));
+    return active?.id || '';
+  }
+
+  async function applyEffectsLabPreset(presetId) {
+    const preset = EFFECTS_LAB_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    state.ui.theme = preset.theme;
+    state.ui.cardStyle = preset.cardStyle;
+    state.ui.density = preset.density;
+    state.ui.weatherEffect = preset.effect;
+    await saveUiState();
+  }
+
+  async function resetEffectsLabDefaults() {
+    state.ui.theme = 'midnight';
+    state.ui.cardStyle = 'classic';
+    state.ui.density = 'balanced';
+    state.ui.weatherEffect = 'off';
+    state.ui.weatherIntensity = 55;
+    state.ui.weatherSpeed = 100;
+    await saveUiState();
+    showToast('Đã đưa Effects Lab về mặc định.');
+  }
+
+  async function handleEffectsLabPresetClick(event) {
+    const button = event.target.closest('[data-effects-preset]');
+    if (!button) return;
+    await applyEffectsLabPreset(button.dataset.effectsPreset || '');
+  }
+
+  async function handleEffectsLabSceneClick(event) {
+    const button = event.target.closest('[data-effects-scene]');
+    if (!button) return;
+    const scene = EFFECTS_SCENES.find((item) => item.id === button.dataset.effectsScene);
+    if (!scene) return;
+    state.ui.theme = scene.theme;
+    await saveUiState();
+  }
+
+  function renderEffectsLabModal() {
+    ensureUpgradeState();
+    const activePresetId = getActiveEffectsPresetId();
+    const presetStrip = byId('effectsPresetStrip');
+    if (presetStrip) {
+      presetStrip.innerHTML = EFFECTS_LAB_PRESETS.map((preset) => `
+        <button type="button" class="effects-preset-btn ${preset.id === activePresetId ? 'active' : ''}" data-effects-preset="${preset.id}">
+          <span class="effects-preset-name">${escapeHtml(preset.name)}</span>
+          <span class="effects-preset-note">${escapeHtml(preset.note)}</span>
+        </button>
+      `).join('');
+    }
+
+    const glassOptions = [
+      ['classic', 'Classic'],
+      ['glass', 'Pearl Layer'],
+      ['liquid', 'Liquid Layer'],
+      ['focusboard', 'Focus Board'],
+      ['rounded', 'Soft Rounded']
+    ];
+    const accentOptions = EFFECTS_SCENES.map((scene) => [scene.theme, scene.label]);
+    const densityOptions = [
+      ['compact', 'Compact'],
+      ['balanced', 'Balanced'],
+      ['comfortable', 'Cozy']
+    ];
+
+    const fillSelect = (id, options, value) => {
+      const node = byId(id);
+      if (!node) return;
+      node.innerHTML = options.map(([key, label]) => `<option value="${key}">${escapeHtml(label)}</option>`).join('');
+      node.value = value;
+    };
+    fillSelect('fxGlassSelect', glassOptions, state.ui.cardStyle || 'classic');
+    fillSelect('fxAccentSelect', accentOptions, state.ui.theme || 'midnight');
+    fillSelect('fxDensitySelect', densityOptions, state.ui.density || 'balanced');
+
+    const sceneGrid = byId('fxSceneGrid');
+    if (sceneGrid) {
+      sceneGrid.innerHTML = EFFECTS_SCENES.map((scene) => `
+        <button type="button" class="fx-scene-card ${scene.theme === state.ui.theme ? 'active' : ''}" data-fx-scene="${scene.id}" data-effects-scene="${scene.id}">
+          <strong class="fx-scene-name">${escapeHtml(scene.label)}</strong>
+          <span class="fx-scene-note">${escapeHtml(scene.note)}</span>
+        </button>
+      `).join('');
+    }
+
+    if (byId('effectsLabSelect')) byId('effectsLabSelect').value = state.ui.weatherEffect || 'off';
+    if (byId('effectsLabIntensityRange')) byId('effectsLabIntensityRange').value = String(state.ui.weatherIntensity || 55);
+    if (byId('effectsLabSpeedRange')) byId('effectsLabSpeedRange').value = String(state.ui.weatherSpeed || 100);
+    setText('effectsLabIntensityText', `${state.ui.weatherIntensity || 55}%`);
+    setText('effectsLabSpeedText', `${state.ui.weatherSpeed || 100}%`);
+
+    const effectCards = byId('effectsOptionGrid');
+    if (effectCards) {
+      const effectCatalog = [
+        ['off', 'Off', 'Không thêm hiệu ứng nền.'],
+        ['aurora', 'Aurora', 'Ribbon mềm, phù hợp học đêm.'],
+        ['fireflies', 'Fireflies', 'Đốm sáng nhỏ và linh hoạt.'],
+        ['stardust', 'Stardust', 'Hạt sao li ti, trong và gọn.'],
+        ['prism', 'Prism', 'Vệt sáng gradient hiện đại.'],
+        ['comets', 'Comets', 'Vệt sao băng chéo rõ hơn.'],
+        ['orbs', 'Glass Orbs', 'Quầng cầu thủy tinh mờ.'],
+        ['bubbles', 'Bubbles', 'Bong bóng kính nhẹ.'],
+        ['rain', 'Rain', 'Mưa mảnh, nhẹ.'],
+        ['window-rain', 'Window Rain', 'Giọt mưa kính sâu hơn.'],
+        ['snow', 'Snow', 'Tuyết chậm và dịu.'],
+        ['mist', 'Mist', 'Sương mờ nền tĩnh.'],
+        ['neon', 'Neon', 'Vệt neon studio.'],
+        ['petals', 'Petals', 'Cánh hoa mềm.']
+      ];
+      effectCards.innerHTML = effectCatalog.map(([id, name, note]) => `
+        <button type="button" class="effects-option-card ${(state.ui.weatherEffect || 'off') === id ? 'active' : ''}" data-effect-card="${id}">
+          <span class="effects-mini-swatch" data-effect="${id}"></span>
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(note)}</span>
+        </button>
+      `).join('');
+    }
+
+    const activePreset = EFFECTS_LAB_PRESETS.find((preset) => preset.id === activePresetId);
+    const summary = activePreset
+      ? `Preset: ${getEffectsPresetSummary(activePreset)} • Density: ${state.ui.density || 'balanced'} • Effect: ${state.ui.weatherEffect || 'off'}`
+      : `Glass: ${getMeta('card', state.ui.cardStyle)?.name || state.ui.cardStyle} • Accent: ${getMeta('theme', state.ui.theme)?.name || state.ui.theme} • Density: ${state.ui.density || 'balanced'} • Effect: ${state.ui.weatherEffect || 'off'}`;
+    setText('effectsLabPreviewNote', summary);
+  }
+
   function renderCustomizer() {
     ensureUpgradeState();
     renderShopCards('themeShopGrid', 'theme');
@@ -1392,12 +1774,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (byId('weatherEffectSelect')) byId('weatherEffectSelect').value = state.ui.weatherEffect || 'off';
     if (byId('weatherIntensityRange')) byId('weatherIntensityRange').value = String(state.ui.weatherIntensity || 55);
     if (byId('weatherSpeedRange')) byId('weatherSpeedRange').value = String(state.ui.weatherSpeed || 100);
+    setText('effectsLabIntensityText', `${state.ui.weatherIntensity || 55}%`);
+    setText('effectsLabSpeedText', `${state.ui.weatherSpeed || 100}%`);
     if (byId('pomodoroAudioToggle')) byId('pomodoroAudioToggle').checked = Boolean(state.ui.pomodoroAudioEnabled);
     if (byId('pomodoroAudioPackSelect')) byId('pomodoroAudioPackSelect').value = state.ui.pomodoroAudioPack || 'soft-bell';
     if (byId('pomodoroAudioCueModeSelect')) byId('pomodoroAudioCueModeSelect').value = state.ui.pomodoroAudioCueMode || 'end-only';
     if (byId('pomodoroAudioVolumeRange')) byId('pomodoroAudioVolumeRange').value = String(state.ui.pomodoroAudioVolume ?? 65);
     const quick = byId('adminQuickStatus');
     if (quick) quick.textContent = state.admin?.enabled ? 'Admin mode: đang bật' : 'Admin mode: đang tắt';
+
+    const effectMeta = {
+      off: ['Đang tắt', 'Chọn Aurora, Fireflies, Stardust hoặc Prism.'],
+      aurora: ['Aurora ribbon', 'Dải sáng mềm, hợp với liquid glass tối.'],
+      fireflies: ['Fireflies', 'Đốm sáng nhẹ, vui mắt nhưng vẫn êm.'],
+      stardust: ['Stardust', 'Hạt sao nhỏ cho cảm giác trong hơn.'],
+      prism: ['Prism wave', 'Sóng màu mảnh, hiện đại hơn neon cũ.'],
+      rain: ['Mưa mềm', 'Hiệu ứng mưa mảnh rất nhẹ phía sau.'],
+      'window-rain': ['Mưa kính', 'Lớp mưa kính blur hơn để tạo chiều sâu.'],
+      snow: ['Tuyết', 'Rơi chậm và yên hơn cho nền sáng lạnh.'],
+      dust: ['Bụi sáng', 'Hạt sáng nhỏ kiểu bụi điện ảnh.'],
+      mist: ['Sương mờ', 'Lớp sương mềm cho nền tĩnh hơn.'],
+      neon: ['Neon', 'Vệt sáng nổi bật hơn cho theme city.'],
+      petals: ['Cánh hoa', 'Chuyển động mềm kiểu sakura.']
+    };
+    const [effectLabel, effectDetail] = effectMeta[state.ui.weatherEffect || 'off'] || effectMeta.off;
+    setText('effectsQuickLabel', effectLabel);
+    setText('effectsQuickDetail', effectDetail);
+    setText('adminDeckStatus', state.admin?.enabled ? 'Admin ON' : 'Admin OFF');
+    setText('adminDeckWallet', `Số dư khả dụng: ${getWalletSnapshot().availableCoins}`);
+    const adminToggle = byId('toggleAdminDeckBtn');
+    if (adminToggle) adminToggle.textContent = state.admin?.enabled ? 'Tắt nhanh' : 'Bật nhanh';
+    setText('focusQuickStatus', `${state.focus?.preferredMinutes || 25} phút`);
+    setText('focusQuickDetail', `${state.focus?.completedToday || 0} pomodoro hôm nay`);
+    setText('quoteQuickStyle', getMeta('quote', state.ui.quoteStyle)?.name || 'Soft quote');
   }
 
   function renderShopCards(containerId, kind) {
@@ -1619,8 +2028,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveWalletState() {
+    await ensureWalletConsistency();
     renderUpgradeLayer();
+    applyWalletSnapshotToUi();
     await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+    refreshWalletUi();
+  }
+
+  async function commitWalletState(message = '') {
+    await mergeStatsBeforeWalletWrite();
+    await ensureWalletConsistency();
+    renderUpgradeLayer();
+    applyWalletSnapshotToUi();
+    await storage.set({
+      stats: state.stats,
+      vm_spentCoins: state.spentCoins,
+      vm_bonusCoins: state.bonusCoins,
+      vm_admin: state.admin
+    });
+    await syncWalletStateFromStorage();
+    renderUpgradeLayer();
+    refreshWalletUi(message);
   }
 
   async function saveFocusState() {
@@ -1638,9 +2066,29 @@ document.addEventListener('DOMContentLoaded', () => {
     await storage.set({ vm_collections: state.collections });
   }
 
+  function applyWalletSnapshotToUi() {
+    const wallet = getWalletSnapshot();
+    setText('adminDeckWallet', `Số dư khả dụng: ${wallet.availableCoins}`);
+    setText('modalAvailableCoins', String(wallet.availableCoins));
+    setText('modalEarnedCoins', String(wallet.studyCoins));
+    setText('modalBonusCoins', String(wallet.bonusCoins));
+    setText('modalSpentCoins', String(wallet.spentCoins));
+    setText('adminStudyCoinsValue', String(wallet.studyCoins));
+    setText('adminBonusCoinsValue', String(wallet.bonusCoins));
+    setText('adminSpentCoinsValue', String(wallet.spentCoins));
+    setText('adminAvailableCoinsValue', String(wallet.availableCoins));
+    const targetInput = byId('adminTargetAvailableInput');
+    if (targetInput && document.activeElement !== targetInput) targetInput.value = String(wallet.availableCoins);
+    return wallet;
+  }
+
   async function saveAdminState() {
     renderUpgradeLayer();
+    applyWalletSnapshotToUi();
     await storage.set({ vm_admin: state.admin });
+    await syncWalletStateFromStorage();
+    renderUpgradeLayer();
+    refreshWalletUi();
   }
 
   function renderAdminModal() {
@@ -1676,10 +2124,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function toggleAdminMode() {
+    await syncWalletStateFromStorage();
     state.admin.enabled = !state.admin.enabled;
     state.admin.lastUpdatedAt = Date.now();
     await saveAdminState();
-    showToast(state.admin.enabled ? 'Đã bật admin mode.' : 'Đã quay về chế độ bình thường.');
+    renderUpgradeLayer();
+    refreshWalletUi(state.admin.enabled ? 'Đã bật admin mode.' : 'Đã quay về chế độ bình thường.');
   }
 
   async function applyAdminDirectValues() {
@@ -1690,18 +2140,14 @@ document.addEventListener('DOMContentLoaded', () => {
     state.stats.coins = studyCoins;
     state.bonusCoins = bonusCoins;
     state.spentCoins = spentCoins;
-    await ensureWalletConsistency();
-    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
-    showToast('Đã lưu số coin theo chế độ admin.');
+    await commitWalletState('Đã lưu số coin theo chế độ admin.');
   }
 
   async function applyAdminTargetAvailable() {
     if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
     const target = Math.max(0, Number(byId('adminTargetAvailableInput')?.value) || 0);
     state.stats.coins = Math.max(0, target + state.spentCoins - state.bonusCoins);
-    await ensureWalletConsistency();
-    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
-    showToast(`Đã đặt số dư khả dụng thành ${target}.`);
+    await commitWalletState(`Đã đặt số dư khả dụng thành ${target}.`);
   }
 
   async function adjustAdminAvailableBy(delta) {
@@ -1709,22 +2155,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const wallet = getWalletSnapshot();
     const target = Math.max(0, wallet.availableCoins + delta);
     state.stats.coins = Math.max(0, target + state.spentCoins - state.bonusCoins);
-    await ensureWalletConsistency();
-    await Promise.all([storage.set({ stats: state.stats }), saveWalletState()]);
-    showToast(`Đã chỉnh số dư khả dụng ${delta >= 0 ? '+' : ''}${delta}.`);
+    applyWalletSnapshotToUi();
+    await commitWalletState(`Đã chỉnh số dư khả dụng ${delta >= 0 ? '+' : ''}${delta}.`);
   }
 
   async function resetAdminSpentCoins() {
     if (!state.admin?.enabled) return showToast('Hãy bật admin mode trước.');
     state.spentCoins = 0;
-    await saveWalletState();
-    showToast('Đã reset số coin đã tiêu cho UI.');
+    await commitWalletState('Đã reset số coin đã tiêu cho UI.');
   }
 
   async function repairAdminWallet() {
+    await syncWalletStateFromStorage();
     await ensureWalletConsistency();
-    await saveWalletState();
-    showToast('Đã sửa và đồng bộ lại ví UI.');
+    state.stats = normalizeStats(state.stats || {});
+    state.spentCoins = Math.max(0, Math.min(Number(state.spentCoins) || 0, (Number(state.stats.coins) || 0) + (Number(state.bonusCoins) || 0)));
+    await commitWalletState('Đã sửa và đồng bộ lại ví UI.');
   }
 
   function playPomodoroCue(cue) {

@@ -106,6 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
     clusterMissions: [],
     setDoctorReport: null,
     hintLadder: { wordId: '', reason: 'recall', level: 0 },
+    selectedPracticeMode: 'srs',
+    practiceTimerInterval: null,
+    practiceTimerTimeout: null,
+    practiceSessionEndsAt: 0,
+    questionEndsAt: 0,
+    questionCountdownMs: 0,
+    sentenceBuilderState: null,
     settings: { ...DEFAULT_SETTINGS }
   };
 
@@ -117,6 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return new Promise(resolve => chrome.storage.local.set(values, resolve));
     }
   };
+
+  const APP_VERSION = (() => {
+    try {
+      return chrome?.runtime?.getManifest?.()?.version || 'dev';
+    } catch (_) {
+      return 'dev';
+    }
+  })();
 
   const byId = (id) => document.getElementById(id);
   const views = Array.from(document.querySelectorAll('.view'));
@@ -356,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextValue('.nav-subtitle', uiText('Học từ vựng gọn gàng, nhớ lâu hơn.', 'Build vocabulary cleanly and remember it longer.', 'English-led learning with lighter Vietnamese support.'));
     setTextValue('#navMainBtn', uiText('Thêm từ', 'Add words', 'Add words'));
     setTextValue('#navManagementBtn', uiText('Bộ từ của tôi', 'Library', 'Library'));
+    setTextValue('#navInterfaceBtn', uiText('Giao diện', 'Interface', 'Interface'));
     setTextValue('#navReviewBtn', uiText('Ôn tập', 'Review', 'Review'));
 
     setTextValue('#main-view .header-section h1', uiText('Thêm vào bộ từ', 'Add into your sets', 'Add into your sets'));
@@ -378,6 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTextValue('#management-view .header-section h1', uiText('Bộ từ của tôi', 'My library', 'My library'));
     setTextValue('#management-view .header-subtext', uiText('Quản lý từng bộ từ, theo dõi tiến độ và sửa nội dung ngay trong bảng.', 'Manage sets, track progress, and edit entries directly inside the table.', 'Manage sets, track progress, and edit entries directly in the table.'));
+    setTextValue('#interface-view .header-section h1', uiText('Giao diện & công cụ', 'Interface & tools', 'Interface & tools'));
+    setTextValue('#interface-view .header-subtext', uiText('Tùy biến liquid glass, pomodoro, focus tools và các tiện ích giao diện trong một khu riêng gọn hơn.', 'Keep UI customization, Pomodoro, and focus tools in one cleaner area.', 'Keep UI customization, Pomodoro, and focus tools in one cleaner area.'));
+    setTextValue('#sentenceBuilderPromptLabel', uiText('Sắp xếp lại câu', 'Sentence Builder', 'Sentence Builder'));
+    setTextValue('#sentenceBuilderAnswerLabel', uiText('Câu của bạn', 'Your answer', 'Your answer'));
+    setTextValue('#sentenceBuilderBankLabel', uiText('Ngân hàng từ', 'Word bank', 'Word bank'));
+    setTextValue('#sentenceBuilderBankHelp', uiText('Chạm để thêm từ', 'Tap to add words', 'Tap to add words'));
     setInputPlaceholder('#setSearchInput', uiText('Tìm bộ từ, chủ đề, loại từ...', 'Search sets, topics, or entry types...', 'Search sets, topics, or entry types...'));
     setTextValue('#exportBackupBtn', uiText('Xuất backup JSON', 'Export JSON backup', 'Export JSON backup'));
     setTextValue('#importBackupBtn', uiText('Nhập backup JSON', 'Import JSON backup', 'Import JSON backup'));
@@ -513,6 +535,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (byId('clusterMissionLead')) setTextValue('#clusterMissionLead', uiText('Thay vì ôn từng từ rời rạc, hệ thống gom chúng thành cụm để bạn cứu cả một vùng nhớ trong một lượt.', 'Instead of drilling isolated entries, cluster missions let you rescue a whole memory zone in one session.', 'Instead of drilling isolated entries, cluster missions let you rescue a whole memory zone in one session.'));
   }
 
+  let storageSyncEventsBound = false;
+
   init();
 
   syncCompactNav();
@@ -521,11 +545,32 @@ document.addEventListener('DOMContentLoaded', () => {
     ensureSetDoctorPanel();
     ensureMemoryCoachDock();
     bindStaticEvents();
+    bindStorageSyncEvents();
     setupModals();
     ensureAdvancedReviewPanels();
     await loadState();
     showView('main-view');
     renderAll();
+  }
+
+  function bindStorageSyncEvents() {
+    if (storageSyncEventsBound || !chrome?.storage?.onChanged) return;
+    storageSyncEventsBound = true;
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
+
+      if (changes.stats) {
+        state.stats = normalizeStats(changes.stats.newValue || {});
+        const coinNode = byId('fcCoinCount');
+        if (coinNode) coinNode.textContent = String(state.stats?.coins || 0);
+      }
+
+      if (changes.vm_settings) {
+        state.settings = normalizeSettings(changes.vm_settings.newValue || {});
+        applyEffectSettings();
+        applyLanguageModeUI();
+      }
+    });
   }
 
   function bindStaticEvents() {
@@ -536,6 +581,9 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('navManagementBtn').addEventListener('click', () => {
       showView('management-view');
       initManagementView();
+    });
+    byId('navInterfaceBtn')?.addEventListener('click', () => {
+      showView('interface-view');
     });
     byId('navReviewBtn').addEventListener('click', () => {
       showView('review-dashboard-view');
@@ -657,12 +705,15 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('startDueFocusBtn')?.addEventListener('click', () => startTargetedFocus('due'));
     byId('startWeakFocusBtn')?.addEventListener('click', () => startTargetedFocus('weak'));
     byId('startNewFocusBtn')?.addEventListener('click', () => startTargetedFocus('new'));
-    byId('review-dashboard-view')?.addEventListener('click', (event) => {
+    byId('practiceModeGrid')?.addEventListener('click', (event) => {
       const card = event.target.closest('[data-game]');
-      if (!card || !byId('review-dashboard-view').contains(card)) return;
-      const gameType = card.dataset.game;
-      if (!gameType) return;
-      startGame(gameType, byId('reviewSetDropdown').value);
+      if (!card) return;
+      selectPracticeMode(card.dataset.game);
+    });
+    byId('practiceModeDetail')?.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-practice-action]');
+      if (!action) return;
+      if (action.dataset.practiceAction === 'start') startSelectedPracticeMode();
     });
 
     document.querySelectorAll('.exit-game-btn').forEach(btn => {
@@ -710,6 +761,22 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('playAudioBtn').addEventListener('click', () => {
       const card = state.studyQueue[state.currentCardIdx];
       if (card) playWordAudio(card.word);
+    });
+    byId('quizReplayAudioBtn')?.addEventListener('click', () => {
+      const card = state.studyQueue[state.currentCardIdx];
+      if (card) playWordAudio(card.word);
+    });
+    byId('sentenceBuilderResetBtn')?.addEventListener('click', resetSentenceBuilderAnswer);
+    byId('sentenceBuilderCheckBtn')?.addEventListener('click', handleSentenceBuilderCheck);
+    byId('sentenceBuilderBank')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-sentence-token-index]');
+      if (!btn) return;
+      addSentenceBuilderToken(Number(btn.dataset.sentenceTokenIndex));
+    });
+    byId('sentenceBuilderAnswer')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-answer-index]');
+      if (!btn) return;
+      removeSentenceBuilderToken(Number(btn.dataset.answerIndex));
     });
     byId('quizHintBtn')?.addEventListener('click', () => advanceHintLadderForCurrent(state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning'));
     byId('studySupportCloseBtn')?.addEventListener('click', hideStudySupport);
@@ -841,20 +908,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function buildBackupPayload({ vocab = state.vocab, stats = state.stats, source = 'manual-export', previousVersion = '' } = {}) {
+    return {
+      exportedAt: new Date().toISOString(),
+      savedAt: new Date().toISOString(),
+      version: APP_VERSION,
+      previousVersion,
+      source,
+      app: 'Vocab Master',
+      vocab,
+      stats
+    };
+  }
+
+  async function ensureRecoveryBackup(result = {}) {
+    const primaryVocab = Array.isArray(result.vocab) ? result.vocab : [];
+    if (!primaryVocab.length) return false;
+
+    const currentVault = result.recoveryVault && typeof result.recoveryVault === 'object' ? result.recoveryVault : null;
+    const currentVersion = String(currentVault?.version || '');
+    const hasCurrentVersionBackup = currentVersion === APP_VERSION
+      && Array.isArray(currentVault?.vocab)
+      && currentVault.vocab.length > 0;
+
+    if (hasCurrentVersionBackup) return false;
+
+    const history = Array.isArray(currentVault?.history) ? currentVault.history.filter(Boolean).slice(-4) : [];
+    const previousSnapshot = currentVault && Array.isArray(currentVault.vocab) && currentVault.vocab.length
+      ? {
+          exportedAt: currentVault.exportedAt || currentVault.savedAt || new Date().toISOString(),
+          savedAt: currentVault.savedAt || currentVault.exportedAt || new Date().toISOString(),
+          version: currentVersion || 'unknown',
+          previousVersion: String(currentVault?.previousVersion || ''),
+          source: currentVault.source || 'previous-auto-backup',
+          app: currentVault.app || 'Vocab Master',
+          vocab: currentVault.vocab,
+          stats: currentVault.stats || {}
+        }
+      : null;
+
+    const nextVault = buildBackupPayload({
+      vocab: primaryVocab,
+      stats: result.stats || {},
+      source: 'pre-update-auto-backup',
+      previousVersion: currentVersion
+    });
+    nextVault.history = [...history, ...(previousSnapshot ? [previousSnapshot] : [])].slice(-5);
+    nextVault.note = 'Automatic safety backup created once per app version before migrations or updates.';
+
+    await storage.set({ recoveryVault: nextVault });
+    return true;
+  }
+
   async function loadState() {
     const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null, vm_settings: DEFAULT_SETTINGS });
     let changed = false;
 
-    if (Array.isArray(result.vocab) && result.vocab.length) {
-      await storage.set({
-        recoveryVault: {
-          savedAt: new Date().toISOString(),
-          source: 'pre-normalize-load',
-          vocab: result.vocab,
-          stats: result.stats || {}
-        }
-      });
-    }
+    await ensureRecoveryBackup(result);
 
     const primaryVocab = Array.isArray(result.vocab) ? result.vocab : [];
     const recoveryVocab = Array.isArray(result.recoveryVault?.vocab) ? result.recoveryVault.vocab : [];
@@ -884,21 +994,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function normalizeStats(stats = {}) {
-    const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
-    const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
+    const source = stats && typeof stats === 'object' ? { ...stats } : {};
+    const studyLog = Array.isArray(source.studyLog) ? source.studyLog.slice(0, 40) : [];
+    const dailyProgress = source.dailyProgress && typeof source.dailyProgress === 'object' ? { ...source.dailyProgress } : {};
     const baseMistakeJournal = { meaning: 0, spelling: 0, listening: 0, recall: 0, confusion: 0 };
-    const mistakeJournal = stats.mistakeJournal && typeof stats.mistakeJournal === 'object'
-      ? { ...baseMistakeJournal, ...stats.mistakeJournal }
+    const mistakeJournal = source.mistakeJournal && typeof source.mistakeJournal === 'object'
+      ? { ...baseMistakeJournal, ...source.mistakeJournal }
       : baseMistakeJournal;
-    const recentFailures = Array.isArray(stats.recentFailures) ? stats.recentFailures.slice(0, 24) : [];
+    const recentFailures = Array.isArray(source.recentFailures) ? source.recentFailures.slice(0, 24) : [];
 
     return {
-      coins: Number(stats.coins) || 0,
-      dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
+      ...source,
+      coins: Number(source.coins) || 0,
+      dailyGoal: Math.max(5, Number(source.dailyGoal) || 12),
       dailyProgress,
-      currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
-      bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
-      totalSessions: Math.max(0, Number(stats.totalSessions) || 0),
+      currentStreak: Math.max(0, Number(source.currentStreak) || 0),
+      bestStreak: Math.max(0, Number(source.bestStreak) || 0),
+      totalSessions: Math.max(0, Number(source.totalSessions) || 0),
       studyLog,
       mistakeJournal,
       recentFailures
@@ -1118,8 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     navBtns.forEach(btn => btn.classList.remove('active'));
     byId(viewIdToShow).classList.remove('hidden');
 
-    const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view'];
-    const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view'];
+    const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view', 'sentence-builder-view'];
+    const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view', 'sentence-builder-view'];
 
     document.body.dataset.currentView = viewIdToShow;
     document.body.classList.toggle('is-review-view', reviewViews.includes(viewIdToShow));
@@ -1127,6 +1239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (viewIdToShow === 'main-view') byId('navMainBtn').classList.add('active');
     if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn').classList.add('active');
+    if (viewIdToShow === 'interface-view') byId('navInterfaceBtn')?.classList.add('active');
     if (reviewViews.includes(viewIdToShow)) {
       byId('navReviewBtn').classList.add('active');
     }
@@ -1146,6 +1259,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function persistState() {
+    const result = await storage.get({ stats: {} });
+    const storedStats = result?.stats && typeof result.stats === 'object' ? result.stats : {};
+    state.stats = normalizeStats({ ...storedStats, ...state.stats });
     await storage.set({ vocab: state.vocab, stats: state.stats, vm_settings: state.settings });
   }
 
@@ -1555,9 +1671,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function inferFailureReasonFromGame(gameType) {
-    if (gameType === 'dictation') return 'listening';
+    if (gameType === 'dictation' || gameType === 'hearpick') return 'listening';
     if (gameType === 'typing') return 'spelling';
-    if (gameType === 'matching') return 'confusion';
+    if (gameType === 'matching' || gameType === 'confusion' || gameType === 'sentencegap') return 'confusion';
+    if (gameType === 'sentencebuild') return 'pattern';
+    if (gameType === 'reflex') return 'meaning';
     if (gameType === 'quiz') return state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
     return 'recall';
   }
@@ -1704,12 +1822,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return getLocalizedMemoryStage(getMemoryStage(word), 'label');
   }
 
+  function getWordLearningProgress(word) {
+    if (!word) return 0;
+    if (isMasteredWord(word)) return 1;
+    const review = word.review || REVIEW_DEFAULTS;
+    const confidence = getConfidenceValue(word);
+    const base = (confidence / 4) * 0.7;
+    const exposure = (Math.min(review.seenCount || 0, 4) / 4) * 0.15;
+    const streak = (Math.min(review.streak || 0, 3) / 3) * 0.1;
+    const activity = review.lastReviewedAt ? 0.05 : 0;
+    const penalty = review.wrongCount > review.correctCount ? 0.08 : 0;
+    return Math.max(0, Math.min(0.95, base + exposure + streak + activity - penalty));
+  }
+
   function getSetStats(words) {
     const due = words.filter(isDueWord).length;
     const fresh = words.filter(isNewWord).length;
     const weak = words.filter(isWeakWord).length;
     const mastered = words.filter(isMasteredWord).length;
     const stageCounts = getMemoryStageCounts(words);
+    const learningProgress = words.length
+      ? Math.round((words.reduce((total, word) => total + getWordLearningProgress(word), 0) / words.length) * 100)
+      : 0;
+    const masteryProgress = words.length ? Math.round((mastered / words.length) * 100) : 0;
     return {
       total: words.length,
       due,
@@ -1717,7 +1852,9 @@ document.addEventListener('DOMContentLoaded', () => {
       weak,
       mastered,
       stageCounts,
-      progress: words.length ? Math.round((mastered / words.length) * 100) : 0
+      progress: learningProgress,
+      learningProgress,
+      masteryProgress
     };
   }
 
@@ -1793,10 +1930,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getSessionQueue(words, gameType) {
-    const maxItems = gameType === 'matching' ? 18 : 20;
+    const maxItems = 20;
     if (gameType === 'srs') return getRecommendedQueue(words, 20);
-    if (gameType === 'typing' || gameType === 'dictation') return buildCoverageQueue(words, Math.min(words.length, 12), 'drill');
+    if (gameType === 'typing' || gameType === 'dictation' || gameType === 'sentencebuild') return buildCoverageQueue(words, Math.min(words.length, maxItems), 'drill');
     if (gameType === 'flashcard') return buildCoverageQueue(words, Math.min(words.length, maxItems), 'warmup');
+    if (gameType === 'sentencegap' || gameType === 'sentencebuild') {
+      const sentenceWords = getSentenceEligibleWords(words);
+      return buildCoverageQueue(sentenceWords, Math.min(sentenceWords.length, maxItems), 'balanced');
+    }
     return buildCoverageQueue(shuffle([...words]), Math.min(words.length, maxItems), 'balanced');
   }
 
@@ -2703,7 +2844,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="progress-bar-container"><div class="progress-bar" style="width:${stats.progress}%"></div></div>
           <div class="card-metrics">
-            <span>${stats.mastered}/${stats.total || 0} đã vững</span>
+            <span>${stats.mastered}/${stats.total || 0} đã vững • mastery ${stats.masteryProgress}%</span>
             <span>${weakTypes[0] ? `Yếu nhất: ${weakTypes[0][0]}` : 'Đang cân bằng'}</span>
           </div>
           <div class="card-metrics compact-metrics">
@@ -2823,6 +2964,7 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('spotlightModeName').textContent = recommendedPlan.title;
     byId('spotlightModeReason').textContent = recommendedPlan.reason;
     byId('spotlightLaunchBtn').disabled = !recommendedPlan.gameType;
+    renderPracticeHub(words, stats, recommendedPlan);
 
     document.querySelectorAll('.mode-lab-card').forEach(card => {
       card.classList.toggle('recommended-mode-card', card.dataset.game === recommendedPlan.gameType);
@@ -2852,10 +2994,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const badgeText = {
       flashcard: uiText(`${Math.min(words.length, 20)} thẻ`, `${Math.min(words.length, 20)} cards`, `${Math.min(words.length, 20)} cards`),
-      quiz: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} questions`, `${Math.min(words.length, 10)} questions`),
-      matching: uiText(`${Math.min(words.length, 6)} cặp`, `${Math.min(words.length, 6)} pairs`, `${Math.min(words.length, 6)} pairs`),
-      typing: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} prompts`, `${Math.min(words.length, 10)} prompts`),
-      dictation: uiText(`${Math.min(words.length, 10)} câu`, `${Math.min(words.length, 10)} prompts`, `${Math.min(words.length, 10)} prompts`),
+      quiz: uiText(`${Math.min(words.length, 20)} câu`, `${Math.min(words.length, 20)} questions`, `${Math.min(words.length, 20)} questions`),
+      matching: uiText(`${Math.min(words.length, 20)} mục`, `${Math.min(words.length, 20)} items`, `${Math.min(words.length, 20)} items`),
+      typing: uiText(`${Math.min(words.length, 20)} câu`, `${Math.min(words.length, 20)} prompts`, `${Math.min(words.length, 20)} prompts`),
+      dictation: uiText(`${Math.min(words.length, 20)} câu`, `${Math.min(words.length, 20)} prompts`, `${Math.min(words.length, 20)} prompts`),
+      hearpick: uiText(`${Math.min(words.length, 20)} câu`, `${Math.min(words.length, 20)} rounds`, `${Math.min(words.length, 20)} rounds`),
+      reflex: uiText('1 phút / 20 câu', '1 minute / 20 rounds', '1 minute / 20 rounds'),
+      sentencegap: uiText(`${Math.min(getSentenceEligibleWords(words).length, 20)} câu`, `${Math.min(getSentenceEligibleWords(words).length, 20)} rounds`, `${Math.min(getSentenceEligibleWords(words).length, 20)} rounds`),
+      sentencebuild: uiText(`${Math.min(getSentenceEligibleWords(words).length, 20)} câu`, `${Math.min(getSentenceEligibleWords(words).length, 20)} rounds`, `${Math.min(getSentenceEligibleWords(words).length, 20)} rounds`),
+      confusion: uiText(`${Math.min(words.length, 20)} câu`, `${Math.min(words.length, 20)} rounds`, `${Math.min(words.length, 20)} rounds`),
       srs: uiText(`${smartQueueSize} từ ưu tiên`, `${smartQueueSize} priority words`, `${smartQueueSize} priority words`)
     };
 
@@ -3319,16 +3466,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function buildBackupPayload() {
-    return {
-      exportedAt: new Date().toISOString(),
-      version: '3.0.0',
-      app: 'Vocab Master',
-      vocab: state.vocab,
-      stats: state.stats
-    };
-  }
-
   function downloadTextFile(filename, textContent) {
     const blob = new Blob([textContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -3341,7 +3478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function exportBackup() {
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(`vocab-master-backup-${stamp}.json`, JSON.stringify(buildBackupPayload(), null, 2));
+    downloadTextFile(`vocab-master-backup-v${APP_VERSION}-${stamp}.json`, JSON.stringify(buildBackupPayload(), null, 2));
     showToast('Đã xuất backup JSON.');
   }
 
@@ -4093,10 +4230,540 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+  function getSentenceEligibleWords(words = []) {
+    return words.filter(word => Boolean(buildSentenceSource(word)));
+  }
+
+  function buildSentenceSource(word) {
+    const raw = (word?.example || '').trim();
+    if (raw) return raw;
+    if (!word?.word || !word?.meaning) return '';
+    return `${capitalizeFirst(word.word)} means ${word.meaning}.`;
+  }
+
+  function capitalizeFirst(text = '') {
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+  }
+
+  function tokenizeSentence(text = '') {
+    return (text.match(/[\p{L}\p{N}'’_-]+|[.,!?;:]/gu) || []).filter(Boolean);
+  }
+
+  function joinSentenceTokens(tokens = []) {
+    let out = '';
+    tokens.forEach((token, index) => {
+      if (!index) {
+        out += token;
+      } else if (/^[.,!?;:]$/.test(token)) {
+        out += token;
+      } else {
+        out += ` ${token}`;
+      }
+    });
+    return out;
+  }
+
+  function clearPracticeTimers(resetSession = true) {
+    window.clearInterval(state.practiceTimerInterval);
+    window.clearTimeout(state.practiceTimerTimeout);
+    state.practiceTimerInterval = null;
+    state.practiceTimerTimeout = null;
+    if (resetSession) state.practiceSessionEndsAt = 0;
+    state.questionEndsAt = 0;
+    state.questionCountdownMs = 0;
+    const countdown = byId('quizCountdown');
+    if (countdown) countdown.classList.add('hidden');
+  }
+
+  function setQuizViewMeta({ title, badge, countdown = '', showCountdown = false, showReplay = false, replayLabel = '🔊 Nghe lại' }) {
+    const titleNode = byId('quizModeTitle') || document.querySelector('#quiz-mode-view .header-row h1');
+    if (titleNode) titleNode.textContent = title;
+    const badgeNode = byId('quizModeBadge');
+    if (badgeNode) badgeNode.textContent = badge || title;
+    const countdownNode = byId('quizCountdown');
+    if (countdownNode) {
+      countdownNode.textContent = countdown;
+      countdownNode.classList.toggle('hidden', !showCountdown);
+    }
+    const replayBtn = byId('quizReplayAudioBtn');
+    if (replayBtn) {
+      replayBtn.textContent = replayLabel;
+      replayBtn.classList.toggle('hidden', !showReplay);
+    }
+  }
+
+  function getPracticeDistractors(card, count = 3, { preferSimilar = false, preferWords = false } = {}) {
+    const pool = state.optionPool.filter(item => item.id !== card.id);
+    const scored = pool.map(item => {
+      let score = getWordSimilarityScore(card, item);
+      if (card.wordType && item.wordType === card.wordType) score += 0.18;
+      if (card.wordset && item.wordset === card.wordset) score += 0.08;
+      if (preferWords && normalizeAnswer(item.word).charAt(0) === normalizeAnswer(card.word).charAt(0)) score += 0.06;
+      return { item, score };
+    });
+    scored.sort((a, b) => (preferSimilar ? b.score - a.score : Math.random() - 0.5));
+    const picked = [];
+    const seen = new Set();
+    scored.forEach(entry => {
+      if (picked.length >= count) return;
+      if (seen.has(entry.item.id)) return;
+      seen.add(entry.item.id);
+      picked.push(entry.item);
+    });
+    if (picked.length < count) {
+      shuffle([...pool]).forEach(item => {
+        if (picked.length >= count || seen.has(item.id)) return;
+        seen.add(item.id);
+        picked.push(item);
+      });
+    }
+    return picked.slice(0, count);
+  }
+
+  function mountChoiceButtons(grid, options, labelFor, onSelect) {
+    grid.innerHTML = '';
+    options.forEach(option => {
+      const button = document.createElement('button');
+      button.className = 'quiz-option-btn';
+      button.textContent = labelFor(option);
+      button.addEventListener('click', () => onSelect(option, button));
+      grid.appendChild(button);
+    });
+  }
+
+  function markChoiceButtonsDisabled(grid) {
+    Array.from(grid.querySelectorAll('button')).forEach(btn => { btn.disabled = true; });
+  }
+
+  async function handleChoiceOutcome({ card, selectedId, selectedButton = null, failureReason, goodCoins = 10, wrongCoins = 0, requeueOnWrong = true, nextRender, correctLabel }) {
+    if (state.answerLocked) return;
+    state.answerLocked = true;
+    const grid = byId('quizOptionsGrid');
+    markChoiceButtonsDisabled(grid);
+    clearPracticeTimers(false);
+
+    const buttons = Array.from(grid.querySelectorAll('button'));
+    const fallbackSelectedButton = buttons.find(btn => btn.textContent === correctLabel(selectedId, false)) || null;
+    const activeSelectedButton = selectedButton || fallbackSelectedButton;
+    const correctButton = buttons.find(btn => btn.textContent === correctLabel(card.id, true)) || null;
+
+    if (selectedId === card.id) {
+      activeSelectedButton?.classList.add('correct');
+      await recordWordResult(card.id, 'good', goodCoins, true, { failureReason: '', gameType: state.currentGame });
+      state.currentCardIdx += 1;
+      window.setTimeout(nextRender, 520);
+      return;
+    }
+
+    activeSelectedButton?.classList.add('wrong');
+    correctButton?.classList.add('correct');
+    await recordWordResult(card.id, 'again', wrongCoins, true, { failureReason, gameType: state.currentGame });
+    renderStudySupportForWord(card, failureReason, { autoQueue: true, trigger: `${state.currentGame}-wrong` });
+    if (requeueOnWrong) requeueCurrentCard(2);
+    else state.currentCardIdx += 1;
+    window.setTimeout(nextRender, 760);
+  }
+
+  function selectPracticeMode(modeId) {
+    state.selectedPracticeMode = modeId;
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    const words = getWordsForSet(setName);
+    renderPracticeHub(words, getSetStats(words), getRecommendedStudyPlan(words));
+  }
+
+  function startSelectedPracticeMode() {
+    const setName = byId('reviewSetDropdown')?.value || 'all';
+    startGame(state.selectedPracticeMode || 'srs', setName);
+  }
+
+  function buildPracticeCatalog(words, stats = getSetStats(words), recommendedPlan = getRecommendedStudyPlan(words, stats)) {
+    const sentenceWords = getSentenceEligibleWords(words);
+    const total = Math.min(words.length, 20);
+    const sentenceCount = Math.min(sentenceWords.length, 20);
+    const recommended = recommendedPlan?.gameType;
+    return [
+      { id: 'srs', accent: 'pink', title: 'Memory Rescue', kicker: uiText('Cứu trí nhớ', 'Memory rescue', 'Memory rescue'), summary: uiText('Ưu tiên từ đến hạn, vừa sai hoặc có risk cao nhất.', 'Prioritizes due, recently missed, and high-risk items first.', 'Prioritizes due, recently missed, and high-risk items first.'), when: uiText('Mở trước khi bạn muốn học ngắn mà hiệu quả.', 'Open this first when you want the highest-value short session.', 'Open this first when you want the highest-value short session.'), trains: [uiText('giữ trí nhớ dài hạn', 'long-term retention', 'long-term retention'), uiText('cứu từ sắp quên', 'rescue slipping words', 'rescue slipping words')], rules: [uiText('Mỗi lượt lấy tối đa 20 mục ưu tiên.', 'Each run pulls up to 20 priority items.', 'Each run pulls up to 20 priority items.'), uiText('Điểm số cập nhật cùng lịch ôn tập chung.', 'Results update the shared review schedule.', 'Results update the shared review schedule.')], count: Math.min(getRecommendedQueue(words, 20).length, 20), available: words.length > 0, recommended },
+      { id: 'flashcard', accent: 'purple', title: 'Flashcards', kicker: uiText('Làm quen', 'Warm-up', 'Warm-up'), summary: uiText('Lật thẻ, tự nhớ nghĩa rồi chấm mức độ nhớ.', 'Flip the card, recall the meaning, then grade your memory.', 'Flip the card, recall the meaning, then grade your memory.'), when: uiText('Hợp cho từ mới hoặc lúc cần vào nhịp nhẹ.', 'Best for new words or a gentle entry session.', 'Best for new words or a gentle entry session.'), trains: [uiText('nhớ lại nhẹ', 'light recall', 'light recall'), uiText('neo trí nhớ đầu tiên', 'first memory trace', 'first memory trace')], rules: [uiText('Một vòng mặc định tối đa 20 thẻ.', 'Each run uses up to 20 cards.', 'Each run uses up to 20 cards.'), uiText('Bạn có thể chấm Chưa nhớ, Gần nhớ hoặc Nhớ rồi.', 'You can mark Again, Hard, or Good.', 'You can mark Again, Hard, or Good.')], count: total, available: words.length > 0, recommended },
+      { id: 'quiz', accent: 'orange', title: 'Quiz', kicker: uiText('Nhận diện chuẩn', 'Standard quiz', 'Standard quiz'), summary: uiText('Trắc nghiệm 4 đáp án để kiểm tra nhận biết nghĩa nhanh.', 'A four-choice quiz to test clean recognition.', 'A four-choice quiz to test clean recognition.'), when: uiText('Dùng khi bộ từ đã khá quen.', 'Use it when the set already feels familiar.', 'Use it when the set already feels familiar.'), trains: [uiText('nhận diện nghĩa', 'meaning recognition', 'meaning recognition'), uiText('tốc độ phản xạ', 'quick response', 'quick response')], rules: [uiText('Mỗi lượt tối đa 20 câu.', 'Each run gives up to 20 questions.', 'Each run gives up to 20 questions.'), uiText('Mỗi câu có 4 đáp án để chọn.', 'Each question has 4 answer choices.', 'Each question has 4 answer choices.')], count: total, available: words.length >= 4, recommended },
+      { id: 'reflex', accent: 'sunset', title: 'Reflex Choice', kicker: uiText('1 phút phản xạ', '1-minute reflex', '1-minute reflex'), summary: uiText('20 câu hỏi nhanh, mỗi câu tự trôi sau vài giây nếu bạn không chọn.', 'A 20-question sprint where each prompt auto-skips after a few seconds.', 'A 20-question sprint where each prompt auto-skips after a few seconds.'), when: uiText('Dùng khi muốn luyện tốc độ làm bài.', 'Use it when you want exam-like speed pressure.', 'Use it when you want exam-like speed pressure.'), trains: [uiText('phản xạ nhận diện', 'speed recognition', 'speed recognition'), uiText('quyết định nhanh', 'faster decisions', 'faster decisions')], rules: [uiText('Một lượt kéo dài tối đa 1 phút.', 'A run lasts up to 1 minute.', 'A run lasts up to 1 minute.'), uiText('Tối đa 20 câu, mỗi câu có 4 đáp án và tự chuyển sau 5 giây.', 'Up to 20 questions, 4 choices each, and auto-advance after 5 seconds.', 'Up to 20 questions, 4 choices each, and auto-advance after 5 seconds.')], count: total, available: words.length >= 4, recommended },
+      { id: 'typing', accent: 'green', title: uiText('Typing Recall', 'Typing Recall', 'Typing Recall'), kicker: uiText('Gọi chữ ra', 'Active recall', 'Active recall'), summary: uiText('Nhìn nghĩa hoặc gợi ý rồi tự gõ chính từ tiếng Anh.', 'See a cue and type the target word yourself.', 'See a cue and type the target word yourself.'), when: uiText('Hợp khi bạn biết nghĩa nhưng chưa gọi được từ đủ nhanh.', 'Great when you know the meaning but cannot produce the word fast enough.', 'Great when you know the meaning but cannot produce the word fast enough.'), trains: [uiText('nhớ chủ động', 'active recall', 'active recall'), uiText('chính tả', 'spelling', 'spelling')], rules: [uiText('Một lượt tối đa 20 câu.', 'Each run uses up to 20 prompts.', 'Each run uses up to 20 prompts.'), uiText('Nhập xong rồi bấm kiểm tra hoặc Enter.', 'Type the answer, then press Check or Enter.', 'Type the answer, then press Check or Enter.')], count: total, available: words.length > 0, recommended },
+      { id: 'sentencegap', accent: 'teal', title: 'Sentence Gap', kicker: uiText('Ngữ cảnh', 'Context gap', 'Context gap'), summary: uiText('Che từ trong câu ví dụ rồi chọn đáp án phù hợp nhất.', 'Hide the word inside a sentence and choose the best fit.', 'Hide the word inside a sentence and choose the best fit.'), when: uiText('Dùng khi muốn học cách dùng từ trong câu.', 'Use it when you want stronger usage in context.', 'Use it when you want stronger usage in context.'), trains: [uiText('dùng từ trong câu', 'context usage', 'context usage'), uiText('collocation', 'collocations', 'collocations')], rules: [uiText('Chỉ dùng các từ có ví dụ hoặc câu mẫu.', 'Only words with an example or sentence can appear.', 'Only words with an example or sentence can appear.'), uiText('Mỗi câu có 4 đáp án.', 'Each question still has 4 choices.', 'Each question still has 4 choices.')], count: sentenceCount, available: sentenceWords.length >= 4, recommended },
+      { id: 'sentencebuild', accent: 'violet', title: 'Sentence Builder', kicker: uiText('Xếp câu', 'Arrange the sentence', 'Arrange the sentence'), summary: uiText('Bấm các từ theo đúng thứ tự để dựng lại một câu hoàn chỉnh.', 'Tap the shuffled words in order to rebuild a full sentence.', 'Tap the shuffled words in order to rebuild a full sentence.'), when: uiText('Dùng khi muốn nhớ trật tự từ và cụm từ tự nhiên.', 'Use it to strengthen word order and natural chunks.', 'Use it to strengthen word order and natural chunks.'), trains: [uiText('trật tự câu', 'sentence order', 'sentence order'), uiText('cụm từ tự nhiên', 'natural chunks', 'natural chunks')], rules: [uiText('Một lượt tối đa 20 câu.', 'A run uses up to 20 sentences.', 'A run uses up to 20 sentences.'), uiText('Chạm để thêm từ, chạm lại ở vùng đáp án để bỏ ra.', 'Tap to add tokens, tap again in the answer area to remove them.', 'Tap to add tokens, tap again in the answer area to remove them.')], count: sentenceCount, available: sentenceWords.length > 0, recommended },
+      { id: 'hearpick', accent: 'cyan', title: 'Hear and Pick', kicker: uiText('Nghe rồi chọn', 'Hear and pick', 'Hear and pick'), summary: uiText('Nghe từ rồi chọn nghĩa đúng trong 4 đáp án.', 'Listen to the word, then choose the correct meaning from 4 options.', 'Listen to the word, then choose the correct meaning from 4 options.'), when: uiText('Hợp để nối âm thanh với nghĩa một cách nhanh.', 'Great for linking sound with meaning.', 'Great for linking sound with meaning.'), trains: [uiText('nghe nhận diện', 'listening recognition', 'listening recognition'), uiText('âm ↔ nghĩa', 'sound to meaning', 'sound to meaning')], rules: [uiText('Mỗi câu phát âm lại được bằng nút nghe lại.', 'Each round can replay the audio.', 'Each round can replay the audio.'), uiText('Mỗi câu có 4 nghĩa để chọn.', 'Each round gives 4 meanings to choose from.', 'Each round gives 4 meanings to choose from.')], count: total, available: words.length >= 4, recommended },
+      { id: 'confusion', accent: 'blue', title: 'Confusion Duel', kicker: uiText('Phân biệt từ gần nhau', 'Contrast lane', 'Contrast lane'), summary: uiText('Đưa các từ gần nghĩa hoặc gần hình thức vào cùng một câu hỏi để tránh nhầm lẫn.', 'Pits similar-looking or similar-meaning words against each other to reduce confusion.', 'Pits similar-looking or similar-meaning words against each other to reduce confusion.'), when: uiText('Dùng khi bạn hay nhầm affect/effect kiểu tương tự.', 'Use it when similar words keep getting mixed up.', 'Use it when similar words keep getting mixed up.'), trains: [uiText('phân biệt từ dễ nhầm', 'contrast recall', 'contrast recall'), uiText('chọn đúng trong tình huống gần nhau', 'precision under similarity', 'precision under similarity')], rules: [uiText('Mỗi câu có 4 lựa chọn nhưng distractor được chọn gần nghĩa hơn.', 'Each question still has 4 choices, but distractors are more similar.', 'Each question still has 4 choices, but distractors are more similar.'), uiText('Một lượt tối đa 20 câu.', 'A run uses up to 20 rounds.', 'A run uses up to 20 rounds.')], count: total, available: words.length >= 4, recommended },
+      { id: 'matching', accent: 'indigo', title: 'Matching Pairs', kicker: uiText('Ghép nhanh', 'Match pairs', 'Match pairs'), summary: uiText('Ghép từ và nghĩa để tăng tốc truy xuất và giảm dịch từng chữ.', 'Match words with meanings to speed up retrieval.', 'Match words with meanings to speed up retrieval.'), when: uiText('Dùng khi bạn muốn luyện phản xạ bằng tay thật nhanh.', 'Use it when you want a quick tactile reaction drill.', 'Use it when you want a quick tactile reaction drill.'), trains: [uiText('ghép cặp nhanh', 'fast matching', 'fast matching'), uiText('tốc độ phản xạ', 'response speed', 'response speed')], rules: [uiText('Mỗi lượt lấy tối đa 20 mục và chia thành nhiều batch nhỏ.', 'Each run uses up to 20 items across smaller batches.', 'Each run uses up to 20 items across smaller batches.'), uiText('Sai liên tiếp sẽ mất tim ở batch hiện tại.', 'Wrong matches cost lives in the current batch.', 'Wrong matches cost lives in the current batch.')], count: total, available: words.length >= 4, recommended }
+    ];
+  }
+
+  function getPracticeModeIcon(modeId) {
+    const iconMap = {
+      srs: '✦',
+      flashcard: '▭',
+      quiz: '☑',
+      reflex: '⚡',
+      typing: '⌨',
+      sentencegap: '◌',
+      sentencebuild: '≡',
+      hearpick: '♪',
+      confusion: '◈',
+      matching: '⊞'
+    };
+    return iconMap[modeId] || '•';
+  }
+
+  function getPracticeModeSizeLabel(mode, words) {
+    if (!mode) return '';
+    if (mode.id === 'reflex') return uiText('1 phút · 20 câu', '1 minute · 20 rounds', '1 minute · 20 rounds');
+    return `${Math.min(mode.count || 0, 20)} ${uiText('mục', 'items', 'items')}`;
+  }
+
+  function renderPracticeHub(words, stats = getSetStats(words), recommendedPlan = getRecommendedStudyPlan(words, stats)) {
+    const grid = byId('practiceModeGrid');
+    const detail = byId('practiceModeDetail');
+    if (!grid || !detail) return;
+    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
+    const recommendedId = recommendedPlan?.gameType || catalog[0]?.id || 'flashcard';
+    if (!catalog.some(item => item.id === state.selectedPracticeMode)) {
+      state.selectedPracticeMode = recommendedId;
+    } else if (!state.selectedPracticeMode) {
+      state.selectedPracticeMode = recommendedId;
+    }
+
+    grid.innerHTML = catalog.map(item => `
+      <button
+        type="button"
+        class="practice-tile ${item.id === state.selectedPracticeMode ? 'active' : ''} ${!item.available ? 'is-disabled' : ''}"
+        data-accent="${item.accent || 'blue'}"
+        data-game="${item.id}"
+        aria-pressed="${item.id === state.selectedPracticeMode ? 'true' : 'false'}"
+      >
+        <span class="practice-tile-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(item.id))}</span>
+        <span class="practice-tile-title">${escapeHtml(item.title)}</span>
+        <span class="practice-tile-count">${item.available ? escapeHtml(String(Math.min(item.count || 0, 20))) : '—'}</span>
+      </button>`).join('');
+
+    const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0];
+    const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
+    const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    detail.innerHTML = `
+      <div class="practice-detail-shell" data-accent="${selected.accent || 'blue'}">
+        <div class="practice-detail-topline">
+          <span class="practice-detail-kicker">${escapeHtml(selected.kicker)}</span>
+          <span class="practice-detail-status ${selected.available ? 'is-ready' : 'is-locked'}">${escapeHtml(selected.available ? uiText('Sẵn sàng', 'Ready', 'Ready') : uiText('Thiếu dữ liệu', 'Need more data', 'Need more data'))}</span>
+        </div>
+        <div class="practice-detail-hero">
+          <div class="practice-detail-copy">
+            <h3>${escapeHtml(selected.title)}</h3>
+            <p class="practice-detail-summary">${escapeHtml(selected.summary)}</p>
+            <div class="practice-detail-pill-row">
+              <span class="practice-detail-pill">${escapeHtml(getPracticeModeSizeLabel(selected, words))}</span>
+              <span class="practice-detail-pill">${escapeHtml(uiText('Dùng khi', 'Best when', 'Best when'))}: ${escapeHtml(selected.when)}</span>
+            </div>
+          </div>
+          <div class="practice-detail-visual" data-accent="${selected.accent || 'blue'}">
+            <div class="practice-visual-glow"></div>
+            <div class="practice-visual-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(selected.id))}</div>
+            <div class="practice-visual-title">${escapeHtml(selected.title)}</div>
+            <div class="practice-visual-subtitle">${escapeHtml(selected.available ? uiText('Sẵn sàng bắt đầu', 'Ready to start', 'Ready to start') : uiText('Cần thêm dữ liệu', 'Needs more data', 'Needs more data'))}</div>
+          </div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Game này luyện gì', 'What this trains', 'What this trains'))}</strong>
+          <div class="practice-train-row">${trainBadges}</div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Luật và cách chơi', 'Rules and flow', 'Rules and flow'))}</strong>
+          <ol class="practice-detail-rules">${ruleItems}</ol>
+        </div>
+        <div class="practice-detail-actions">
+          <button type="button" class="primary-btn" data-practice-action="start" ${selected.available ? '' : 'disabled'}>${escapeHtml(uiText('▶ Bắt đầu game này', '▶ Start this game', '▶ Start this game'))}</button>
+        </div>
+      </div>`;
+  }
+
+  function renderQuiz() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành bài trắc nghiệm.', 'Quiz complete.', 'Quiz complete.'));
+
+    state.answerLocked = false;
+    state.activeQuizMode = 'word-meaning';
+    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    setQuizViewMeta({ title: 'Quiz', badge: 'Quiz' });
+    byId('quizQuestionWord').textContent = card.word;
+    hideStudySupport();
+    hideMemoryCoach();
+
+    const wrongOptions = getPracticeDistractors(card, 3, { preferSimilar: false });
+    const options = shuffle([card, ...wrongOptions]);
+    const grid = byId('quizOptionsGrid');
+    mountChoiceButtons(grid, options, option => option.meaning, (option, button) => {
+      handleChoiceOutcome({
+        card,
+        selectedId: option.id,
+        selectedButton: button,
+        failureReason: 'meaning',
+        goodCoins: 10,
+        nextRender: renderQuiz,
+        correctLabel: (id) => {
+          const item = options.find(entry => entry.id === id) || card;
+          return item.meaning;
+        }
+      });
+    });
+  }
+
+  function renderSentenceGap() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành Sentence Gap.', 'Sentence Gap complete.', 'Sentence Gap complete.'));
+    state.answerLocked = false;
+    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    setQuizViewMeta({ title: 'Sentence Gap', badge: uiText('Ngữ cảnh', 'Context gap', 'Context gap') });
+    const sentence = buildSentenceSource(card);
+    const regex = new RegExp(escapeRegExp(card.word), 'gi');
+    byId('quizQuestionWord').textContent = sentence.replace(regex, '_____');
+    hideStudySupport();
+    hideMemoryCoach();
+    const wrongOptions = getPracticeDistractors(card, 3, { preferSimilar: true, preferWords: true });
+    const options = shuffle([card, ...wrongOptions]);
+    const grid = byId('quizOptionsGrid');
+    mountChoiceButtons(grid, options, option => option.word, (option, button) => {
+      handleChoiceOutcome({
+        card,
+        selectedId: option.id,
+        selectedButton: button,
+        failureReason: 'confusion',
+        goodCoins: 12,
+        nextRender: renderSentenceGap,
+        correctLabel: (id) => {
+          const item = options.find(entry => entry.id === id) || card;
+          return item.word;
+        }
+      });
+    });
+  }
+
+  function renderHearPick() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành Hear and Pick.', 'Hear and Pick complete.', 'Hear and Pick complete.'));
+    state.answerLocked = false;
+    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    setQuizViewMeta({ title: 'Hear and Pick', badge: uiText('Nghe rồi chọn', 'Hear and pick', 'Hear and pick'), showReplay: true, replayLabel: uiText('🔊 Nghe lại', '🔊 Replay', '🔊 Replay') });
+    byId('quizQuestionWord').textContent = uiText('Nghe từ rồi chọn nghĩa đúng.', 'Listen to the word and choose the correct meaning.', 'Listen to the word and choose the correct meaning.');
+    hideStudySupport();
+    hideMemoryCoach();
+    const wrongOptions = getPracticeDistractors(card, 3, { preferSimilar: false });
+    const options = shuffle([card, ...wrongOptions]);
+    const grid = byId('quizOptionsGrid');
+    mountChoiceButtons(grid, options, option => option.meaning, (option, button) => {
+      handleChoiceOutcome({
+        card,
+        selectedId: option.id,
+        selectedButton: button,
+        failureReason: 'listening',
+        goodCoins: 12,
+        nextRender: renderHearPick,
+        correctLabel: (id) => {
+          const item = options.find(entry => entry.id === id) || card;
+          return item.meaning;
+        }
+      });
+    });
+    window.setTimeout(() => playWordAudio(card.word), 120);
+  }
+
+  async function advanceReflexRound(isTimeout = false, chosenOption = null, options = []) {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card || state.answerLocked) return;
+    state.answerLocked = true;
+    const grid = byId('quizOptionsGrid');
+    markChoiceButtonsDisabled(grid);
+    clearPracticeTimers(false);
+    const buttons = Array.from(grid.querySelectorAll('button'));
+    const correctButton = buttons.find(btn => btn.textContent === card.meaning);
+
+    if (!isTimeout && chosenOption?.id === card.id) {
+      chosenOption.button?.classList.add('correct');
+      await recordWordResult(card.id, 'good', 8, true, { failureReason: '', gameType: 'reflex' });
+    } else {
+      chosenOption?.button?.classList.add('wrong');
+      correctButton?.classList.add('correct');
+      await recordWordResult(card.id, 'again', 0, true, { failureReason: 'meaning', gameType: 'reflex' });
+    }
+    state.currentCardIdx += 1;
+    const sessionExpired = !!state.practiceSessionEndsAt && Date.now() >= state.practiceSessionEndsAt;
+    if (state.currentCardIdx >= state.studyQueue.length || sessionExpired) {
+      finishSession(uiText('Đã hoàn thành Reflex Choice.', 'Reflex Choice complete.', 'Reflex Choice complete.'));
+      return;
+    }
+    window.setTimeout(renderReflexChoice, 240);
+  }
+
+  function renderReflexChoice() {
+    clearPracticeTimers(false);
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành Reflex Choice.', 'Reflex Choice complete.', 'Reflex Choice complete.'));
+    if (!state.practiceSessionEndsAt) state.practiceSessionEndsAt = Date.now() + 60000;
+    state.answerLocked = false;
+    state.questionEndsAt = Date.now() + 5000;
+    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    byId('quizQuestionWord').textContent = card.word;
+    hideStudySupport();
+    hideMemoryCoach();
+    const wrongOptions = getPracticeDistractors(card, 3, { preferSimilar: false });
+    const options = shuffle([card, ...wrongOptions]);
+    const grid = byId('quizOptionsGrid');
+    setQuizViewMeta({ title: 'Reflex Choice', badge: uiText('1 phút • 20 câu', '1 minute • 20 rounds', '1 minute • 20 rounds'), countdown: '01:00 • 05s', showCountdown: true });
+    mountChoiceButtons(grid, options, option => option.meaning, (option, button) => {
+      advanceReflexRound(false, { id: option.id, button }, options);
+    });
+    const tick = () => {
+      const totalLeft = Math.max(0, state.practiceSessionEndsAt - Date.now());
+      const questionLeft = Math.max(0, state.questionEndsAt - Date.now());
+      const label = `${String(Math.floor(totalLeft / 60000)).padStart(2, '0')}:${String(Math.floor((totalLeft % 60000) / 1000)).padStart(2, '0')} • ${Math.max(0, Math.ceil(questionLeft / 1000))}s`;
+      setQuizViewMeta({ title: 'Reflex Choice', badge: uiText('1 phút • 20 câu', '1 minute • 20 rounds', '1 minute • 20 rounds'), countdown: label, showCountdown: true });
+      if (totalLeft <= 0) {
+        clearPracticeTimers();
+        finishSession(uiText('Đã hoàn thành Reflex Choice.', 'Reflex Choice complete.', 'Reflex Choice complete.'));
+        return;
+      }
+      if (questionLeft <= 0) {
+        clearPracticeTimers(false);
+        advanceReflexRound(true, null, options);
+      }
+    };
+    tick();
+    state.practiceTimerInterval = window.setInterval(tick, 200);
+  }
+
+  function renderConfusionDuel() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành Confusion Duel.', 'Confusion Duel complete.', 'Confusion Duel complete.'));
+    state.answerLocked = false;
+    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    setQuizViewMeta({ title: 'Confusion Duel', badge: uiText('Phân biệt từ gần nhau', 'Contrast lane', 'Contrast lane') });
+    byId('quizQuestionWord').textContent = `${buildSentenceSource(card)} • ${uiText('Chọn từ đúng nhất.', 'Choose the best-fitting word.', 'Choose the best-fitting word.')}`;
+    hideStudySupport();
+    hideMemoryCoach();
+    const wrongOptions = getPracticeDistractors(card, 3, { preferSimilar: true, preferWords: true });
+    const options = shuffle([card, ...wrongOptions]);
+    const grid = byId('quizOptionsGrid');
+    mountChoiceButtons(grid, options, option => option.word, (option, button) => {
+      handleChoiceOutcome({
+        card,
+        selectedId: option.id,
+        selectedButton: button,
+        failureReason: 'confusion',
+        goodCoins: 14,
+        nextRender: renderConfusionDuel,
+        correctLabel: (id) => {
+          const item = options.find(entry => entry.id === id) || card;
+          return item.word;
+        }
+      });
+    });
+  }
+
+  function renderSentenceBuilder() {
+    const card = state.studyQueue[state.currentCardIdx];
+    if (!card) return finishSession(uiText('Đã hoàn thành Sentence Builder.', 'Sentence Builder complete.', 'Sentence Builder complete.'));
+    const sentence = buildSentenceSource(card);
+    const tokens = tokenizeSentence(sentence);
+    state.sentenceBuilderState = {
+      wordId: card.id,
+      expected: tokens,
+      sentence,
+      pool: shuffle(tokens.map((token, index) => ({ token, index }))),
+      selected: [],
+      feedback: { type: '', text: '' }
+    };
+    byId('sentenceBuilderProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
+    byId('sentenceBuilderTitle').textContent = 'Sentence Builder';
+    byId('sentenceBuilderPrompt').textContent = uiText(`Sắp xếp lại câu hoàn chỉnh có chứa từ “${card.word}”.`, `Rebuild the full sentence that uses “${card.word}”.`, `Rebuild the full sentence that uses “${card.word}”.`);
+    byId('sentenceBuilderHint').textContent = uiText(`Gợi ý nghĩa: ${card.meaning}`, `Meaning cue: ${card.meaning}`, `Meaning cue: ${card.meaning}`);
+    renderSentenceBuilderState();
+    showView('sentence-builder-view');
+    hideStudySupport();
+    hideMemoryCoach();
+  }
+
+  function renderSentenceBuilderState() {
+    const answer = byId('sentenceBuilderAnswer');
+    const bank = byId('sentenceBuilderBank');
+    const counter = byId('sentenceBuilderCounter');
+    const feedback = byId('sentenceBuilderFeedback');
+    const sb = state.sentenceBuilderState;
+    if (!answer || !bank || !sb) return;
+    if (counter) counter.textContent = `${sb.selected.length} / ${sb.expected.length}`;
+    answer.innerHTML = sb.selected.length
+      ? sb.selected.map((item, idx) => `<button type="button" class="sentence-builder-answer-chip" data-answer-index="${idx}"><span class="sentence-builder-answer-order">${idx + 1}</span><span>${escapeHtml(item.token)}</span><span class="sentence-builder-remove">×</span></button>`).join('')
+      : `<div class="sentence-builder-answer-placeholder">${escapeHtml(uiText('Chạm vào từng từ ở dưới để dựng câu của bạn.', 'Tap the words below to build your sentence.', 'Tap the words below to build your sentence.'))}</div>`;
+    bank.innerHTML = sb.pool.map((item, idx) => `<button type="button" class="sentence-builder-token ${sb.selected.some(chosen => chosen.index === item.index) ? 'used' : ''}" data-sentence-token-index="${idx}">${escapeHtml(item.token)}</button>`).join('');
+    if (feedback) {
+      if (sb.feedback?.text) {
+        feedback.textContent = sb.feedback.text;
+        feedback.classList.remove('hidden', 'success', 'error');
+        feedback.classList.add(sb.feedback.type === 'success' ? 'success' : 'error');
+      } else {
+        feedback.textContent = '';
+        feedback.classList.add('hidden');
+        feedback.classList.remove('success', 'error');
+      }
+    }
+  }
+
+  function addSentenceBuilderToken(index) {
+    const sb = state.sentenceBuilderState;
+    if (!sb) return;
+    const item = sb.pool[index];
+    if (!item || sb.selected.some(chosen => chosen.index === item.index)) return;
+    sb.selected.push(item);
+    sb.feedback = { type: '', text: '' };
+    renderSentenceBuilderState();
+  }
+
+  function removeSentenceBuilderToken(index) {
+    const sb = state.sentenceBuilderState;
+    if (!sb) return;
+    sb.selected.splice(index, 1);
+    sb.feedback = { type: '', text: '' };
+    renderSentenceBuilderState();
+  }
+
+  function resetSentenceBuilderAnswer() {
+    const sb = state.sentenceBuilderState;
+    if (!sb) return;
+    sb.selected = [];
+    sb.feedback = { type: '', text: '' };
+    renderSentenceBuilderState();
+  }
+
+  async function handleSentenceBuilderCheck() {
+    const card = state.studyQueue[state.currentCardIdx];
+    const sb = state.sentenceBuilderState;
+    if (!card || !sb) return;
+    const expected = joinSentenceTokens(sb.expected);
+    const actual = joinSentenceTokens(sb.selected.map(item => item.token));
+    if (normalizeAnswer(actual) === normalizeAnswer(expected)) {
+      sb.feedback = { type: 'success', text: uiText('Đúng rồi. Chuyển sang câu tiếp theo...', 'Correct. Moving to the next sentence...', 'Correct. Moving to the next sentence...') };
+      renderSentenceBuilderState();
+      await recordWordResult(card.id, 'good', 16, true, { failureReason: '', gameType: 'sentencebuild' });
+      state.currentCardIdx += 1;
+      window.setTimeout(renderSentenceBuilder, 520);
+      return;
+    }
+    await recordWordResult(card.id, 'again', 0, true, { failureReason: 'pattern', gameType: 'sentencebuild' });
+    renderStudySupportForWord(card, 'pattern', { autoQueue: false, trigger: 'sentencebuild-wrong' });
+    sb.feedback = { type: 'error', text: uiText(`Chưa đúng. Câu gốc: ${expected}`, `Not quite. Correct sentence: ${expected}`, `Not quite. Correct sentence: ${expected}`) };
+    renderSentenceBuilderState();
+    requeueCurrentCard(2);
+    window.setTimeout(renderSentenceBuilder, 900);
+  }
+
   async function startGame(gameType, setName, options = {}) {
+    clearPracticeTimers();
     const words = getWordsForSet(setName);
     const queue = Array.isArray(options.queue) && options.queue.length ? options.queue : getSessionQueue(words, gameType);
-    if (!queue.length) return showToast('Bộ từ này đang trống.');
+    if (!queue.length) return showToast(uiText('Bộ từ này chưa đủ dữ liệu cho game này.', 'This set does not have enough data for this game yet.', 'This set does not have enough data for this game yet.'));
 
     state.activeSet = setName;
     state.currentGame = gameType;
@@ -4111,7 +4778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.sessionStats = {
       gameType,
       planTitle: state.currentPlanTitle,
-      total: queue.length,
+      total: Math.min(queue.length, 20),
       good: 0,
       hard: 0,
       again: 0,
@@ -4120,15 +4787,14 @@ document.addEventListener('DOMContentLoaded', () => {
       dateLabel: new Date().toLocaleString('vi-VN')
     };
 
-    if (gameType === 'quiz' && queue.length < 4) return showToast('Trắc nghiệm cần ít nhất 4 từ.');
-    if (gameType === 'matching' && queue.length < 4) return showToast('Nối cặp cần ít nhất 4 từ.');
-
-    state.studyQueue = queue;
-
-    if (gameType === 'quiz') {
-      openModal('quizModeModal');
-      return;
+    if (['quiz', 'reflex', 'sentencegap', 'hearpick', 'confusion'].includes(gameType) && queue.length < 4) {
+      return showToast(uiText('Game này cần ít nhất 4 từ.', 'This game needs at least 4 words.', 'This game needs at least 4 words.'));
     }
+    if (gameType === 'matching' && queue.length < 4) {
+      return showToast(uiText('Nối cặp cần ít nhất 4 từ.', 'Matching needs at least 4 words.', 'Matching needs at least 4 words.'));
+    }
+
+    state.studyQueue = queue.slice(0, 20);
 
     if (gameType === 'flashcard' || gameType === 'srs') {
       showView('study-mode-view');
@@ -4148,13 +4814,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameType === 'matching') {
       showView('matching-mode-view');
       renderMatching();
+      return;
     }
+    if (gameType === 'sentencebuild') {
+      renderSentenceBuilder();
+      return;
+    }
+
+    showView('quiz-mode-view');
+    if (gameType === 'quiz') renderQuiz();
+    else if (gameType === 'reflex') renderReflexChoice();
+    else if (gameType === 'sentencegap') renderSentenceGap();
+    else if (gameType === 'hearpick') renderHearPick();
+    else if (gameType === 'confusion') renderConfusionDuel();
   }
 
   function exitCurrentGame() {
     stopMatchingTimer();
+    clearPracticeTimers();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
+    state.sentenceBuilderState = null;
     hideStudySupport();
     hideMemoryCoach();
     state.studyQueue = [];
@@ -4164,23 +4844,36 @@ document.addEventListener('DOMContentLoaded', () => {
     initReviewView();
   }
 
+
   function renderFlashcard() {
     const card = state.studyQueue[state.currentCardIdx];
-    if (!card) return finishSession('Đã hoàn thành lượt ôn tập này.');
+    if (!card) {
+      finishSession(uiText('Đã hoàn thành lượt ôn tập này.', 'You finished this review run.', 'You finished this review run.'));
+      return;
+    }
 
-    byId('fcCoinCount').textContent = state.stats.coins;
-    byId('studyProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
-    byId('studyModeLabel').textContent = state.currentGame === 'srs' ? uiText('Ôn tập thông minh', 'Smart review', 'Smart review') : 'Flashcard';
+    const total = state.studyQueue.length || 0;
+    const progress = `${Math.min(state.currentCardIdx + 1, total || 1)} / ${total || 1}`;
+    byId('fcCoinCount').textContent = String(state.stats?.coins || 0);
+    byId('studyProgress').textContent = progress;
+    byId('studyModeLabel').textContent = state.currentGame === 'srs'
+      ? uiText('Ôn tập thông minh', 'Smart review', 'Smart review')
+      : 'Flashcard';
     byId('fcStatusBadge').textContent = getWordStatusLabel(card);
     byId('fcMemoryBadge').textContent = `${uiText('Mức nhớ', 'Memory stage', 'Memory stage')}: ${getLocalizedMemoryStage(getMemoryStage(card), 'shortLabel')} • ${getEntryTypeLabel(card)}`;
-    byId('fcWord').textContent = card.word;
+    byId('fcWord').textContent = card.word || '';
     byId('fcType').textContent = card.wordType || getEntryTypeLabel(card);
     byId('fcPhonetic').textContent = card.phonetic || '—';
-    byId('fcMeaning').textContent = card.meaning;
+    byId('fcMeaning').textContent = card.meaning || '';
     byId('fcExample').textContent = card.example || uiText('Không có ví dụ', 'No example yet', 'No example yet');
     byId('fcNotes').textContent = card.notes || '';
-    byId('fcTypingInput').value = '';
+
+    const input = byId('fcTypingInput');
+    input.value = '';
+    input.classList.remove('shake-error', 'is-correct', 'is-wrong');
+
     state.pendingFailureReason = '';
+    state.answerLocked = false;
     byId('activeFlashcard').classList.remove('flipped');
     hideStudySupport();
     hideMemoryCoach();
@@ -4191,117 +4884,133 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!card) return;
 
     const coinGain = quality === 'good' ? 5 : quality === 'hard' ? 2 : 0;
-    const failureReason = quality === 'again' ? (state.pendingFailureReason || 'recall') : '';
-    await recordWordResult(card.id, quality, coinGain, true, { failureReason });
+    const failureReason = quality === 'again'
+      ? (state.pendingFailureReason || inferFailureReasonFromGame(state.currentGame) || 'recall')
+      : (quality === 'hard' ? (state.pendingFailureReason || '') : '');
+
+    await recordWordResult(card.id, quality, coinGain, true, {
+      failureReason,
+      gameType: state.currentGame || 'flashcard'
+    });
 
     if (quality === 'again') {
       renderStudySupportForWord(card, failureReason || 'recall', { autoQueue: true, trigger: 'again' });
       requeueCurrentCard(2);
-      showToast(`Đã đánh dấu cần ôn lại: ${card.word}`);
+      showToast(uiText(`Đã đánh dấu cần ôn lại: ${card.word}`, `Marked to revisit: ${card.word}`, `Marked to revisit: ${card.word}`));
     } else {
       if (quality === 'hard') {
-        renderStudySupportForWord(card, 'recall', { autoQueue: false, trigger: 'hard' });
+        renderStudySupportForWord(card, failureReason || 'recall', { autoQueue: false, trigger: 'hard' });
+        showToast(uiText(`Đã ghi nhận “gần nhớ” cho ${card.word}.`, `Marked as almost remembered for ${card.word}.`, `Marked as almost remembered for ${card.word}.`));
       }
       state.currentCardIdx += 1;
-      if (quality === 'hard') showToast(`Đã ghi nhận “gần nhớ” cho ${card.word}.`);
     }
 
     renderFlashcard();
   }
 
-  function handleFlashcardMeaningCheck() {
-    const card = state.studyQueue[state.currentCardIdx];
-    if (!card) return;
-    const input = byId('fcTypingInput').value.trim();
-    if (!input) return;
-
-    if (isMeaningMatch(input, card.meaning)) {
-      state.pendingFailureReason = '';
-      byId('activeFlashcard').classList.add('flipped');
-      showToast('Khớp nghĩa. Bấm “Nhớ rồi” để ghi nhận tiến độ.');
-    } else {
-      state.pendingFailureReason = 'meaning';
-      renderStudySupportForWord(card, 'meaning', { autoQueue: false, trigger: 'meaning-check' });
-      showToast(`Chưa khớp. Gợi ý đúng: ${card.meaning}`);
-      byId('fcTypingInput').classList.add('shake-error');
-      setTimeout(() => byId('fcTypingInput').classList.remove('shake-error'), 350);
-    }
-  }
 
   function flashcardKeyHandler(event) {
-    if (byId('study-mode-view').classList.contains('hidden')) return;
-    if (document.activeElement === byId('fcTypingInput')) return;
-    if (event.code === 'Space') {
+    if (state.currentGame !== 'flashcard' && state.currentGame !== 'srs') return;
+    const studyView = byId('study-mode-view');
+    if (studyView?.classList.contains('hidden')) return;
+
+    const target = event.target;
+    const tag = target?.tagName;
+    const isEditable = !!(target?.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+
+    if (event.key === 'Escape') {
       event.preventDefault();
-      byId('activeFlashcard').classList.toggle('flipped');
+      exitCurrentGame();
+      return;
     }
-    if (event.code === 'ArrowRight') byId('btnNext').click();
-    if (event.code === 'ArrowLeft') byId('btnPrev').click();
-    if (event.key === '1' || event.key.toLowerCase() === 'x') byId('btnNotLearned').click();
-    if (event.key === '2' || event.key.toLowerCase() === 'z') byId('btnAlmostLearned').click();
-    if (event.key === '3' || event.key.toLowerCase() === 'c') byId('btnLearned').click();
-    if (event.key.toLowerCase() === 's') byId('btnAudio').click();
+
+    if (event.key === 'Enter' && target?.id === 'fcTypingInput') {
+      event.preventDefault();
+      handleFlashcardMeaningCheck();
+      return;
+    }
+
+    if (isEditable) return;
+
+    if (event.key === ' ' || event.code === 'Space') {
+      event.preventDefault();
+      byId('activeFlashcard')?.classList.toggle('flipped');
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      if (state.currentCardIdx > 0) {
+        state.currentCardIdx -= 1;
+        renderFlashcard();
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      state.currentCardIdx += 1;
+      renderFlashcard();
+      return;
+    }
+
+    if (event.key === '1') {
+      event.preventDefault();
+      handleFlashcardOutcome('again');
+      return;
+    }
+
+    if (event.key === '2') {
+      event.preventDefault();
+      handleFlashcardOutcome('hard');
+      return;
+    }
+
+    if (event.key === '3') {
+      event.preventDefault();
+      handleFlashcardOutcome('good');
+    }
   }
 
-  function renderQuiz() {
+  async function handleFlashcardMeaningCheck() {
     const card = state.studyQueue[state.currentCardIdx];
-    if (!card) return finishSession('Đã hoàn thành bài trắc nghiệm.');
+    const input = byId('fcTypingInput');
+    const flashcard = byId('activeFlashcard');
+    if (!card || !input || state.answerLocked) return;
 
-    state.answerLocked = false;
-    byId('quizProgress').textContent = `${Math.min(state.currentCardIdx + 1, state.studyQueue.length)} / ${state.studyQueue.length}`;
-
-    let promptText = card.word;
-    let optionTextFor = (item) => item.meaning;
-
-    if (state.activeQuizMode === 'meaning-word') {
-      promptText = card.meaning;
-      optionTextFor = (item) => item.word;
-    } else if (state.activeQuizMode === 'context') {
-      if (card.example) {
-        const regex = new RegExp(escapeRegExp(card.word), 'gi');
-        promptText = card.example.replace(regex, '_____');
-      } else {
-        promptText = card.meaning;
-      }
-      optionTextFor = (item) => item.word;
+    const answer = input.value.trim();
+    if (!answer) {
+      input.focus();
+      return;
     }
 
-    byId('quizQuestionWord').textContent = promptText;
-    hideStudySupport();
-    hideMemoryCoach();
+    state.answerLocked = true;
+    input.classList.remove('shake-error', 'is-correct', 'is-wrong');
+    flashcard?.classList.add('flipped');
 
-    const wrongOptions = shuffle(state.optionPool.filter(item => item.id !== card.id)).slice(0, 3);
-    const options = shuffle([card, ...wrongOptions]);
-    const grid = byId('quizOptionsGrid');
-    grid.innerHTML = '';
+    const matched = isMeaningMatch(answer, card.meaning);
+    if (matched) {
+      input.classList.add('is-correct');
+      await recordWordResult(card.id, 'good', 6, true, { failureReason: '', gameType: 'flashcard' });
+      showToast(uiText('Đúng rồi, sang thẻ tiếp theo nhé!', 'Correct, moving to the next card!', 'Correct, moving to the next card!'));
+      state.currentCardIdx += 1;
+      window.setTimeout(() => {
+        input.classList.remove('is-correct');
+        renderFlashcard();
+      }, 320);
+      return;
+    }
 
-    options.forEach(option => {
-      const button = document.createElement('button');
-      button.className = 'quiz-option-btn';
-      button.textContent = optionTextFor(option);
-      button.addEventListener('click', async () => {
-        if (state.answerLocked) return;
-        state.answerLocked = true;
-        Array.from(grid.querySelectorAll('button')).forEach(btn => btn.disabled = true);
-
-        const correctButton = Array.from(grid.querySelectorAll('button')).find(btn => btn.textContent === optionTextFor(card));
-        if (option.id === card.id) {
-          button.classList.add('correct');
-          await recordWordResult(card.id, 'good', 10, true, { failureReason: '' });
-          state.currentCardIdx += 1;
-          setTimeout(renderQuiz, 650);
-        } else {
-          const failureReason = state.activeQuizMode === 'context' ? 'confusion' : state.activeQuizMode === 'meaning-word' ? 'recall' : 'meaning';
-          button.classList.add('wrong');
-          correctButton?.classList.add('correct');
-          renderStudySupportForWord(card, failureReason, { autoQueue: true, trigger: 'quiz-wrong' });
-          await recordWordResult(card.id, 'again', 0, true, { failureReason });
-          requeueCurrentCard(2);
-          setTimeout(renderQuiz, 900);
-        }
-      });
-      grid.appendChild(button);
-    });
+    input.classList.add('shake-error', 'is-wrong');
+    renderStudySupportForWord(card, 'meaning', { autoQueue: false, trigger: 'flashcard-meaning-check' });
+    await recordWordResult(card.id, 'hard', 2, true, { failureReason: 'meaning', gameType: 'flashcard' });
+    showToast(uiText(`Chưa khớp. Nghĩa neo là: ${card.meaning}`, `Not quite. Meaning anchor: ${card.meaning}`, `Not quite. Meaning anchor: ${card.meaning}`));
+      window.setTimeout(() => {
+      input.classList.remove('shake-error');
+      state.answerLocked = false;
+      input.focus();
+      input.select();
+    }, 520);
   }
 
   function renderTyping() {
@@ -4586,8 +5295,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function finishSession(message) {
     stopMatchingTimer();
+    clearPracticeTimers();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     state.currentGame = null;
+    state.sentenceBuilderState = null;
     hideStudySupport();
     hideMemoryCoach();
 

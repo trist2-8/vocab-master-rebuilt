@@ -17,6 +17,7 @@
       <div class="nav-links">
         <button id="navMainBtn" class="nav-btn active">Thêm từ</button>
         <button id="navManagementBtn" class="nav-btn">Bộ từ của tôi</button>
+        <button id="navInterfaceBtn" class="nav-btn">Giao diện</button>
         <button id="navReviewBtn" class="nav-btn">Ôn tập</button>
       </div>
       <div class="nav-tools">
@@ -148,6 +149,18 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
         <div id="wordsetGrid" class="wordset-grid"></div>
       </section>
 
+      <section id="interface-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <div>
+              <h1>Giao diện & công cụ</h1>
+              <p class="header-subtext">Tùy biến liquid glass, pomodoro, focus tools và các tiện ích giao diện trong một khu riêng gọn hơn.</p>
+            </div>
+          </div>
+        </div>
+        <div id="interfaceHubAnchor" class="interface-hub-anchor"></div>
+      </section>
+
       <section id="set-details-view" class="view hidden">
         <div class="header-section">
           <div class="header-row header-row-wrap">
@@ -257,103 +270,9 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
             </div>
           </div>
 
-          <div class="learning-mode-grid">
-            <button class="vibrant-card mode-lab-card card-pink" data-game="srs">
-              <div class="mode-card-head">
-                <div class="v-icon">🧠</div>
-                <div>
-                  <span class="mode-mini-label">Ưu tiên số 1</span>
-                  <h3>Memory Rescue</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Kéo ngay những từ sắp rơi trí nhớ, vừa sai hoặc đang chệch nhịp học.</p>
-              <div class="mode-card-metrics"><span>Rescue queue</span><span>Giảm quên dài hạn</span></div>
-              <div class="mode-card-when">Dùng khi: có từ đến hạn, risk cao hoặc vừa quên xong.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral hot-neutral">Auto-priority</span>
-                <span class="v-badge" data-badge="srs">0 từ</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-purple" data-game="flashcard">
-              <div class="mode-card-head">
-                <div class="v-icon">≡</div>
-                <div>
-                  <span class="mode-mini-label">Khởi động</span>
-                  <h3>Flashcard</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Lật thẻ, tự nhớ nghĩa rồi chấm nhanh mức độ nhớ để tạo dấu vết ban đầu.</p>
-              <div class="mode-card-metrics"><span>Recall nhẹ</span><span>Từ mới & ôn mềm</span></div>
-              <div class="mode-card-when">Dùng khi: cần vào nhịp an toàn trước khi viết hoặc nghe.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Nhớ lại</span>
-                <span class="v-badge" data-badge="flashcard">20 thẻ</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-green" data-game="typing">
-              <div class="mode-card-head">
-                <div class="v-icon">T</div>
-                <div>
-                  <span class="mode-mini-label">Chữa lỗi chủ động</span>
-                  <h3>Gõ từ</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nhìn gợi ý, tự kéo từ ra khỏi trí nhớ và sửa chính tả lẫn tốc độ gọi từ.</p>
-              <div class="mode-card-metrics"><span>Active recall</span><span>Sửa spelling</span></div>
-              <div class="mode-card-when">Dùng khi: bạn nhận ra nghĩa nhưng chưa gọi chữ ra đủ nhanh.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Viết ra</span>
-                <span class="v-badge" data-badge="typing">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-orange" data-game="quiz">
-              <div class="mode-card-head">
-                <div class="v-icon">☑️</div>
-                <div>
-                  <span class="mode-mini-label">Kiểm tra tốc độ</span>
-                  <h3>Trắc nghiệm</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nhận diện nhanh qua từ, nghĩa và ngữ cảnh để đo phản xạ thật sự.</p>
-              <div class="mode-card-metrics"><span>Nhận diện nhanh</span><span>Ngữ cảnh</span></div>
-              <div class="mode-card-when">Dùng khi: bộ từ đã khá quen và bạn muốn kiểm tra tốc độ nhận biết.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Speed check</span>
-                <span class="v-badge" data-badge="quiz">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-cyan" data-game="dictation">
-              <div class="mode-card-head">
-                <div class="v-icon">🎧</div>
-                <div>
-                  <span class="mode-mini-label">Âm → chữ</span>
-                  <h3>Nghe viết</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Nối phát âm với mặt chữ để giảm lỗi nghe gần âm và ghi sai chính tả.</p>
-              <div class="mode-card-metrics"><span>Listening bridge</span><span>Spelling</span></div>
-              <div class="mode-card-when">Dùng khi: bạn nghe ra lờ mờ nhưng chưa viết lại thật chắc.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Nghe rồi viết</span>
-                <span class="v-badge" data-badge="dictation">10 câu</span>
-              </div>
-            </button>
-            <button class="vibrant-card mode-lab-card card-blue" data-game="matching">
-              <div class="mode-card-head">
-                <div class="v-icon">⧉</div>
-                <div>
-                  <span class="mode-mini-label">Tăng phản xạ</span>
-                  <h3>Nối cặp</h3>
-                </div>
-              </div>
-              <p class="mode-card-copy">Ghép từ và nghĩa nhanh để dọn lỗi nhầm lẫn và tăng tốc truy xuất.</p>
-              <div class="mode-card-metrics"><span>Confusion drill</span><span>Phản xạ</span></div>
-              <div class="mode-card-when">Dùng khi: bạn hay nhầm những từ gần nghĩa hoặc gần hình thức.</div>
-              <div class="mode-card-footer">
-                <span class="mode-chip-neutral">Ghép nhanh</span>
-                <span class="v-badge" data-badge="matching">6 cặp</span>
-              </div>
-            </button>
+          <div class="practice-hub-layout">
+            <div id="practiceModeGrid" class="practice-mode-grid"></div>
+            <aside id="practiceModeDetail" class="practice-mode-detail panel-card"></aside>
           </div>
         </div>
       </section>
@@ -430,8 +349,13 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
         <div class="header-section">
           <div class="header-row header-row-wrap">
             <button class="exit-game-btn secondary-btn">← Thoát</button>
-            <h1>Trắc nghiệm</h1>
+            <h1 id="quizModeTitle">Trắc nghiệm</h1>
             <span id="quizProgress" class="progress-text">1 / 10</span>
+          </div>
+          <div class="quiz-meta-row">
+            <span id="quizModeBadge" class="session-status-badge">Quiz</span>
+            <span id="quizCountdown" class="session-status-badge hidden">00:00</span>
+            <button id="quizReplayAudioBtn" class="secondary-btn hidden">🔊 Nghe lại</button>
           </div>
         </div>
         <div class="quiz-container panel-card">
@@ -503,6 +427,46 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
             <button id="dictationHintBtn" class="secondary-btn inline-hint-btn">💡 Không nghe ra, mở gợi ý</button>
           </div>
           <button id="dictationSubmitBtn" class="primary-btn full-btn cyan-btn">Kiểm tra</button>
+        </div>
+      </section>
+
+
+
+      <section id="sentence-builder-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <button class="exit-game-btn secondary-btn">← Thoát</button>
+            <h1 id="sentenceBuilderTitle">Sentence Builder</h1>
+            <span id="sentenceBuilderProgress" class="progress-text">1 / 20</span>
+          </div>
+        </div>
+        <div class="sentence-builder-shell panel-card">
+          <div class="sentence-builder-copy">
+            <span id="sentenceBuilderPromptLabel" class="typing-prompt-hint">Sắp xếp lại câu</span>
+            <h2 id="sentenceBuilderPrompt">Arrange the words into a complete sentence.</h2>
+            <p id="sentenceBuilderHint" class="muted-text">Chạm vào từng từ theo đúng thứ tự.</p>
+          </div>
+          <div class="sentence-builder-stage">
+            <div class="sentence-builder-panel sentence-builder-panel-answer">
+              <div class="sentence-builder-panel-head">
+                <span id="sentenceBuilderAnswerLabel">Câu của bạn</span>
+                <small id="sentenceBuilderCounter">0 / 0</small>
+              </div>
+              <div id="sentenceBuilderAnswer" class="sentence-builder-answer"></div>
+              <div id="sentenceBuilderFeedback" class="sentence-builder-feedback hidden"></div>
+            </div>
+            <div class="sentence-builder-panel sentence-builder-panel-bank">
+              <div class="sentence-builder-panel-head">
+                <span id="sentenceBuilderBankLabel">Ngân hàng từ</span>
+                <small id="sentenceBuilderBankHelp">Chạm để thêm từ</small>
+              </div>
+              <div id="sentenceBuilderBank" class="sentence-builder-bank"></div>
+            </div>
+          </div>
+          <div class="sentence-builder-actions">
+            <button id="sentenceBuilderResetBtn" class="secondary-btn">Làm lại</button>
+            <button id="sentenceBuilderCheckBtn" class="primary-btn">Kiểm tra</button>
+          </div>
         </div>
       </section>
 

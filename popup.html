@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocab Master Quick Rescue</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup-shell">
+    <section class="hero glass-shell">
+      <div class="hero-top">
+        <div>
+          <p class="eyebrow">Quick Rescue</p>
+          <h1>Pick up exactly where memory is slipping.</h1>
+        </div>
+        <span class="status-pill" id="heroStatus">Loading…</span>
+      </div>
+      <p class="hero-copy" id="heroCopy">Reading your learning queue and rebuilding today’s priorities.</p>
+      <div class="hero-actions">
+        <button class="primary-btn" id="launchPrimary">Open next best session</button>
+        <button class="ghost-btn" data-open="vocab.html?view=review">Full dashboard</button>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card glass-panel" data-open="vocab.html?view=review&quick=rescue">
+        <span class="stat-label">Due now</span>
+        <strong id="dueCount">0</strong>
+        <small id="dueHint">Nothing overdue yet</small>
+      </article>
+      <article class="stat-card glass-panel" data-open="vocab.html?view=review&quick=weak">
+        <span class="stat-label">Weak skills</span>
+        <strong id="weakCount">0</strong>
+        <small id="weakHint">No weak spots detected</small>
+      </article>
+      <article class="stat-card glass-panel" data-open="vocab.html?view=review&quick=new">
+        <span class="stat-label">Fresh words</span>
+        <strong id="newCount">0</strong>
+        <small id="newHint">No new cards queued</small>
+      </article>
+    </section>
+
+    <section class="lane-grid">
+      <button class="lane-card glass-panel" data-open="vocab.html?view=review&quick=rescue">
+        <strong>Rescue overdue</strong>
+        <span>2-minute catch-up on words at real risk.</span>
+      </button>
+      <button class="lane-card glass-panel" data-open="vocab.html?view=review&quick=weak">
+        <strong>Drill weak skills</strong>
+        <span>Target the weakest skill channel first.</span>
+      </button>
+      <button class="lane-card glass-panel" data-open="vocab.html?view=review&quick=new">
+        <strong>Warm up new</strong>
+        <span>Light recognition run for untouched cards.</span>
+      </button>
+      <button class="lane-card glass-panel" data-open="vocab.html?view=review&quick=contrast">
+        <strong>Contrast mode</strong>
+        <span>Separate look-alikes and confusion pairs.</span>
+      </button>
+      <button class="lane-card glass-panel" data-open="vocab.html?view=review&quick=cloze">
+        <strong>Sentence cloze</strong>
+        <span>Recall words from your examples and saved sentences.</span>
+      </button>
+      <button class="lane-card glass-panel" data-open="vocab.html?view=management">
+        <strong>Library & repair</strong>
+        <span>Open sets, Set Doctor, and sentence bank tools.</span>
+      </button>
+    </section>
+
+    <section class="queue-panel glass-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Right now</p>
+          <h2>Words nearest to forgetting</h2>
+        </div>
+        <button class="ghost-btn compact" data-open="vocab.html?view=review&quick=rescue">Start rescue</button>
+      </div>
+      <div class="queue-list" id="queueList">
+        <div class="queue-empty">No urgent cards yet. Your next best move will show above.</div>
+      </div>
+    </section>
+
+    <footer class="popup-footer">
+      <div class="footer-pill glass-control"><span id="totalWords">0</span> total words</div>
+      <div class="footer-pill glass-control"><span id="streakValue">0</span> streak</div>
+      <div class="footer-pill glass-control"><span id="sentenceCount">0</span> saved sentences</div>
+    </footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
