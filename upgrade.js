@@ -38,6 +38,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const byId = (id) => document.getElementById(id);
 
+  let walletWriteInFlight = false;
+  let upgradeRenderTimer = null;
+  let upgradeRenderRaf = 0;
+
+  function isModalOpen(id) {
+    const modal = byId(id);
+    return Boolean(modal && !modal.classList.contains('hidden'));
+  }
+
+  function renderVisibleUpgradePanels() {
+    renderWalletBar();
+    renderMissionStrip();
+    renderDailySayingLauncher();
+    renderPomodoroWidgets();
+    renderUpgradeHubState();
+
+    if (isModalOpen('customizationModal')) renderCustomizer();
+    if (isModalOpen('effectsLabModal')) renderEffectsLabModal();
+    if (isModalOpen('dailySayingModal')) renderDailySayingModal();
+    if (isModalOpen('collectionsModal')) renderCollectionsModal();
+    if (isModalOpen('weeklyRecapModal')) renderWeeklyRecapModal();
+    if (isModalOpen('patternVaultModal')) renderPatternVaultModal();
+    if (isModalOpen('memoryPathModal')) renderMemoryPathModal();
+    if (isModalOpen('weakRescueModal')) renderWeakRescueModal();
+    if (isModalOpen('focusRoomModal')) renderFocusRoomModal();
+    if (isModalOpen('adminModal')) renderAdminModal();
+  }
+
+  function scheduleUpgradeRender(delay = 0) {
+    const safeDelay = Math.max(0, Number(delay) || 0);
+    if (upgradeRenderTimer) {
+      window.clearTimeout(upgradeRenderTimer);
+      upgradeRenderTimer = null;
+    }
+    if (upgradeRenderRaf) {
+      window.cancelAnimationFrame(upgradeRenderRaf);
+      upgradeRenderRaf = 0;
+    }
+
+    const run = () => {
+      upgradeRenderTimer = null;
+      upgradeRenderRaf = window.requestAnimationFrame(() => {
+        upgradeRenderRaf = 0;
+        try {
+          renderVisibleUpgradePanels();
+        } catch (_) {
+          renderUpgradeLayer();
+        }
+      });
+    };
+
+    if (safeDelay === 0) run();
+    else upgradeRenderTimer = window.setTimeout(run, safeDelay);
+  }
+
+
   state.ui = normalizeUiState({});
   state.focus = normalizeFocusState({});
   state.quotes = normalizeQuotesState({});
@@ -68,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     injectUpgradeUi();
     bindEvents();
     await loadState();
-    await ensureWalletConsistency();
+    await ensureWalletConsistency({ persist: true });
     applyUiPreferences();
     syncPomodoroRuntime();
     renderUpgradeLayer();
@@ -1025,9 +1081,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
-      scheduleUpgradeRender(0);
+      scheduleUpgradeRender(80);
     }));
-    byId('reviewSetDropdown')?.addEventListener('change', () => scheduleUpgradeRender(0));
+    byId('reviewSetDropdown')?.addEventListener('change', () => scheduleUpgradeRender(80));
     window.addEventListener('vm:viewchange', () => scheduleUpgradeRender(0));
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -1056,9 +1112,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       syncSavedQuoteIdsFromCollections();
       applyUiPreferences();
-      scheduleUpgradeRender(walletTouched ? 0 : 16);
+      scheduleUpgradeRender(walletTouched ? 0 : 60);
       if (walletTouched) void ensureWalletConsistency();
     });
+
+    window.setInterval(() => {
+      if (!state.runtime.isRunning) return;
+      renderPomodoroWidgets();
+      if (isModalOpen('focusRoomModal')) renderFocusRoomModal();
+    }, 1000);
   }
 
 
@@ -1086,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     syncSavedQuoteIdsFromCollections();
     await ensureDailyQuoteFreshness();
-    await ensureWalletConsistency();
+    await ensureWalletConsistency({ persist: true });
   }
 
 
@@ -1428,33 +1490,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return state.ui[SHOP_CONFIG[kind].activeKey];
   }
 
-  let upgradeRenderTimer = null;
-
-  function isModalOpen(id) {
-    const node = byId(id);
-    return Boolean(node) && !node.classList.contains('hidden');
-  }
-
-  function scheduleUpgradeRender(delay = 0) {
-    if (upgradeRenderTimer) {
-      window.clearTimeout(upgradeRenderTimer);
-      upgradeRenderTimer = null;
-    }
-    const run = () => {
-      upgradeRenderTimer = null;
-      renderUpgradeLayer();
-    };
-    if (delay <= 0) {
-      if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(run);
-      else window.setTimeout(run, 0);
-      return;
-    }
-    upgradeRenderTimer = window.setTimeout(() => {
-      if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(run);
-      else run();
-    }, delay);
-  }
-
   function openModal(id) {
     byId(id)?.classList.remove('hidden');
   }
@@ -1475,6 +1510,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return getWalletSnapshot().availableCoins;
   }
 
+  function sanitizeWalletStateInMemory() {
+    state.stats = normalizeStats(state.stats || {});
+    state.stats.coins = Math.max(0, Number(state.stats?.coins) || 0);
+    state.bonusCoins = Math.max(0, Number(state.bonusCoins) || 0);
+    state.spentCoins = Math.max(0, Math.min(Number(state.spentCoins) || 0, state.stats.coins + state.bonusCoins));
+    state.admin = normalizeAdminState(state.admin || {});
+  }
+
   async function syncWalletStateFromStorage() {
     const result = await storage.get({
       stats: state.stats,
@@ -1486,16 +1529,17 @@ document.addEventListener('DOMContentLoaded', () => {
     state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     state.admin = normalizeAdminState(result.vm_admin || state.admin || {});
+    sanitizeWalletStateInMemory();
   }
 
-  async function ensureWalletConsistency() {
-    const wallet = getWalletSnapshot();
-    const spentChanged = wallet.spentCoins !== state.spentCoins;
-    const bonusChanged = wallet.bonusCoins !== state.bonusCoins;
-    if (!spentChanged && !bonusChanged) return;
-    state.spentCoins = wallet.spentCoins;
-    state.bonusCoins = wallet.bonusCoins;
-    await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+  async function ensureWalletConsistency({ persist = false } = {}) {
+    const beforeSpent = Number(state.spentCoins) || 0;
+    const beforeBonus = Number(state.bonusCoins) || 0;
+    sanitizeWalletStateInMemory();
+    const changed = beforeSpent !== state.spentCoins || beforeBonus !== state.bonusCoins;
+    if (persist && changed) {
+      await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+    }
   }
 
   function refreshWalletUi(message = '') {
@@ -1538,20 +1582,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderUpgradeLayer() {
     renderWalletBar();
     renderMissionStrip();
+    renderCustomizer();
     renderDailySayingLauncher();
+    renderDailySayingModal();
+    renderCollectionsModal();
+    renderWeeklyRecapModal();
+    renderPatternVaultModal();
+    renderMemoryPathModal();
+    renderWeakRescueModal();
+    renderFocusRoomModal();
+    renderAdminModal();
+    renderEffectsLabModal();
     renderPomodoroWidgets();
     renderUpgradeHubState();
-
-    if (isModalOpen('customizationModal')) renderCustomizer();
-    if (isModalOpen('dailySayingModal')) renderDailySayingModal();
-    if (isModalOpen('collectionsModal')) renderCollectionsModal();
-    if (isModalOpen('weeklyRecapModal')) renderWeeklyRecapModal();
-    if (isModalOpen('patternVaultModal')) renderPatternVaultModal();
-    if (isModalOpen('memoryPathModal')) renderMemoryPathModal();
-    if (isModalOpen('weakRescueModal')) renderWeakRescueModal();
-    if (isModalOpen('focusRoomModal')) renderFocusRoomModal();
-    if (isModalOpen('adminModal')) renderAdminModal();
-    if (isModalOpen('effectsLabModal')) renderEffectsLabModal();
   }
 
   function renderUpgradeHubState() {
@@ -2032,19 +2075,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function saveUiState() {
     applyUiPreferences();
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     await storage.set({ vm_ui: state.ui });
   }
 
   async function saveWalletState() {
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
   }
 
   async function commitWalletState(message = '') {
     state.stats = normalizeStats(state.stats || {});
     await ensureWalletConsistency();
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     applyWalletSnapshotToUi();
     await storage.set({
       stats: state.stats,
@@ -2053,22 +2096,22 @@ document.addEventListener('DOMContentLoaded', () => {
       vm_admin: state.admin
     });
     await syncWalletStateFromStorage();
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     refreshWalletUi(message);
   }
 
   async function saveFocusState() {
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     await storage.set({ vm_focus: state.focus });
   }
 
   async function saveQuotesState() {
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     await storage.set({ vm_quotes: state.quotes });
   }
 
   async function saveCollectionsState() {
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     await storage.set({ vm_collections: state.collections });
   }
 
@@ -2089,11 +2132,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveAdminState() {
-    scheduleUpgradeRender(0);
+    state.admin = normalizeAdminState(state.admin || {});
+    renderUpgradeLayer();
     applyWalletSnapshotToUi();
     await storage.set({ vm_admin: state.admin });
-    await syncWalletStateFromStorage();
-    scheduleUpgradeRender(0);
     refreshWalletUi();
   }
 
@@ -2134,7 +2176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.admin.enabled = !state.admin.enabled;
     state.admin.lastUpdatedAt = Date.now();
     await saveAdminState();
-    scheduleUpgradeRender(0);
+    renderUpgradeLayer();
     refreshWalletUi(state.admin.enabled ? 'Đã bật admin mode.' : 'Đã quay về chế độ bình thường.');
   }
 

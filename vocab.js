@@ -23,8 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     { level: 4, label: 'Rất vững', shortLabel: 'Rất vững', note: 'Đã qua nhiều lượt ôn tốt' }
   ];
 
-  const ENABLE_CLUSTER_MISSIONS = false;
-
 
   const DEFAULT_SETTINGS = {
     languageMode: 'en_focus',
@@ -883,9 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null, vm_settings: DEFAULT_SETTINGS });
     let changed = false;
 
-    const recoverySavedAt = Number(new Date(result.recoveryVault?.savedAt || 0)) || 0;
-    const shouldRefreshRecoveryVault = Array.isArray(result.vocab) && result.vocab.length && (!recoverySavedAt || (Date.now() - recoverySavedAt) > DAY_MS);
-    if (shouldRefreshRecoveryVault) {
+    if (Array.isArray(result.vocab) && result.vocab.length) {
       await storage.set({
         recoveryVault: {
           savedAt: new Date().toISOString(),
@@ -1186,27 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     byId(modalId)?.classList.add('hidden');
   }
 
-  function invalidateReviewRuntime() {
-    if (!state.reviewRuntime) return;
-    if (state.reviewRuntime.deferredTimer) {
-      window.clearTimeout(state.reviewRuntime.deferredTimer);
-    }
-    state.reviewRuntime = {
-      setName: 'all',
-      words: [],
-      stats: null,
-      recommendedPlan: null,
-      riskSummary: [],
-      smartQueueSize: 0,
-      catalog: [],
-      deferredTimer: null,
-      renderTicket: Number(state.reviewRuntime.renderTicket) || 0,
-      sourceRef: null
-    };
-  }
-
   async function persistState() {
-    invalidateReviewRuntime();
     await storage.set({ vocab: state.vocab, stats: state.stats, vm_settings: state.settings });
   }
 
@@ -1988,9 +1964,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function startRecommendedStudy() {
     const setName = byId('reviewSetDropdown').value || 'all';
-    const context = getReviewContext(setName);
-    const words = context.words || getWordsForSet(setName);
-    const plan = context.recommendedPlan || getRecommendedStudyPlan(words);
+    const words = getWordsForSet(setName);
+    const plan = getRecommendedStudyPlan(words);
     if (!plan.gameType) return showToast(uiText('Hãy thêm vài từ trước khi bắt đầu học.', 'Add a few words before you start learning.', 'Add a few words before you start learning.'));
     startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason, queue: plan.gameType === 'srs' ? getRecommendedQueue(words, 20) : undefined });
   }
@@ -2623,7 +2598,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function ensureClusterMissionPanel() {
-    if (!ENABLE_CLUSTER_MISSIONS) return;
     const reviewView = byId('review-dashboard-view');
     if (!reviewView || byId('clusterMissionPanel')) return;
     const panel = document.createElement('section');
@@ -2659,8 +2633,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initReviewView() {
     populateSetDropdown(byId('reviewSetDropdown'), true);
-    if (ENABLE_CLUSTER_MISSIONS) ensureClusterMissionPanel();
-    else byId('clusterMissionPanel')?.classList.add('hidden');
+    ensureClusterMissionPanel();
     renderReviewDashboard();
   }
 
@@ -2859,52 +2832,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Đã xóa bộ từ.');
   }
 
-  function getReviewContext(setName = (byId('reviewSetDropdown')?.value || 'all'), force = false) {
-    const cache = state.reviewRuntime || {};
-    if (!force && cache.setName === setName && cache.sourceRef === state.vocab && Array.isArray(cache.words) && cache.stats && cache.recommendedPlan && Array.isArray(cache.catalog)) {
-      return cache;
-    }
-    const words = getWordsForSet(setName);
-    const stats = getSetStats(words);
-    const smartQueueSize = getRecommendedQueue(words, 20).length;
-    const recommendedPlan = getRecommendedStudyPlan(words, stats);
-    const riskSummary = getAtRiskWords(words, 3);
-    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
-    state.reviewRuntime = {
-      ...(cache || {}),
-      setName,
-      sourceRef: state.vocab,
-      words,
-      stats,
-      smartQueueSize,
-      recommendedPlan,
-      riskSummary,
-      catalog,
-      deferredTimer: cache.deferredTimer || null,
-      renderTicket: Number(cache.renderTicket) || 0
-    };
-    return state.reviewRuntime;
-  }
-
-  function scheduleReviewSecondaryRender(context) {
-    if (!context) return;
-    context.renderTicket = (Number(context.renderTicket) || 0) + 1;
-    const ticket = context.renderTicket;
-    if (context.deferredTimer) window.clearTimeout(context.deferredTimer);
-    context.deferredTimer = window.setTimeout(() => {
-      if (!state.reviewRuntime || state.reviewRuntime.renderTicket !== ticket) return;
-      renderDailyFocus(context.words);
-      renderReviewInsights(context.words);
-      renderAdvancedReviewPanels(context.words);
-      if (ENABLE_CLUSTER_MISSIONS) renderClusterMissions(context.words);
-      else byId('clusterMissionPanel')?.classList.add('hidden');
-    }, 0);
-  }
-
   function renderReviewDashboard() {
     const setName = byId('reviewSetDropdown').value || 'all';
-    const context = getReviewContext(setName, true);
-    const { words, stats, smartQueueSize, recommendedPlan, riskSummary, catalog } = context;
+    const words = getWordsForSet(setName);
+    const stats = getSetStats(words);
 
     byId('reviewDueCount').textContent = stats.due;
     byId('reviewNewCount').textContent = stats.fresh;
@@ -2914,6 +2845,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const recommendation = byId('reviewRecommendation');
     const dashboardSubtext = byId('dashboardSubtext');
     const stageStrip = byId('memoryStageStrip');
+    const smartQueueSize = getRecommendedQueue(words, 20).length;
+    const recommendedPlan = getRecommendedStudyPlan(words, stats);
+    const riskSummary = getAtRiskWords(words, 3);
 
     if (!words.length) {
       recommendation.textContent = uiText('Bộ từ đang trống. Hãy thêm từ trước khi bắt đầu ôn tập.', 'This set is empty. Add some entries before starting review.', 'This set is empty. Add some entries before starting review.');
@@ -2951,7 +2885,7 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('spotlightModeName').textContent = recommendedPlan.title;
     byId('spotlightModeReason').textContent = recommendedPlan.reason;
     byId('spotlightLaunchBtn').disabled = !recommendedPlan.gameType;
-    renderPracticeHubContent(catalog, words);
+    renderPracticeHub(words, stats, recommendedPlan);
 
     document.querySelectorAll('.mode-lab-card').forEach(card => {
       card.classList.toggle('recommended-mode-card', card.dataset.game === recommendedPlan.gameType);
@@ -2967,9 +2901,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    renderDailyFocus(words);
+    renderClusterMissions(words);
+    renderReviewInsights(words);
+    renderAdvancedReviewPanels(words);
+
     byId('recommendedModeTitle').textContent = recommendedPlan.title;
     byId('recommendedModeReason').textContent = recommendedPlan.reason;
     byId('startRecommendedBtn').disabled = !recommendedPlan.gameType;
+    byId('startDueFocusBtn').disabled = !stats.due;
+    byId('startWeakFocusBtn').disabled = !stats.weak;
+    byId('startNewFocusBtn').disabled = !stats.fresh;
 
     const badgeText = {
       flashcard: uiText(`${Math.min(words.length, 20)} thẻ`, `${Math.min(words.length, 20)} cards`, `${Math.min(words.length, 20)} cards`),
@@ -2988,8 +2930,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-badge]').forEach(node => {
       node.textContent = badgeText[node.dataset.badge] || '0';
     });
-
-    scheduleReviewSecondaryRender(context);
   }
 
   function getConceptFamilyDisplay(familyKey, sample) {
@@ -3069,10 +3009,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderClusterMissions(words) {
-    if (!ENABLE_CLUSTER_MISSIONS) {
-      byId('clusterMissionPanel')?.classList.add('hidden');
-      return;
-    }
     ensureClusterMissionPanel();
     const panel = byId('clusterMissionPanel');
     const grid = byId('clusterMissionGrid');
@@ -4359,11 +4295,66 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(nextRender, 760);
   }
 
+  let cachedPracticeCatalog = null;
+
+  function renderPracticeHubDetail(selected) {
+    const detail = byId('practiceModeDetail');
+    if (!detail || !selected) return;
+    const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
+    const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    detail.innerHTML = `
+      <div class="practice-detail-shell" data-accent="${selected.accent || 'blue'}">
+        <div class="practice-detail-topline">
+          <span class="practice-detail-kicker">${escapeHtml(selected.kicker)}</span>
+          <span class="practice-detail-status ${selected.available ? 'is-ready' : 'is-locked'}">${escapeHtml(selected.available ? uiText('Sẵn sàng', 'Ready', 'Ready') : uiText('Thiếu dữ liệu', 'Need more data', 'Need more data'))}</span>
+        </div>
+        <div class="practice-detail-hero">
+          <div class="practice-detail-copy">
+            <h3>${escapeHtml(selected.title)}</h3>
+            <p class="practice-detail-summary">${escapeHtml(selected.summary)}</p>
+            <div class="practice-detail-pill-row">
+              <span class="practice-detail-pill">${escapeHtml(getPracticeModeSizeLabel(selected))}</span>
+              <span class="practice-detail-pill">${escapeHtml(uiText('Dùng khi', 'Best when', 'Best when'))}: ${escapeHtml(selected.when)}</span>
+            </div>
+          </div>
+          <div class="practice-detail-visual" data-accent="${selected.accent || 'blue'}">
+            <div class="practice-visual-glow"></div>
+            <div class="practice-visual-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(selected.id))}</div>
+            <div class="practice-visual-title">${escapeHtml(selected.title)}</div>
+            <div class="practice-visual-subtitle">${escapeHtml(selected.available ? uiText('Sẵn sàng bắt đầu', 'Ready to start', 'Ready to start') : uiText('Cần thêm dữ liệu', 'Needs more data', 'Needs more data'))}</div>
+          </div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Game này luyện gì', 'What this trains', 'What this trains'))}</strong>
+          <div class="practice-train-row">${trainBadges}</div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Luật và cách chơi', 'Rules and flow', 'Rules and flow'))}</strong>
+          <ol class="practice-detail-rules">${ruleItems}</ol>
+        </div>
+        <div class="practice-detail-actions">
+          <button type="button" class="primary-btn" data-practice-action="start" ${selected.available ? '' : 'disabled'}>${escapeHtml(uiText('▶ Bắt đầu game này', '▶ Start this game', '▶ Start this game'))}</button>
+        </div>
+      </div>`;
+  }
+
   function selectPracticeMode(modeId) {
     state.selectedPracticeMode = modeId;
+    const grid = byId('practiceModeGrid');
+    
+    if (cachedPracticeCatalog && grid && cachedPracticeCatalog.some(item => item.id === modeId)) {
+      Array.from(grid.querySelectorAll('.practice-tile')).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.game === modeId);
+        btn.setAttribute('aria-pressed', btn.dataset.game === modeId ? 'true' : 'false');
+      });
+      const selected = cachedPracticeCatalog.find(item => item.id === modeId) || cachedPracticeCatalog[0];
+      renderPracticeHubDetail(selected);
+      return;
+    }
+
     const setName = byId('reviewSetDropdown')?.value || 'all';
-    const context = getReviewContext(setName);
-    renderPracticeHubContent(context.catalog || buildPracticeCatalog(context.words, context.stats, context.recommendedPlan), context.words || getWordsForSet(setName));
+    const words = getWordsForSet(setName);
+    renderPracticeHub(words, getSetStats(words), getRecommendedStudyPlan(words));
   }
 
   function startSelectedPracticeMode() {
@@ -4406,23 +4397,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return iconMap[modeId] || '•';
   }
 
-  function getPracticeModeSizeLabel(mode, words) {
+  function getPracticeModeSizeLabel(mode) {
     if (!mode) return '';
     if (mode.id === 'reflex') return uiText('1 phút · 20 câu', '1 minute · 20 rounds', '1 minute · 20 rounds');
     return `${Math.min(mode.count || 0, 20)} ${uiText('mục', 'items', 'items')}`;
   }
 
   function renderPracticeHub(words, stats = getSetStats(words), recommendedPlan = getRecommendedStudyPlan(words, stats)) {
-    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
-    state.reviewRuntime = { ...(state.reviewRuntime || {}), sourceRef: state.vocab, words, stats, recommendedPlan, catalog };
-    renderPracticeHubContent(catalog, words);
-  }
-
-  function renderPracticeHubContent(catalog, words) {
     const grid = byId('practiceModeGrid');
-    const detail = byId('practiceModeDetail');
-    if (!grid || !detail) return;
-    const recommendedId = (state.reviewRuntime?.recommendedPlan?.gameType) || catalog[0]?.id || 'flashcard';
+    if (!grid) return;
+    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
+    cachedPracticeCatalog = catalog;
+    
+    const recommendedId = recommendedPlan?.gameType || catalog[0]?.id || 'flashcard';
     if (!catalog.some(item => item.id === state.selectedPracticeMode)) {
       state.selectedPracticeMode = recommendedId;
     } else if (!state.selectedPracticeMode) {
@@ -4442,43 +4429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="practice-tile-count">${item.available ? escapeHtml(String(Math.min(item.count || 0, 20))) : '—'}</span>
       </button>`).join('');
 
-    const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0] || { id: 'flashcard', title: 'Flashcard', kicker: 'Review', summary: '', when: '', trains: [], rules: [], available: false, accent: 'blue', count: 0 };
-    const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
-    const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
-    detail.innerHTML = `
-      <div class="practice-detail-shell" data-accent="${selected.accent || 'blue'}">
-        <div class="practice-detail-topline">
-          <span class="practice-detail-kicker">${escapeHtml(selected.kicker)}</span>
-          <span class="practice-detail-status ${selected.available ? 'is-ready' : 'is-locked'}">${escapeHtml(selected.available ? uiText('Sẵn sàng', 'Ready', 'Ready') : uiText('Thiếu dữ liệu', 'Need more data', 'Need more data'))}</span>
-        </div>
-        <div class="practice-detail-hero">
-          <div class="practice-detail-copy">
-            <h3>${escapeHtml(selected.title)}</h3>
-            <p class="practice-detail-summary">${escapeHtml(selected.summary)}</p>
-            <div class="practice-detail-pill-row">
-              <span class="practice-detail-pill">${escapeHtml(getPracticeModeSizeLabel(selected, words))}</span>
-              <span class="practice-detail-pill">${escapeHtml(uiText('Dùng khi', 'Best when', 'Best when'))}: ${escapeHtml(selected.when)}</span>
-            </div>
-          </div>
-          <div class="practice-detail-visual" data-accent="${selected.accent || 'blue'}">
-            <div class="practice-visual-glow"></div>
-            <div class="practice-visual-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(selected.id))}</div>
-            <div class="practice-visual-title">${escapeHtml(selected.title)}</div>
-            <div class="practice-visual-subtitle">${escapeHtml(selected.available ? uiText('Sẵn sàng bắt đầu', 'Ready to start', 'Ready to start') : uiText('Cần thêm dữ liệu', 'Needs more data', 'Needs more data'))}</div>
-          </div>
-        </div>
-        <div class="practice-detail-block">
-          <strong>${escapeHtml(uiText('Game này luyện gì', 'What this trains', 'What this trains'))}</strong>
-          <div class="practice-train-row">${trainBadges}</div>
-        </div>
-        <div class="practice-detail-block">
-          <strong>${escapeHtml(uiText('Luật và cách chơi', 'Rules and flow', 'Rules and flow'))}</strong>
-          <ol class="practice-detail-rules">${ruleItems}</ol>
-        </div>
-        <div class="practice-detail-actions">
-          <button type="button" class="primary-btn" data-practice-action="start" ${selected.available ? '' : 'disabled'}>${escapeHtml(uiText('▶ Bắt đầu game này', '▶ Start this game', '▶ Start this game'))}</button>
-        </div>
-      </div>`;
+    const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0];
+    renderPracticeHubDetail(selected);
   }
 
   function renderQuiz() {

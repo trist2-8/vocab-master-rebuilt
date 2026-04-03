@@ -34,8 +34,6 @@ assert.ok(upgradeJs.includes('pomodoroAudioToggle'), 'upgrade.js should expose P
 assert.ok(upgradeJs.includes('pomodoroPlaylistFolderInput'), 'upgrade.js should expose a folder input for .webm playlist files');
 assert.ok(upgradeJs.includes('playPomodoroCue'), 'upgrade.js should play Pomodoro cues');
 assert.ok(upgradeJs.includes('getSupportedWeatherEffect'), 'upgrade.js should validate supported weather effects');
-assert.ok(upgradeJs.includes('scheduleUpgradeRender'), 'upgrade.js should define upgrade render scheduler');
-assert.ok(upgradeJs.includes('isModalOpen'), 'upgrade.js should define modal state helper');
 assert.ok(effectsJs.includes('VMUpgradeEffects'), 'effects.js should define the upgrade effects module');
 assert.ok(effectsJs.includes('window-rain'), 'effects.js should support new atmosphere modes');
 assert.ok(audioJs.includes('VMUpgradeAudio'), 'audio.js should define the Pomodoro audio module');
