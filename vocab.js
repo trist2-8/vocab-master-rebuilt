@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { level: 4, label: 'Rất vững', shortLabel: 'Rất vững', note: 'Đã qua nhiều lượt ôn tốt' }
   ];
 
+  const ENABLE_CLUSTER_MISSIONS = false;
+
 
   const DEFAULT_SETTINGS = {
     languageMode: 'en_focus',
@@ -128,8 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const byId = (id) => document.getElementById(id);
   const views = Array.from(document.querySelectorAll('.view'));
   const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-
-  let storageSyncEventsBound = false;
 
   function syncCompactNav() {
     if (document.body.classList.contains('nav-condensed')) {
@@ -241,30 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
     if (shell) shell.classList.remove('is-open');
     if (tools) tools.classList.remove('language-open');
-  }
-
-  function bindStorageSyncEvents() {
-    if (storageSyncEventsBound || !chrome?.storage?.onChanged) return;
-    storageSyncEventsBound = true;
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== 'local') return;
-      let shouldRender = false;
-      if (changes.stats) {
-        state.stats = normalizeStats(changes.stats.newValue || {});
-        shouldRender = true;
-      }
-      if (changes.vocab) {
-        state.vocab = Array.isArray(changes.vocab.newValue) ? changes.vocab.newValue.map((item, index) => normalizeWord(item, index)) : [];
-        shouldRender = true;
-      }
-      if (changes.vm_settings) {
-        state.settings = normalizeSettings(changes.vm_settings.newValue || {});
-        shouldRender = true;
-      }
-      if (shouldRender) {
-        renderAll();
-      }
-    });
   }
 
   function toggleLanguageModeMenu(forceOpen) {
@@ -561,7 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ensureSetDoctorPanel();
     ensureMemoryCoachDock();
     bindStaticEvents();
-    bindStorageSyncEvents();
     setupModals();
     ensureAdvancedReviewPanels();
     await loadState();
@@ -908,7 +883,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const result = await storage.get({ vocab: [], stats: { coins: 0 }, recoveryVault: null, vm_settings: DEFAULT_SETTINGS });
     let changed = false;
 
-    if (Array.isArray(result.vocab) && result.vocab.length) {
+    const recoverySavedAt = Number(new Date(result.recoveryVault?.savedAt || 0)) || 0;
+    const shouldRefreshRecoveryVault = Array.isArray(result.vocab) && result.vocab.length && (!recoverySavedAt || (Date.now() - recoverySavedAt) > DAY_MS);
+    if (shouldRefreshRecoveryVault) {
       await storage.set({
         recoveryVault: {
           savedAt: new Date().toISOString(),
@@ -1209,7 +1186,27 @@ document.addEventListener('DOMContentLoaded', () => {
     byId(modalId)?.classList.add('hidden');
   }
 
+  function invalidateReviewRuntime() {
+    if (!state.reviewRuntime) return;
+    if (state.reviewRuntime.deferredTimer) {
+      window.clearTimeout(state.reviewRuntime.deferredTimer);
+    }
+    state.reviewRuntime = {
+      setName: 'all',
+      words: [],
+      stats: null,
+      recommendedPlan: null,
+      riskSummary: [],
+      smartQueueSize: 0,
+      catalog: [],
+      deferredTimer: null,
+      renderTicket: Number(state.reviewRuntime.renderTicket) || 0,
+      sourceRef: null
+    };
+  }
+
   async function persistState() {
+    invalidateReviewRuntime();
     await storage.set({ vocab: state.vocab, stats: state.stats, vm_settings: state.settings });
   }
 
@@ -1991,8 +1988,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function startRecommendedStudy() {
     const setName = byId('reviewSetDropdown').value || 'all';
-    const words = getWordsForSet(setName);
-    const plan = getRecommendedStudyPlan(words);
+    const context = getReviewContext(setName);
+    const words = context.words || getWordsForSet(setName);
+    const plan = context.recommendedPlan || getRecommendedStudyPlan(words);
     if (!plan.gameType) return showToast(uiText('Hãy thêm vài từ trước khi bắt đầu học.', 'Add a few words before you start learning.', 'Add a few words before you start learning.'));
     startGame(plan.gameType, setName, { planTitle: plan.title, planReason: plan.reason, queue: plan.gameType === 'srs' ? getRecommendedQueue(words, 20) : undefined });
   }
@@ -2625,6 +2623,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function ensureClusterMissionPanel() {
+    if (!ENABLE_CLUSTER_MISSIONS) return;
     const reviewView = byId('review-dashboard-view');
     if (!reviewView || byId('clusterMissionPanel')) return;
     const panel = document.createElement('section');
@@ -2660,7 +2659,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initReviewView() {
     populateSetDropdown(byId('reviewSetDropdown'), true);
-    ensureClusterMissionPanel();
+    if (ENABLE_CLUSTER_MISSIONS) ensureClusterMissionPanel();
+    else byId('clusterMissionPanel')?.classList.add('hidden');
     renderReviewDashboard();
   }
 
@@ -2859,10 +2859,52 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Đã xóa bộ từ.');
   }
 
-  function renderReviewDashboard() {
-    const setName = byId('reviewSetDropdown').value || 'all';
+  function getReviewContext(setName = (byId('reviewSetDropdown')?.value || 'all'), force = false) {
+    const cache = state.reviewRuntime || {};
+    if (!force && cache.setName === setName && cache.sourceRef === state.vocab && Array.isArray(cache.words) && cache.stats && cache.recommendedPlan && Array.isArray(cache.catalog)) {
+      return cache;
+    }
     const words = getWordsForSet(setName);
     const stats = getSetStats(words);
+    const smartQueueSize = getRecommendedQueue(words, 20).length;
+    const recommendedPlan = getRecommendedStudyPlan(words, stats);
+    const riskSummary = getAtRiskWords(words, 3);
+    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
+    state.reviewRuntime = {
+      ...(cache || {}),
+      setName,
+      sourceRef: state.vocab,
+      words,
+      stats,
+      smartQueueSize,
+      recommendedPlan,
+      riskSummary,
+      catalog,
+      deferredTimer: cache.deferredTimer || null,
+      renderTicket: Number(cache.renderTicket) || 0
+    };
+    return state.reviewRuntime;
+  }
+
+  function scheduleReviewSecondaryRender(context) {
+    if (!context) return;
+    context.renderTicket = (Number(context.renderTicket) || 0) + 1;
+    const ticket = context.renderTicket;
+    if (context.deferredTimer) window.clearTimeout(context.deferredTimer);
+    context.deferredTimer = window.setTimeout(() => {
+      if (!state.reviewRuntime || state.reviewRuntime.renderTicket !== ticket) return;
+      renderDailyFocus(context.words);
+      renderReviewInsights(context.words);
+      renderAdvancedReviewPanels(context.words);
+      if (ENABLE_CLUSTER_MISSIONS) renderClusterMissions(context.words);
+      else byId('clusterMissionPanel')?.classList.add('hidden');
+    }, 0);
+  }
+
+  function renderReviewDashboard() {
+    const setName = byId('reviewSetDropdown').value || 'all';
+    const context = getReviewContext(setName, true);
+    const { words, stats, smartQueueSize, recommendedPlan, riskSummary, catalog } = context;
 
     byId('reviewDueCount').textContent = stats.due;
     byId('reviewNewCount').textContent = stats.fresh;
@@ -2872,9 +2914,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const recommendation = byId('reviewRecommendation');
     const dashboardSubtext = byId('dashboardSubtext');
     const stageStrip = byId('memoryStageStrip');
-    const smartQueueSize = getRecommendedQueue(words, 20).length;
-    const recommendedPlan = getRecommendedStudyPlan(words, stats);
-    const riskSummary = getAtRiskWords(words, 3);
 
     if (!words.length) {
       recommendation.textContent = uiText('Bộ từ đang trống. Hãy thêm từ trước khi bắt đầu ôn tập.', 'This set is empty. Add some entries before starting review.', 'This set is empty. Add some entries before starting review.');
@@ -2912,7 +2951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('spotlightModeName').textContent = recommendedPlan.title;
     byId('spotlightModeReason').textContent = recommendedPlan.reason;
     byId('spotlightLaunchBtn').disabled = !recommendedPlan.gameType;
-    renderPracticeHub(words, stats, recommendedPlan);
+    renderPracticeHubContent(catalog, words);
 
     document.querySelectorAll('.mode-lab-card').forEach(card => {
       card.classList.toggle('recommended-mode-card', card.dataset.game === recommendedPlan.gameType);
@@ -2928,17 +2967,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    renderDailyFocus(words);
-    renderClusterMissions(words);
-    renderReviewInsights(words);
-    renderAdvancedReviewPanels(words);
-
     byId('recommendedModeTitle').textContent = recommendedPlan.title;
     byId('recommendedModeReason').textContent = recommendedPlan.reason;
     byId('startRecommendedBtn').disabled = !recommendedPlan.gameType;
-    byId('startDueFocusBtn').disabled = !stats.due;
-    byId('startWeakFocusBtn').disabled = !stats.weak;
-    byId('startNewFocusBtn').disabled = !stats.fresh;
 
     const badgeText = {
       flashcard: uiText(`${Math.min(words.length, 20)} thẻ`, `${Math.min(words.length, 20)} cards`, `${Math.min(words.length, 20)} cards`),
@@ -2957,6 +2988,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-badge]').forEach(node => {
       node.textContent = badgeText[node.dataset.badge] || '0';
     });
+
+    scheduleReviewSecondaryRender(context);
   }
 
   function getConceptFamilyDisplay(familyKey, sample) {
@@ -3036,6 +3069,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderClusterMissions(words) {
+    if (!ENABLE_CLUSTER_MISSIONS) {
+      byId('clusterMissionPanel')?.classList.add('hidden');
+      return;
+    }
     ensureClusterMissionPanel();
     const panel = byId('clusterMissionPanel');
     const grid = byId('clusterMissionGrid');
@@ -4325,8 +4362,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function selectPracticeMode(modeId) {
     state.selectedPracticeMode = modeId;
     const setName = byId('reviewSetDropdown')?.value || 'all';
-    const words = getWordsForSet(setName);
-    renderPracticeHub(words, getSetStats(words), getRecommendedStudyPlan(words));
+    const context = getReviewContext(setName);
+    renderPracticeHubContent(context.catalog || buildPracticeCatalog(context.words, context.stats, context.recommendedPlan), context.words || getWordsForSet(setName));
   }
 
   function startSelectedPracticeMode() {
@@ -4376,11 +4413,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderPracticeHub(words, stats = getSetStats(words), recommendedPlan = getRecommendedStudyPlan(words, stats)) {
+    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
+    state.reviewRuntime = { ...(state.reviewRuntime || {}), sourceRef: state.vocab, words, stats, recommendedPlan, catalog };
+    renderPracticeHubContent(catalog, words);
+  }
+
+  function renderPracticeHubContent(catalog, words) {
     const grid = byId('practiceModeGrid');
     const detail = byId('practiceModeDetail');
     if (!grid || !detail) return;
-    const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
-    const recommendedId = recommendedPlan?.gameType || catalog[0]?.id || 'flashcard';
+    const recommendedId = (state.reviewRuntime?.recommendedPlan?.gameType) || catalog[0]?.id || 'flashcard';
     if (!catalog.some(item => item.id === state.selectedPracticeMode)) {
       state.selectedPracticeMode = recommendedId;
     } else if (!state.selectedPracticeMode) {
@@ -4400,7 +4442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="practice-tile-count">${item.available ? escapeHtml(String(Math.min(item.count || 0, 20))) : '—'}</span>
       </button>`).join('');
 
-    const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0];
+    const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0] || { id: 'flashcard', title: 'Flashcard', kicker: 'Review', summary: '', when: '', trains: [], rules: [], available: false, accent: 'blue', count: 0 };
     const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
     const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
     detail.innerHTML = `

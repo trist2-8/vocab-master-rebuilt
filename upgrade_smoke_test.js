@@ -10,16 +10,16 @@ function read(name) {
 const html = read('vocab.html');
 const upgradeJs = read('upgrade.js');
 const upgradeCss = read('upgrade.css');
-const dataJs = read('src/upgrade/data.js');
-const effectsJs = read('src/upgrade/effects.js');
-const audioJs = read('src/upgrade/audio.js');
-const effectsCss = read('styles/upgrade-effects.css');
+const dataJs = read('data.js');
+const effectsJs = read('effects.js');
+const audioJs = read('audio.js');
+const effectsCss = read('upgrade-effects.css');
 const vocabJs = read('vocab.js');
 const manifest = JSON.parse(read('manifest.json'));
 
-assert.ok(html.includes('src/upgrade/data.js'), 'vocab.html should load upgrade data script');
-assert.ok(html.includes('src/upgrade/effects.js'), 'vocab.html should load upgrade effects script');
-assert.ok(html.includes('src/upgrade/audio.js'), 'vocab.html should load upgrade audio script');
+assert.ok(html.includes('data.js'), 'vocab.html should load upgrade data script');
+assert.ok(html.includes('effects.js'), 'vocab.html should load upgrade effects script');
+assert.ok(html.includes('audio.js'), 'vocab.html should load upgrade audio script');
 assert.ok(html.includes('upgrade.js'), 'vocab.html should load main upgrade script');
 assert.ok(upgradeJs.includes('window.VMUpgradeData') || upgradeJs.includes('const { THEMES'), 'upgrade.js should consume modular upgrade data');
 assert.ok(dataJs.includes('const THEMES'), 'data.js should define themes');
@@ -34,11 +34,13 @@ assert.ok(upgradeJs.includes('pomodoroAudioToggle'), 'upgrade.js should expose P
 assert.ok(upgradeJs.includes('pomodoroPlaylistFolderInput'), 'upgrade.js should expose a folder input for .webm playlist files');
 assert.ok(upgradeJs.includes('playPomodoroCue'), 'upgrade.js should play Pomodoro cues');
 assert.ok(upgradeJs.includes('getSupportedWeatherEffect'), 'upgrade.js should validate supported weather effects');
+assert.ok(upgradeJs.includes('scheduleUpgradeRender'), 'upgrade.js should define upgrade render scheduler');
+assert.ok(upgradeJs.includes('isModalOpen'), 'upgrade.js should define modal state helper');
 assert.ok(effectsJs.includes('VMUpgradeEffects'), 'effects.js should define the upgrade effects module');
 assert.ok(effectsJs.includes('window-rain'), 'effects.js should support new atmosphere modes');
 assert.ok(audioJs.includes('VMUpgradeAudio'), 'audio.js should define the Pomodoro audio module');
 assert.ok(audioJs.includes('soft-bell'), 'audio.js should include audio packs');
-assert.ok(upgradeCss.includes('@import url("./styles/upgrade-effects.css")'), 'upgrade.css should import modular effects CSS');
+assert.ok(upgradeCss.includes('@import url("./upgrade-effects.css")'), 'upgrade.css should import modular effects CSS');
 assert.ok(effectsCss.includes('vm-rain-fall'), 'effects CSS should define rain animation');
 assert.ok(effectsCss.includes('vm-petal-fall'), 'effects CSS should define petal animation');
 assert.ok(effectsCss.includes('vm-neon-float'), 'effects CSS should define neon animation');

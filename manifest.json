@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vocab Master",
-  "version": "7.2.1",
-  "description": "Vocab Master with Set Doctor, Memory Coach, Retrieval Ladder, Context Replay, and Memory Constellation cluster missions.",
+  "version": "7.3.0",
+  "description": "Vocab Master with faster review rendering, lighter upgrade effects, and lower-RAM Pomodoro audio.",
   "permissions": [
     "storage"
   ],

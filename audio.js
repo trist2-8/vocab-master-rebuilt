@@ -1,20 +1,19 @@
 window.VMUpgradeAudio = (() => {
   let context = null;
-  let playlistGain = null;
   let status = 'idle';
   let statusMessage = 'Chọn folder .webm nếu bạn muốn phát playlist sau khi Pomodoro kết thúc.';
   let unlocked = false;
   const listeners = new Set();
 
-  let playlistBuffers = [];
+  let playlistFiles = [];
   let playlistTrackNames = [];
   let playlistActive = false;
   let playlistIndex = 0;
-  let playlistScheduledUntil = 0;
   let playlistCurrentTrack = '';
   let playlistLabel = '';
-  let playlistSchedulerId = null;
-  const playlistSources = new Set();
+  let currentPlaylistAudio = null;
+  let currentPlaylistUrl = '';
+  let playlistVolume = 0.7;
 
   const PACKS = {
     'soft-bell': { start: [[660, 0.08], [880, 0.12]], warning: [[587, 0.08], [698, 0.08], [784, 0.12]], end: [[784, 0.1], [988, 0.12], [1175, 0.18]], break: [[523, 0.1], [659, 0.14], [784, 0.16]] },
@@ -41,9 +40,6 @@ window.VMUpgradeAudio = (() => {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return null;
     context = new Ctx();
-    playlistGain = context.createGain();
-    playlistGain.gain.value = 0.7;
-    playlistGain.connect(context.destination);
     return context;
   }
 
@@ -90,12 +86,6 @@ window.VMUpgradeAudio = (() => {
     return true;
   }
 
-  async function decodeAudioBuffer(arrayBuffer) {
-    const ctx = ensureContext();
-    if (!ctx) throw new Error('no_audio_context');
-    return await ctx.decodeAudioData(arrayBuffer.slice(0));
-  }
-
   function sortPlaylistFiles(files) {
     return [...files].sort((a, b) => {
       const pathA = a.webkitRelativePath || a.name;
@@ -112,105 +102,93 @@ window.VMUpgradeAudio = (() => {
 
   async function loadCompletionPlaylist(files) {
     const fileList = sortPlaylistFiles(Array.from(files || []).filter(isPlaylistFile));
+    stopCompletionPlaylist(true);
     if (!fileList.length) {
-      playlistBuffers = [];
+      playlistFiles = [];
       playlistTrackNames = [];
       playlistLabel = '';
       setStatus('missing', 'Folder chưa có file .webm hợp lệ cho playlist sau Pomodoro.');
       return { ok: false, count: 0, names: [] };
     }
-    if (!ensureContext()) {
-      setStatus('unsupported', 'Trình duyệt không hỗ trợ giải mã playlist .webm bằng Web Audio.');
-      return { ok: false, count: 0, names: [] };
-    }
-    const buffers = [];
-    const names = [];
-    for (const file of fileList) {
+    playlistFiles = fileList;
+    playlistTrackNames = fileList.map((file) => file.name);
+    playlistLabel = playlistTrackNames.length === 1 ? playlistTrackNames[0] : `${playlistTrackNames.length} file .webm`;
+    setStatus('ready', `Đã nạp playlist hoàn thành Pomodoro: ${playlistTrackNames.length} file. App sẽ phát từng file để giảm RAM.`);
+    return { ok: true, count: playlistTrackNames.length, names: [...playlistTrackNames] };
+  }
+
+  function cleanupCurrentPlaylistAudio() {
+    if (currentPlaylistAudio) {
       try {
-        const buffer = await decodeAudioBuffer(await file.arrayBuffer());
-        buffers.push(buffer);
-        names.push(file.name);
+        currentPlaylistAudio.onended = null;
+        currentPlaylistAudio.onerror = null;
+        currentPlaylistAudio.pause();
+        currentPlaylistAudio.removeAttribute('src');
+        currentPlaylistAudio.load();
       } catch (_) {}
     }
-    if (!buffers.length) {
-      playlistBuffers = [];
-      playlistTrackNames = [];
-      playlistLabel = '';
-      setStatus('blocked', 'Các file .webm chưa giải mã được. Hãy thử audio/webm khác.');
-      return { ok: false, count: 0, names: [] };
+    if (currentPlaylistUrl) {
+      try { URL.revokeObjectURL(currentPlaylistUrl); } catch (_) {}
     }
-    playlistBuffers = buffers;
-    playlistTrackNames = names;
-    playlistLabel = names.length === 1 ? names[0] : `${names.length} file .webm`;
-    setStatus('ready', `Đã nạp playlist hoàn thành Pomodoro: ${names.length} file. App sẽ tự chuyển bài nối tiếp.`);
-    return { ok: true, count: names.length, names };
+    currentPlaylistAudio = null;
+    currentPlaylistUrl = '';
   }
 
-  function cleanupPlaylistSources() {
-    playlistSources.forEach((source) => {
-      try { source.stop(0); } catch (_) {}
-      try { source.disconnect(); } catch (_) {}
-    });
-    playlistSources.clear();
-  }
-
-  function scheduleNextPlaylistTrack() {
-    if (!context || !playlistActive || !playlistBuffers.length) return;
-    const buffer = playlistBuffers[playlistIndex];
-    const name = playlistTrackNames[playlistIndex] || `Track ${playlistIndex + 1}`;
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.connect(playlistGain);
-    const startAt = Math.max(playlistScheduledUntil || 0, context.currentTime + 0.05);
-    source.start(startAt);
-    source.onended = () => {
-      playlistSources.delete(source);
-      try { source.disconnect(); } catch (_) {}
+  async function playPlaylistTrack(index) {
+    if (!playlistActive || !playlistFiles.length) return false;
+    const file = playlistFiles[index];
+    if (!file) return false;
+    cleanupCurrentPlaylistAudio();
+    const audio = new Audio();
+    currentPlaylistAudio = audio;
+    currentPlaylistUrl = URL.createObjectURL(file);
+    audio.preload = 'auto';
+    audio.src = currentPlaylistUrl;
+    audio.volume = playlistVolume;
+    playlistCurrentTrack = playlistTrackNames[index] || `Track ${index + 1}`;
+    playlistIndex = index;
+    audio.onended = async () => {
+      cleanupCurrentPlaylistAudio();
+      if (!playlistActive || !playlistFiles.length) return;
+      const nextIndex = (playlistIndex + 1) % playlistFiles.length;
+      playlistIndex = nextIndex;
+      await playPlaylistTrack(nextIndex);
     };
-    playlistSources.add(source);
-    playlistCurrentTrack = name;
-    playlistScheduledUntil = startAt + buffer.duration;
-    playlistIndex = (playlistIndex + 1) % playlistBuffers.length;
-  }
-
-  function maintainPlaylistLookahead() {
-    if (!context || !playlistActive || !playlistBuffers.length) return;
-    if (!playlistScheduledUntil) playlistScheduledUntil = context.currentTime + 0.05;
-    while (playlistScheduledUntil < context.currentTime + 12) {
-      scheduleNextPlaylistTrack();
-    }
-    setStatus('ready', `Playlist đang chạy liền mạch • ${playlistCurrentTrack || playlistLabel}.`);
-  }
-
-  async function startCompletionPlaylist({ volume = 70 } = {}) {
-    if (!playlistBuffers.length) {
-      setStatus('missing', 'Bạn chưa chọn folder playlist .webm.');
-      return false;
-    }
-    const ctx = await resumeContext();
-    if (!ctx) {
+    audio.onerror = async () => {
+      cleanupCurrentPlaylistAudio();
+      if (!playlistActive || !playlistFiles.length) return;
+      const nextIndex = (playlistIndex + 1) % playlistFiles.length;
+      playlistIndex = nextIndex;
+      setStatus('ready', `Bỏ qua file lỗi, chuyển sang ${playlistTrackNames[nextIndex] || 'file tiếp theo'}.`);
+      await playPlaylistTrack(nextIndex);
+    };
+    try {
+      await audio.play();
+      setStatus('ready', `Playlist đang chạy • ${playlistCurrentTrack}.`);
+      unlocked = true;
+      return true;
+    } catch (_) {
+      cleanupCurrentPlaylistAudio();
       setStatus('blocked', 'Trình duyệt chưa cho phép phát playlist. Hãy bấm một nút rồi thử lại.');
       return false;
     }
-    stopCompletionPlaylist(true);
-    playlistGain.gain.value = Math.max(0, Math.min(1, (Number(volume) || 70) / 100));
+  }
+
+  async function startCompletionPlaylist({ volume = 70 } = {}) {
+    if (!playlistFiles.length) {
+      setStatus('missing', 'Bạn chưa chọn folder playlist .webm.');
+      return false;
+    }
+    await resumeContext();
+    playlistVolume = Math.max(0, Math.min(1, (Number(volume) || 70) / 100));
     playlistActive = true;
     playlistIndex = 0;
-    playlistScheduledUntil = 0;
-    maintainPlaylistLookahead();
-    playlistSchedulerId = window.setInterval(maintainPlaylistLookahead, 2000);
-    unlocked = true;
-    return true;
+    return playPlaylistTrack(0);
   }
 
   function stopCompletionPlaylist(silent = false) {
     playlistActive = false;
-    if (playlistSchedulerId) {
-      window.clearInterval(playlistSchedulerId);
-      playlistSchedulerId = null;
-    }
-    cleanupPlaylistSources();
-    playlistScheduledUntil = 0;
+    cleanupCurrentPlaylistAudio();
     playlistCurrentTrack = '';
     if (!silent) setStatus('ready', 'Đã dừng playlist hoàn thành Pomodoro.');
     return true;
@@ -218,14 +196,14 @@ window.VMUpgradeAudio = (() => {
 
   function clearCompletionPlaylist() {
     stopCompletionPlaylist(true);
-    playlistBuffers = [];
+    playlistFiles = [];
     playlistTrackNames = [];
     playlistLabel = '';
     setStatus('ready', 'Đã xóa playlist hoàn thành Pomodoro.');
   }
 
   function isCompletionPlaylistPlaying() {
-    return playlistActive && playlistSources.size > 0;
+    return Boolean(playlistActive && currentPlaylistAudio && !currentPlaylistAudio.paused);
   }
 
   function getStatus() {
@@ -235,14 +213,14 @@ window.VMUpgradeAudio = (() => {
       unlocked,
       playlistPlaying: isCompletionPlaylistPlaying(),
       playlistLabel,
-      playlistTrackCount: playlistBuffers.length,
+      playlistTrackCount: playlistFiles.length,
       playlistCurrentTrack
     };
   }
 
   async function unlock() {
     const ctx = await resumeContext();
-    unlocked = Boolean(ctx);
+    unlocked = Boolean(ctx || unlocked);
     if (unlocked) setStatus('ready', 'Âm thanh Pomodoro đã sẵn sàng. Bạn có thể nghe thử hoặc chạy playlist.');
     else setStatus('blocked', 'Trình duyệt vẫn chặn âm thanh. Hãy thử lại sau một thao tác trực tiếp.');
     return unlocked;
