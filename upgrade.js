@@ -32,12 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedRescueWordId: '',
       selectedPatternId: '',
       focusRoomSeed: 0,
-      pomodoroWarningPlayed: false,
-      pomodoroEndsAt: 0
+      pomodoroWarningPlayed: false
     }
   };
 
   const byId = (id) => document.getElementById(id);
+
+  let walletWriteInFlight = false;
+
 
   state.ui = normalizeUiState({});
   state.focus = normalizeFocusState({});
@@ -69,17 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
     injectUpgradeUi();
     bindEvents();
     await loadState();
-    await ensureWalletConsistency();
+    await ensureWalletConsistency({ persist: true });
     applyUiPreferences();
     syncPomodoroRuntime();
-    renderUpgradeLayer('summary');
+    renderUpgradeLayer();
   }
 
 
   function injectUpgradeUi() {
     const studioView = byId('interface-view') || byId('management-view');
     if (studioView && !byId('upgradeHub')) {
-      const anchor = byId('managementSummary') || studioView.firstElementChild;
+      const anchor = byId('interfaceHubAnchor') || byId('managementSummary') || studioView.firstElementChild;
       const wrapper = document.createElement('div');
       wrapper.id = 'upgradeHub';
       wrapper.innerHTML = `
@@ -752,10 +754,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   function bindEvents() {
+    const openAdminSafely = () => { void syncWalletStateFromStorage().then(() => { renderAdminModal(); renderUpgradeLayer(); openModal('adminModal'); }); };
+    const openEffectsLabSafely = () => { renderEffectsLabModal(); openModal('effectsLabModal'); };
     byId('openCustomizationBtn')?.addEventListener('click', () => openModal('customizationModal'));
-    byId('openAdminPanelBtn')?.addEventListener('click', () => { renderAdminModal(); openModal('adminModal'); });
-    byId('openAdminFromCustomizationBtn')?.addEventListener('click', () => { renderAdminModal(); openModal('adminModal'); });
+    byId('openEffectsLabBtn')?.addEventListener('click', openEffectsLabSafely);
+    byId('openStudioFromEffectsBtn')?.addEventListener('click', () => { closeModal('effectsLabModal'); openModal('customizationModal'); });
+    byId('openAdminPanelBtn')?.addEventListener('click', openAdminSafely);
+    byId('openAdminFromCustomizationBtn')?.addEventListener('click', openAdminSafely);
+    byId('openAdminDeckBtn')?.addEventListener('click', openAdminSafely);
+    byId('toggleAdminDeckBtn')?.addEventListener('click', toggleAdminMode);
+    byId('repairAdminDeckBtn')?.addEventListener('click', repairAdminWallet);
     byId('openPomodoroBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openFocusDeckBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
+    byId('openFocusRoomDeckBtn')?.addEventListener('click', () => { renderFocusRoomModal(); openModal('focusRoomModal'); });
+    byId('openDailyDeckBtn')?.addEventListener('click', openDailySayingModal);
+    byId('openCollectionsDeckBtn')?.addEventListener('click', () => { renderCollectionsModal(); openModal('collectionsModal'); });
     byId('openProgressBoosterBtn')?.addEventListener('click', () => openModal('pomodoroModal'));
     byId('openDailySayingBtn')?.addEventListener('click', openDailySayingModal);
     byId('dailySayingLauncher')?.addEventListener('click', openDailySayingModal);
@@ -1015,51 +1028,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
-      if (btn.id === 'navManagementBtn') scheduleUpgradeLayerRender('summary');
+      window.setTimeout(renderUpgradeLayer, 80);
     }));
-    byId('reviewSetDropdown')?.addEventListener('change', () => renderPomodoroWidgets());
-    window.addEventListener('vm:viewchange', () => {
-      window.setTimeout(() => {
-        syncPomodoroClock();
-        renderPomodoroWidgets();
-      }, 10);
-      if (document.body.dataset.currentView === 'management-view') scheduleUpgradeLayerRender('summary');
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') void refreshPomodoroFromClock();
-    });
-    window.addEventListener('focus', () => {
-      void refreshPomodoroFromClock();
-    });
+    byId('reviewSetDropdown')?.addEventListener('change', () => window.setTimeout(renderUpgradeLayer, 80));
+    window.addEventListener('vm:viewchange', () => window.setTimeout(renderPomodoroWidgets, 10));
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
       let walletTouched = false;
-      let uiTouched = false;
-      let collectionsTouched = false;
       if (changes.stats) {
         state.stats = normalizeStats(changes.stats.newValue || {});
         walletTouched = true;
       }
       if (changes.vocab) state.vocab = Array.isArray(changes.vocab.newValue) ? changes.vocab.newValue : [];
-      if (changes.vm_ui) {
-        state.ui = normalizeUiState(changes.vm_ui.newValue || {});
-        uiTouched = true;
-      }
+      if (changes.vm_ui) state.ui = normalizeUiState(changes.vm_ui.newValue || {});
       if (changes.vm_quotes) state.quotes = normalizeQuotesState(changes.vm_quotes.newValue || {});
       if (changes.vm_focus) {
         state.focus = normalizeFocusState(changes.vm_focus.newValue || {});
         syncPomodoroRuntime();
-        uiTouched = true;
       }
-      if (changes.vm_collections) {
-        state.collections = normalizeCollectionsState(changes.vm_collections.newValue || {});
-        collectionsTouched = true;
-      }
-      if (changes.vm_admin) {
-        state.admin = normalizeAdminState(changes.vm_admin.newValue || {});
-        uiTouched = true;
-      }
+      if (changes.vm_collections) state.collections = normalizeCollectionsState(changes.vm_collections.newValue || {});
+      if (changes.vm_admin) state.admin = normalizeAdminState(changes.vm_admin.newValue || {});
       if (changes.vm_spentCoins) {
         state.spentCoins = Math.max(0, Number(changes.vm_spentCoins.newValue) || 0);
         walletTouched = true;
@@ -1068,17 +1057,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.bonusCoins = Math.max(0, Number(changes.vm_bonusCoins.newValue) || 0);
         walletTouched = true;
       }
-      if (collectionsTouched) syncSavedQuoteIdsFromCollections();
-      if (uiTouched) applyUiPreferences();
-      const modalVisible = hasVisibleUpgradeModal();
-      if (modalVisible) {
-        renderUpgradeLayer('full');
-      } else if (document.body.dataset.currentView === 'management-view') {
-        scheduleUpgradeLayerRender('summary');
-      } else {
-        renderPomodoroWidgets();
-        renderUpgradeHubState();
-      }
+      syncSavedQuoteIdsFromCollections();
+      applyUiPreferences();
+      renderUpgradeLayer();
       if (walletTouched) void ensureWalletConsistency();
     });
 
@@ -1114,16 +1095,15 @@ document.addEventListener('DOMContentLoaded', () => {
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     syncSavedQuoteIdsFromCollections();
     await ensureDailyQuoteFreshness();
-    await ensureWalletConsistency();
+    await ensureWalletConsistency({ persist: true });
   }
 
 
   function normalizeStats(stats = {}) {
-    const source = stats && typeof stats === 'object' ? { ...stats } : {};
-    const dailyProgress = source.dailyProgress && typeof source.dailyProgress === 'object' ? { ...source.dailyProgress } : {};
-    const studyLog = Array.isArray(source.studyLog) ? source.studyLog.slice(0, 40) : [];
-    const sessionHistory = Array.isArray(source.sessionHistory)
-      ? source.sessionHistory
+    const dailyProgress = stats.dailyProgress && typeof stats.dailyProgress === 'object' ? { ...stats.dailyProgress } : {};
+    const studyLog = Array.isArray(stats.studyLog) ? stats.studyLog.slice(0, 40) : [];
+    const sessionHistory = Array.isArray(stats.sessionHistory)
+      ? stats.sessionHistory
           .filter((entry) => entry && (typeof entry.dateKey === 'string' || Number(entry.finishedAt) > 0))
           .map((entry) => ({
             dateKey: typeof entry.dateKey === 'string' && entry.dateKey ? entry.dateKey : toDateKey(entry.finishedAt || Date.now()),
@@ -1140,15 +1120,14 @@ document.addEventListener('DOMContentLoaded', () => {
       : [];
 
     return {
-      ...source,
-      coins: Math.max(0, Number(source.coins) || 0),
-      dailyGoal: Math.max(5, Number(source.dailyGoal) || 12),
+      coins: Math.max(0, Number(stats.coins) || 0),
+      dailyGoal: Math.max(5, Number(stats.dailyGoal) || 12),
       dailyProgress,
       studyLog,
       sessionHistory,
-      currentStreak: Math.max(0, Number(source.currentStreak) || 0),
-      bestStreak: Math.max(0, Number(source.bestStreak) || 0),
-      totalSessions: Math.max(0, Number(source.totalSessions) || sessionHistory.length || 0)
+      currentStreak: Math.max(0, Number(stats.currentStreak) || 0),
+      bestStreak: Math.max(0, Number(stats.bestStreak) || 0),
+      totalSessions: Math.max(0, Number(stats.totalSessions) || sessionHistory.length || 0)
     };
   }
 
@@ -1478,15 +1457,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return getWalletSnapshot().availableCoins;
   }
 
-  async function mergeStatsBeforeWalletWrite() {
-    const result = await storage.get({ stats: {} });
-    const storedStats = result?.stats && typeof result.stats === 'object' ? result.stats : {};
-    state.stats = normalizeStats({
-      ...storedStats,
-      ...state.stats,
-      coins: Math.max(0, Number(state.stats?.coins) || 0)
-    });
-    return state.stats;
+  function sanitizeWalletStateInMemory() {
+    state.stats = normalizeStats(state.stats || {});
+    state.stats.coins = Math.max(0, Number(state.stats?.coins) || 0);
+    state.bonusCoins = Math.max(0, Number(state.bonusCoins) || 0);
+    state.spentCoins = Math.max(0, Math.min(Number(state.spentCoins) || 0, state.stats.coins + state.bonusCoins));
+    state.admin = normalizeAdminState(state.admin || {});
   }
 
   async function syncWalletStateFromStorage() {
@@ -1500,16 +1476,17 @@ document.addEventListener('DOMContentLoaded', () => {
     state.spentCoins = Math.max(0, Number(result.vm_spentCoins) || 0);
     state.bonusCoins = Math.max(0, Number(result.vm_bonusCoins) || 0);
     state.admin = normalizeAdminState(result.vm_admin || state.admin || {});
+    sanitizeWalletStateInMemory();
   }
 
-  async function ensureWalletConsistency() {
-    const wallet = getWalletSnapshot();
-    const spentChanged = wallet.spentCoins !== state.spentCoins;
-    const bonusChanged = wallet.bonusCoins !== state.bonusCoins;
-    if (!spentChanged && !bonusChanged) return;
-    state.spentCoins = wallet.spentCoins;
-    state.bonusCoins = wallet.bonusCoins;
-    await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+  async function ensureWalletConsistency({ persist = false } = {}) {
+    const beforeSpent = Number(state.spentCoins) || 0;
+    const beforeBonus = Number(state.bonusCoins) || 0;
+    sanitizeWalletStateInMemory();
+    const changed = beforeSpent !== state.spentCoins || beforeBonus !== state.bonusCoins;
+    if (persist && changed) {
+      await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
+    }
   }
 
   function refreshWalletUi(message = '') {
@@ -1549,43 +1526,9 @@ document.addEventListener('DOMContentLoaded', () => {
     companion?.classList.toggle('hidden', !state.ui.companionEnabled);
   }
 
-  let scheduledUpgradeRender = 0;
-
-  function hasVisibleUpgradeModal() {
-    return Boolean(document.querySelector([
-      '#customizationModal:not(.hidden)',
-      '#adminModal:not(.hidden)',
-      '#pomodoroModal:not(.hidden)',
-      '#focusRoomModal:not(.hidden)',
-      '#collectionsModal:not(.hidden)',
-      '#memoryPathModal:not(.hidden)',
-      '#weakRescueModal:not(.hidden)',
-      '#patternVaultModal:not(.hidden)',
-      '#weeklyRecapModal:not(.hidden)',
-      '#dailySayingModal:not(.hidden)'
-    ].join(',')));
-  }
-
-  function scheduleUpgradeLayerRender(mode = 'summary') {
-    if (scheduledUpgradeRender) {
-      window.clearTimeout(scheduledUpgradeRender);
-      scheduledUpgradeRender = 0;
-    }
-    const runner = () => renderUpgradeLayer(mode);
-    if (mode === 'summary' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(runner, { timeout: 140 });
-      return;
-    }
-    scheduledUpgradeRender = window.setTimeout(runner, mode === 'summary' ? 60 : 20);
-  }
-
-
-  function renderUpgradeLayer(mode = 'full') {
+  function renderUpgradeLayer() {
     renderWalletBar();
     renderMissionStrip();
-    renderPomodoroWidgets();
-    renderUpgradeHubState();
-    if (mode === 'summary') return;
     renderCustomizer();
     renderDailySayingLauncher();
     renderDailySayingModal();
@@ -1596,6 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWeakRescueModal();
     renderFocusRoomModal();
     renderAdminModal();
+    renderEffectsLabModal();
     renderPomodoroWidgets();
     renderUpgradeHubState();
   }
@@ -2083,15 +2027,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveWalletState() {
-    await ensureWalletConsistency();
     renderUpgradeLayer();
-    applyWalletSnapshotToUi();
     await storage.set({ vm_spentCoins: state.spentCoins, vm_bonusCoins: state.bonusCoins });
-    refreshWalletUi();
   }
 
   async function commitWalletState(message = '') {
-    await mergeStatsBeforeWalletWrite();
+    state.stats = normalizeStats(state.stats || {});
     await ensureWalletConsistency();
     renderUpgradeLayer();
     applyWalletSnapshotToUi();
@@ -2138,11 +2079,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveAdminState() {
+    state.admin = normalizeAdminState(state.admin || {});
     renderUpgradeLayer();
     applyWalletSnapshotToUi();
     await storage.set({ vm_admin: state.admin });
-    await syncWalletStateFromStorage();
-    renderUpgradeLayer();
     refreshWalletUi();
   }
 
@@ -2286,33 +2226,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPomodoroWidgets();
   }
 
-
-  function syncPomodoroClock() {
-    if (!state.runtime.isRunning) return state.runtime.remainingSec;
-    if (!state.runtime.pomodoroEndsAt) {
-      state.runtime.pomodoroEndsAt = Date.now() + Math.max(0, state.runtime.remainingSec) * 1000;
-    }
-    const remaining = Math.max(0, Math.ceil((state.runtime.pomodoroEndsAt - Date.now()) / 1000));
-    state.runtime.remainingSec = remaining;
-    return remaining;
-  }
-
-  async function refreshPomodoroFromClock() {
-    const remaining = syncPomodoroClock();
-    renderPomodoroWidgets();
-    if (state.runtime.isRunning && remaining <= 0) {
-      await completePomodoroSession();
-    }
-  }
-
   function syncPomodoroRuntime(forceReset = false) {
+    if (state.runtime.isRunning && !forceReset) return;
     if (forceReset) pausePomodoro(false);
-    if (!state.runtime.isRunning) {
-      state.runtime.remainingSec = state.focus.preferredMinutes * 60;
-      state.runtime.pomodoroEndsAt = 0;
-    } else {
-      syncPomodoroClock();
-    }
+    state.runtime.remainingSec = state.focus.preferredMinutes * 60;
     renderPomodoroWidgets();
   }
 
@@ -2321,29 +2238,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.runtime.remainingSec <= 0) state.runtime.remainingSec = state.focus.preferredMinutes * 60;
     state.runtime.pomodoroWarningPlayed = false;
     state.runtime.isRunning = true;
-    state.runtime.pomodoroEndsAt = Date.now() + Math.max(0, state.runtime.remainingSec) * 1000;
     window.VMUpgradeAudio?.stopCompletionPlaylist?.(true);
     if ((state.ui?.pomodoroAudioCueMode || 'end-only') === 'full') playPomodoroCue('start');
     renderPomodoroWidgets();
-    window.clearInterval(state.runtime.intervalId);
     state.runtime.intervalId = window.setInterval(async () => {
-      const remaining = syncPomodoroClock();
-      if ((state.ui?.pomodoroAudioCueMode || 'end-only') === 'full' && !state.runtime.pomodoroWarningPlayed && remaining === 5 * 60) {
+      state.runtime.remainingSec -= 1;
+      if ((state.ui?.pomodoroAudioCueMode || 'end-only') === 'full' && !state.runtime.pomodoroWarningPlayed && state.runtime.remainingSec === 5 * 60) {
         state.runtime.pomodoroWarningPlayed = true;
         playPomodoroCue('warning');
       }
       renderPomodoroWidgets();
-      if (remaining <= 0) await completePomodoroSession();
+      if (state.runtime.remainingSec <= 0) await completePomodoroSession();
     }, 1000);
   }
 
   function pausePomodoro(showNotice = true) {
-    syncPomodoroClock();
     window.clearInterval(state.runtime.intervalId);
     state.runtime.intervalId = null;
     const wasRunning = state.runtime.isRunning;
     state.runtime.isRunning = false;
-    state.runtime.pomodoroEndsAt = 0;
     renderPomodoroWidgets();
     if (showNotice && wasRunning) showToast('Đã tạm dừng Pomodoro.');
   }
@@ -2351,7 +2264,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetPomodoro() {
     pausePomodoro(false);
     state.runtime.pomodoroWarningPlayed = false;
-    state.runtime.pomodoroEndsAt = 0;
     state.runtime.remainingSec = state.focus.preferredMinutes * 60;
     renderPomodoroWidgets();
     showToast('Đã đặt lại Pomodoro.');
@@ -2360,7 +2272,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function completePomodoroSession() {
     pausePomodoro(false);
     state.runtime.pomodoroWarningPlayed = false;
-    state.runtime.pomodoroEndsAt = 0;
     playPomodoroCue('end');
     if (state.ui?.pomodoroCompletionPlaylistEnabled && Number(state.ui?.pomodoroCompletionPlaylistTrackCount || 0) > 0) {
       window.VMUpgradeAudio?.startCompletionPlaylist?.({ volume: state.ui?.pomodoroCompletionPlaylistVolume ?? 70 });
@@ -2394,7 +2305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderPomodoroWidgets() {
     const total = state.focus.preferredMinutes * 60;
-    const remaining = state.runtime.isRunning ? syncPomodoroClock() : Math.max(0, state.runtime.remainingSec);
+    const remaining = Math.max(0, state.runtime.remainingSec);
     const formatted = formatClock(remaining);
 
     setText('pomodoroClock', formatted);
@@ -3252,107 +3163,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1200);
   }
 
-
-
-  // v8.2.2 pomodoro hotfix: use a hard deadline timer and refresh on more resume signals.
-  state.runtime.deadlineTimerId = state.runtime.deadlineTimerId || null;
-  state.runtime.completingPomodoro = state.runtime.completingPomodoro || false;
-
-  function clearPomodoroDeadlineTimer() {
-    if (state.runtime.deadlineTimerId) {
-      window.clearTimeout(state.runtime.deadlineTimerId);
-      state.runtime.deadlineTimerId = null;
-    }
-  }
-
-  function schedulePomodoroDeadlineTimer() {
-    clearPomodoroDeadlineTimer();
-    if (!state.runtime.isRunning) return;
-    const remainingMs = Math.max(0, (state.runtime.pomodoroEndsAt || 0) - Date.now());
-    state.runtime.deadlineTimerId = window.setTimeout(() => {
-      void refreshPomodoroFromClock();
-    }, Math.min(Math.max(remainingMs + 180, 180), 2147483647));
-  }
-
-  const vmPomodoroOriginalSyncClock = syncPomodoroClock;
-  syncPomodoroClock = function() {
-    const remaining = vmPomodoroOriginalSyncClock();
-    if (state.runtime.isRunning && remaining <= 0) {
-      state.runtime.remainingSec = 0;
-    }
-    return remaining;
-  };
-
-  const vmPomodoroOriginalStart = startPomodoro;
-  startPomodoro = function() {
-    vmPomodoroOriginalStart();
-    state.runtime.completingPomodoro = false;
-    schedulePomodoroDeadlineTimer();
-    void storage.set({ vm_focus_runtime: { remainingSec: state.runtime.remainingSec, isRunning: state.runtime.isRunning, pomodoroEndsAt: state.runtime.pomodoroEndsAt, preferredMinutes: state.focus?.preferredMinutes || 25 } });
-  };
-
-  const vmPomodoroOriginalPause = pausePomodoro;
-  pausePomodoro = function(showNotice = true) {
-    vmPomodoroOriginalPause(showNotice);
-    clearPomodoroDeadlineTimer();
-    state.runtime.completingPomodoro = false;
-    void storage.set({ vm_focus_runtime: { remainingSec: state.runtime.remainingSec, isRunning: state.runtime.isRunning, pomodoroEndsAt: state.runtime.pomodoroEndsAt, preferredMinutes: state.focus?.preferredMinutes || 25 } });
-  };
-
-  const vmPomodoroOriginalReset = resetPomodoro;
-  resetPomodoro = function() {
-    vmPomodoroOriginalReset();
-    clearPomodoroDeadlineTimer();
-    state.runtime.completingPomodoro = false;
-    void storage.set({ vm_focus_runtime: { remainingSec: state.runtime.remainingSec, isRunning: state.runtime.isRunning, pomodoroEndsAt: state.runtime.pomodoroEndsAt, preferredMinutes: state.focus?.preferredMinutes || 25 } });
-  };
-
-  const vmPomodoroOriginalComplete = completePomodoroSession;
-  completePomodoroSession = async function() {
-    if (state.runtime.completingPomodoro) return;
-    state.runtime.completingPomodoro = true;
-    clearPomodoroDeadlineTimer();
-    try {
-      await vmPomodoroOriginalComplete();
-    } finally {
-      state.runtime.completingPomodoro = false;
-      await storage.set({ vm_focus_runtime: { remainingSec: state.runtime.remainingSec, isRunning: state.runtime.isRunning, pomodoroEndsAt: state.runtime.pomodoroEndsAt, preferredMinutes: state.focus?.preferredMinutes || 25 } });
-    }
-  };
-
-  const vmPomodoroOriginalRefresh = refreshPomodoroFromClock;
-  refreshPomodoroFromClock = async function() {
-    await vmPomodoroOriginalRefresh();
-    if (state.runtime.isRunning) schedulePomodoroDeadlineTimer();
-  };
-
-  const vmPomodoroOriginalRenderWidgets = renderPomodoroWidgets;
-  renderPomodoroWidgets = function() {
-    vmPomodoroOriginalRenderWidgets();
-    if (state.runtime.isRunning && state.runtime.remainingSec <= 0 && !state.runtime.completingPomodoro) {
-      void completePomodoroSession();
-    }
-  };
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void refreshPomodoroFromClock();
-  }, { passive: true });
-  window.addEventListener('pageshow', () => { void refreshPomodoroFromClock(); }, { passive: true });
-  window.addEventListener('resume', () => { void refreshPomodoroFromClock(); }, { passive: true });
-  document.addEventListener('click', () => {
-    if (state.runtime.isRunning) void refreshPomodoroFromClock();
-  }, { passive: true, capture: true });
-
-  storage.get({ vm_focus_runtime: null }).then((result) => {
-    const runtime = result?.vm_focus_runtime;
-    if (!runtime || runtime.isRunning !== true || !Number(runtime.pomodoroEndsAt)) return;
-    state.runtime.isRunning = true;
-    state.runtime.pomodoroEndsAt = Number(runtime.pomodoroEndsAt);
-    state.runtime.remainingSec = Math.max(0, Number(runtime.remainingSec) || 0);
-    schedulePomodoroDeadlineTimer();
-    void refreshPomodoroFromClock();
-  }).catch(() => {});
-
   function showToast(message) {
     const toast = byId('toastNotification');
     if (!toast) return;
@@ -3379,29 +3189,4 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
-
-  // ===== v8.3.2 stability-first hotfix =====
-  function vm832StudioVisible() {
-    const hub = byId('upgradeHub');
-    return !!hub && !hub.classList.contains('vm-dock-hidden');
-  }
-
-  const vm832OriginalScheduleUpgradeLayerRender = scheduleUpgradeLayerRender;
-  scheduleUpgradeLayerRender = function(mode = 'summary') {
-    if (mode === 'summary' && !vm832StudioVisible()) return;
-    return vm832OriginalScheduleUpgradeLayerRender(mode);
-  };
-
-  const vm832OriginalRenderUpgradeLayer = renderUpgradeLayer;
-  renderUpgradeLayer = function(mode = 'full') {
-    if (!vm832StudioVisible() && mode === 'summary') return;
-    return vm832OriginalRenderUpgradeLayer(mode);
-  };
-
-  window.addEventListener('vm:studio-visible', () => {
-    window.setTimeout(() => {
-      if (vm832StudioVisible()) scheduleUpgradeLayerRender('summary');
-    }, 0);
-  });
-
 });
