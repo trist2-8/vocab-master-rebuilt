@@ -18,6 +18,7 @@
         <button id="navMainBtn" class="nav-btn active">Thêm từ</button>
         <button id="navManagementBtn" class="nav-btn">Bộ từ của tôi</button>
         <button id="navInterfaceBtn" class="nav-btn">Giao diện</button>
+        <button id="navIpaBtn" class="nav-btn">IPA</button>
         <button id="navReviewBtn" class="nav-btn">Ôn tập</button>
       </div>
       <div class="nav-tools">
@@ -159,6 +160,43 @@ ability | /əˈbɪl.ə.ti/ | noun | khả năng | He has great ability."></texta
           </div>
         </div>
         <div id="interfaceHubAnchor" class="interface-hub-anchor"></div>
+      </section>
+
+      <section id="ipa-view" class="view hidden">
+        <div class="header-section">
+          <div class="header-row header-row-wrap">
+            <div>
+              <h1 id="ipaViewTitle">IPA pronunciation lab</h1>
+              <p id="ipaViewSubtext" class="header-subtext">Practice the vowel and consonant pairs that learners most often confuse.</p>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar-card panel-card ipa-toolbar-card">
+          <div class="toolbar-grid ipa-toolbar-grid">
+            <input id="ipaSearchInput" class="modern-input" type="text" placeholder="Search IPA pairs, example words, or sound notes...">
+            <div class="ipa-category-row">
+              <button class="secondary-btn ipa-category-btn active" data-ipa-category="all" type="button">All</button>
+              <button class="secondary-btn ipa-category-btn" data-ipa-category="vowel" type="button">Vowels</button>
+              <button class="secondary-btn ipa-category-btn" data-ipa-category="consonant" type="button">Consonants</button>
+              <button class="secondary-btn ipa-category-btn" data-ipa-category="cluster" type="button">Clusters</button>
+            </div>
+          </div>
+        </div>
+        <div class="ipa-layout">
+          <section class="panel-card ipa-list-card">
+            <div class="ipa-card-head">
+              <div>
+                <h2 id="ipaListTitle">Commonly confused IPA pairs</h2>
+                <p id="ipaListLead" class="muted-text">Choose a pair to see a simple articulation guide, example words, and a quick practice focus.</p>
+              </div>
+              <span id="ipaCountNote" class="shop-tag">0 pairs</span>
+            </div>
+            <div id="ipaPairGrid" class="ipa-pair-grid"></div>
+          </section>
+          <section class="panel-card ipa-detail-card">
+            <div id="ipaDetailContent"></div>
+          </section>
+        </div>
       </section>
 
       <section id="set-details-view" class="view hidden">

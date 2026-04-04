@@ -76,6 +76,208 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
+  const IPA_CONFUSION_PAIRS = [
+    {
+      id: 'i-vs-i-short',
+      symbol: '/iː/ vs /ɪ/',
+      short: 'eat vs it',
+      category: 'vowel',
+      focus: 'long tense vowel vs short relaxed vowel',
+      practice: 'Say: sheep → ship, seat → sit, leave → live.',
+      tips: [
+        ' /iː/ is longer, tenser, and slightly higher in the mouth.',
+        ' /ɪ/ is shorter, looser, and a little lower.'
+      ],
+      sounds: [
+        { ipa: '/iː/', label: 'long ee', articulation: 'high front, tense, long', description: 'Keep the tongue high and forward. Stretch the sound slightly.', words: ['sheep', 'seat', 'leave'] },
+        { ipa: '/ɪ/', label: 'short i', articulation: 'high front, relaxed, short', description: 'Keep the tongue high but more relaxed and shorter.', words: ['ship', 'sit', 'live'] }
+      ]
+    },
+    {
+      id: 'u-vs-oo-short',
+      symbol: '/uː/ vs /ʊ/',
+      short: 'food vs good',
+      category: 'vowel',
+      focus: 'long rounded back vowel vs short rounded back vowel',
+      practice: 'Say: food → good, pool → pull, Luke → look.',
+      tips: [' /uː/ is longer and tighter with stronger lip rounding.', ' /ʊ/ is shorter and more relaxed.'],
+      sounds: [
+        { ipa: '/uː/', label: 'long oo', articulation: 'high back, rounded, long', description: 'Round the lips and hold the vowel a little longer.', words: ['food', 'pool', 'Luke'] },
+        { ipa: '/ʊ/', label: 'short oo', articulation: 'high back, rounded, short', description: 'Keep the lips rounded but relax the sound.', words: ['good', 'pull', 'look'] }
+      ]
+    },
+    {
+      id: 'e-vs-ae',
+      symbol: '/e/ vs /æ/',
+      short: 'bed vs bad',
+      category: 'vowel',
+      focus: 'mid front vowel vs low front vowel',
+      practice: 'Say: bed → bad, men → man, pen → pan.',
+      tips: [' /æ/ needs a wider, lower mouth opening.', ' /e/ stays higher and less open.'],
+      sounds: [
+        { ipa: '/e/', label: 'short e', articulation: 'mid front', description: 'Keep the jaw only slightly open.', words: ['bed', 'pen', 'men'] },
+        { ipa: '/æ/', label: 'flat a', articulation: 'low front, wider mouth', description: 'Drop the jaw more and keep the tongue forward.', words: ['bad', 'pan', 'man'] }
+      ]
+    },
+    {
+      id: 'e-vs-ei',
+      symbol: '/e/ vs /eɪ/',
+      short: 'wet vs wait',
+      category: 'vowel',
+      focus: 'pure vowel vs diphthong',
+      practice: 'Say: wet → wait, met → mate, ten → tame.',
+      tips: [' /e/ stays in one place.', ' /eɪ/ moves upward toward /ɪ/.'],
+      sounds: [
+        { ipa: '/e/', label: 'pure e', articulation: 'mid front', description: 'Keep it short and steady.', words: ['wet', 'met', 'bed'] },
+        { ipa: '/eɪ/', label: 'ay diphthong', articulation: 'glides from /e/ toward /ɪ/', description: 'Start with /e/ and slide upward.', words: ['wait', 'late', 'name'] }
+      ]
+    },
+    {
+      id: 'ae-vs-uh',
+      symbol: '/æ/ vs /ʌ/',
+      short: 'cat vs cut',
+      category: 'vowel',
+      focus: 'front open vowel vs central short vowel',
+      practice: 'Say: cat → cut, bad → bud, pan → pun.',
+      tips: [' /æ/ is more open and farther forward.', ' /ʌ/ is central and more neutral.'],
+      sounds: [
+        { ipa: '/æ/', label: 'front open a', articulation: 'low front', description: 'Open the mouth and keep the tongue forward.', words: ['cat', 'bad', 'pan'] },
+        { ipa: '/ʌ/', label: 'central uh', articulation: 'mid-low central', description: 'Relax the mouth and keep the vowel central.', words: ['cut', 'bud', 'pun'] }
+      ]
+    },
+    {
+      id: 's-vs-sh',
+      symbol: '/s/ vs /ʃ/',
+      short: 'so vs show',
+      category: 'consonant',
+      focus: 'front hiss vs farther-back sh',
+      practice: 'Say: sip → ship, so → show, see → she.',
+      tips: [' /s/ is made farther forward, near the teeth ridge.', ' /ʃ/ is made farther back and sounds softer.'],
+      sounds: [
+        { ipa: '/s/', label: 's', articulation: 'alveolar fricative, voiceless', description: 'Air hisses through a narrow front gap.', words: ['see', 'sip', 'bus'] },
+        { ipa: '/ʃ/', label: 'sh', articulation: 'postalveolar fricative, voiceless', description: 'Move the tongue slightly back for a softer friction sound.', words: ['she', 'ship', 'wash'] }
+      ]
+    },
+    {
+      id: 'ch-vs-sh',
+      symbol: '/tʃ/ vs /ʃ/',
+      short: 'cheap vs sheep',
+      category: 'consonant',
+      focus: 'affricate vs fricative',
+      practice: 'Say: cheap → sheep, chip → ship, watch → wash.',
+      tips: [' /tʃ/ starts with a tiny stop before the friction.', ' /ʃ/ is smooth friction only.'],
+      sounds: [
+        { ipa: '/tʃ/', label: 'ch', articulation: 'postalveolar affricate, voiceless', description: 'Start with a quick stop, then release into sh.', words: ['cheap', 'chip', 'watch'] },
+        { ipa: '/ʃ/', label: 'sh', articulation: 'postalveolar fricative, voiceless', description: 'No stop at the beginning.', words: ['sheep', 'ship', 'wash'] }
+      ]
+    },
+    {
+      id: 'th-th-voiced',
+      symbol: '/θ/ vs /ð/',
+      short: 'thin vs then',
+      category: 'consonant',
+      focus: 'voiceless th vs voiced th',
+      practice: 'Say: thin → then, thank → that, mouth → mother.',
+      tips: [' Keep the tongue lightly between the teeth or just behind them.', ' The main difference is voice: /ð/ vibrates, /θ/ does not.'],
+      sounds: [
+        { ipa: '/θ/', label: 'thin th', articulation: 'dental fricative, voiceless', description: 'No throat vibration.', words: ['think', 'thin', 'bath'] },
+        { ipa: '/ð/', label: 'this th', articulation: 'dental fricative, voiced', description: 'Turn the voice on while keeping the same mouth position.', words: ['this', 'they', 'mother'] }
+      ]
+    },
+    {
+      id: 'f-vs-v',
+      symbol: '/f/ vs /v/',
+      short: 'fan vs van',
+      category: 'consonant',
+      focus: 'same lip-teeth contact, different voicing',
+      practice: 'Say: fan → van, fine → vine, safe → save.',
+      tips: [' Both use the lower lip and upper teeth.', ' /v/ vibrates, /f/ does not.'],
+      sounds: [
+        { ipa: '/f/', label: 'f', articulation: 'labiodental fricative, voiceless', description: 'Blow air through lip and teeth with no voice.', words: ['fan', 'fine', 'safe'] },
+        { ipa: '/v/', label: 'v', articulation: 'labiodental fricative, voiced', description: 'Same contact, but add voice.', words: ['van', 'vine', 'save'] }
+      ]
+    },
+    {
+      id: 'v-vs-w',
+      symbol: '/v/ vs /w/',
+      short: 'vet vs wet',
+      category: 'consonant',
+      focus: 'lip-teeth friction vs rounded lips',
+      practice: 'Say: vest → west, vine → wine, veal → wheel.',
+      tips: [' /v/ uses lower lip against upper teeth.', ' /w/ uses rounded lips and no friction.'],
+      sounds: [
+        { ipa: '/v/', label: 'v', articulation: 'labiodental fricative, voiced', description: 'Use lip + teeth contact.', words: ['vest', 'vine', 'veal'] },
+        { ipa: '/w/', label: 'w', articulation: 'labial-velar approximant, voiced', description: 'Round the lips and glide into the vowel.', words: ['west', 'wine', 'wheel'] }
+      ]
+    },
+    {
+      id: 'l-vs-r',
+      symbol: '/l/ vs /r/',
+      short: 'light vs right',
+      category: 'consonant',
+      focus: 'tongue touches vs tongue pulls back',
+      practice: 'Say: light → right, glass → grass, play → pray.',
+      tips: [' /l/ usually touches the ridge behind the teeth.', ' /r/ usually does not touch; the tongue pulls back slightly.'],
+      sounds: [
+        { ipa: '/l/', label: 'l', articulation: 'alveolar lateral approximant', description: 'Touch the tongue tip behind the teeth and let air pass around the sides.', words: ['light', 'glass', 'play'] },
+        { ipa: '/r/', label: 'r', articulation: 'postalveolar approximant', description: 'Pull the tongue slightly back without touching the roof.', words: ['right', 'grass', 'pray'] }
+      ]
+    },
+    {
+      id: 'n-vs-ng',
+      symbol: '/n/ vs /ŋ/',
+      short: 'sin vs sing',
+      category: 'consonant',
+      focus: 'front nasal vs back nasal',
+      practice: 'Say: sin → sing, ran → rang, thin → thing.',
+      tips: [' /n/ is made at the front with the tongue tip.', ' /ŋ/ is made farther back with the back of the tongue.'],
+      sounds: [
+        { ipa: '/n/', label: 'n', articulation: 'alveolar nasal', description: 'Touch the front ridge with the tongue tip.', words: ['ten', 'name', 'sun'] },
+        { ipa: '/ŋ/', label: 'ng', articulation: 'velar nasal', description: 'Raise the back of the tongue toward the soft palate.', words: ['sing', 'long', 'bringing'] }
+      ]
+    },
+    {
+      id: 's-vs-z',
+      symbol: '/s/ vs /z/',
+      short: 'bus vs buzz',
+      category: 'consonant',
+      focus: 'same place and shape, different voicing',
+      practice: 'Say: sip → zip, rice → rise, bus → buzz.',
+      tips: [' Both are made in the same place.', ' /z/ vibrates in the throat; /s/ does not.'],
+      sounds: [
+        { ipa: '/s/', label: 's', articulation: 'alveolar fricative, voiceless', description: 'A clear hiss with no voice.', words: ['sip', 'rice', 'bus'] },
+        { ipa: '/z/', label: 'z', articulation: 'alveolar fricative, voiced', description: 'Keep the same tongue shape but switch the voice on.', words: ['zip', 'rise', 'buzz'] }
+      ]
+    },
+    {
+      id: 'p-b-t-d-k-g',
+      symbol: '/p b/ · /t d/ · /k ɡ/',
+      short: 'pat/bat · tie/die · coat/goat',
+      category: 'cluster',
+      focus: 'same stop position, different voicing',
+      practice: 'Say: pat → bat, tie → die, coat → goat.',
+      tips: [' /p t k/ are voiceless stops.', ' /b d ɡ/ are voiced stops in the same places.'],
+      sounds: [
+        { ipa: '/p/ · /b/', label: 'bilabial stop pair', articulation: 'both lips close and release', description: 'The mouth shape is the same; only voicing changes.', words: ['pat', 'bat', 'cap', 'cab'] },
+        { ipa: '/t/ · /d/', label: 'alveolar stop pair', articulation: 'tongue tip touches the ridge behind the teeth', description: 'Again, the main difference is voicing.', words: ['tie', 'die', 'seat', 'seed'] },
+        { ipa: '/k/ · /ɡ/', label: 'velar stop pair', articulation: 'back of tongue touches the soft palate', description: 'Use the same back-of-mouth closure and change voicing.', words: ['coat', 'goat', 'back', 'bag'] }
+      ]
+    },
+    {
+      id: 'kw-vs-k',
+      symbol: '/kw/ vs /k/',
+      short: 'quick vs kick',
+      category: 'cluster',
+      focus: 'k plus lip rounding vs plain k',
+      practice: 'Say: quick → kick, queen → keen.',
+      tips: [' /kw/ adds a /w/-like rounded glide after /k/.', ' /k/ stays plain with no rounding glide.'],
+      sounds: [
+        { ipa: '/kw/', label: 'kw cluster', articulation: 'velar stop + rounded glide', description: 'Release /k/ into a quick rounded /w/ movement.', words: ['quick', 'queen', 'quiet'] },
+        { ipa: '/k/', label: 'plain k', articulation: 'velar stop', description: 'No rounding glide after the stop.', words: ['kick', 'keen', 'kit'] }
+      ]
+    }
+  ];
+
   const state = {
     vocab: [],
     stats: { coins: 0, dailyGoal: 12, dailyProgress: {}, currentStreak: 0, bestStreak: 0, totalSessions: 0, studyLog: [] },
@@ -113,7 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
     questionEndsAt: 0,
     questionCountdownMs: 0,
     sentenceBuilderState: null,
-    settings: { ...DEFAULT_SETTINGS }
+    settings: { ...DEFAULT_SETTINGS },
+    ipaLab: { query: '', category: 'all', selectedId: 'i-vs-i-short' },
+    uiRuntime: { currentView: 'main-view', navTicket: 0, hasRendered: Object.create(null) }
   };
 
   const storage = {
@@ -364,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextValue('#navMainBtn', uiText('Thêm từ', 'Add words', 'Add words'));
     setTextValue('#navManagementBtn', uiText('Bộ từ của tôi', 'Library', 'Library'));
     setTextValue('#navInterfaceBtn', uiText('Giao diện', 'Interface', 'Interface'));
+    setTextValue('#navIpaBtn', uiText('IPA', 'IPA', 'IPA'));
     setTextValue('#navReviewBtn', uiText('Ôn tập', 'Review', 'Review'));
 
     setTextValue('#main-view .header-section h1', uiText('Thêm vào bộ từ', 'Add into your sets', 'Add into your sets'));
@@ -543,20 +748,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindStaticEvents() {
-    byId('navMainBtn').addEventListener('click', () => {
-      showView('main-view');
-      initMainView();
+    byId('navMainBtn').addEventListener('click', () => navigateToView('main-view', initMainView));
+    byId('navManagementBtn').addEventListener('click', () => navigateToView('management-view', initManagementView));
+    byId('navInterfaceBtn')?.addEventListener('click', () => navigateToView('interface-view'));
+    byId('navIpaBtn')?.addEventListener('click', () => navigateToView('ipa-view', initIpaView));
+    byId('navReviewBtn').addEventListener('click', () => navigateToView('review-dashboard-view', initReviewView));
+    byId('ipaSearchInput')?.addEventListener('input', (event) => {
+      state.ipaLab.query = event.target.value || '';
+      renderIpaView();
     });
-    byId('navManagementBtn').addEventListener('click', () => {
-      showView('management-view');
-      initManagementView();
-    });
-    byId('navInterfaceBtn')?.addEventListener('click', () => {
-      showView('interface-view');
-    });
-    byId('navReviewBtn').addEventListener('click', () => {
-      showView('review-dashboard-view');
-      initReviewView();
+    byId('ipa-view')?.addEventListener('click', (event) => {
+      const categoryBtn = event.target.closest('[data-ipa-category]');
+      if (categoryBtn) {
+        state.ipaLab.category = categoryBtn.dataset.ipaCategory || 'all';
+        renderIpaView();
+        return;
+      }
+      const pairBtn = event.target.closest('[data-ipa-pair-id]');
+      if (pairBtn) {
+        state.ipaLab.selectedId = pairBtn.dataset.ipaPairId || state.ipaLab.selectedId;
+        renderIpaView();
+      }
     });
     byId('languageModeSelect')?.addEventListener('change', async (event) => {
       state.settings.languageMode = event.target.value;
@@ -1142,31 +1354,50 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderAll() {
-    initMainView();
-    initManagementView();
-    initReviewView();
     applyEffectSettings();
     applyLanguageModeUI();
+    renderCurrentView();
+  }
+
+  function renderCurrentView(force = false) {
+    const currentView = state.uiRuntime.currentView || 'main-view';
+    if (currentView === 'main-view') initMainView();
+    else if (currentView === 'management-view') initManagementView();
+    else if (currentView === 'review-dashboard-view') initReviewView(force);
+    else if (currentView === 'ipa-view') initIpaView(force);
+  }
+
+  function navigateToView(viewIdToShow, initializer = null, options = {}) {
+    const isSameView = state.uiRuntime.currentView === viewIdToShow;
+    showView(viewIdToShow);
+    if (isSameView && !options.force) return;
+    const ticket = ++state.uiRuntime.navTicket;
+    if (typeof initializer === 'function') {
+      window.requestAnimationFrame(() => {
+        if (ticket !== state.uiRuntime.navTicket) return;
+        initializer(Boolean(options.force));
+      });
+    }
   }
 
   function showView(viewIdToShow) {
     views.forEach(view => view.classList.add('hidden'));
     navBtns.forEach(btn => btn.classList.remove('active'));
-    byId(viewIdToShow).classList.remove('hidden');
+    byId(viewIdToShow)?.classList.remove('hidden');
 
     const reviewViews = ['review-dashboard-view', 'study-mode-view', 'quiz-mode-view', 'matching-mode-view', 'typing-mode-view', 'dictation-mode-view', 'sentence-builder-view'];
     const studyViews = ['study-mode-view', 'quiz-mode-view', 'typing-mode-view', 'dictation-mode-view', 'matching-mode-view', 'sentence-builder-view'];
 
+    state.uiRuntime.currentView = viewIdToShow;
     document.body.dataset.currentView = viewIdToShow;
     document.body.classList.toggle('is-review-view', reviewViews.includes(viewIdToShow));
     document.body.classList.toggle('is-study-view', studyViews.includes(viewIdToShow));
 
-    if (viewIdToShow === 'main-view') byId('navMainBtn').classList.add('active');
-    if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn').classList.add('active');
+    if (viewIdToShow === 'main-view') byId('navMainBtn')?.classList.add('active');
+    if (viewIdToShow === 'management-view' || viewIdToShow === 'set-details-view') byId('navManagementBtn')?.classList.add('active');
     if (viewIdToShow === 'interface-view') byId('navInterfaceBtn')?.classList.add('active');
-    if (reviewViews.includes(viewIdToShow)) {
-      byId('navReviewBtn').classList.add('active');
-    }
+    if (viewIdToShow === 'ipa-view') byId('navIpaBtn')?.classList.add('active');
+    if (reviewViews.includes(viewIdToShow)) byId('navReviewBtn')?.classList.add('active');
     if (!studyViews.includes(viewIdToShow)) {
       hideStudySupport();
       hideMemoryCoach();
@@ -2631,7 +2862,94 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWordsetsGrid();
   }
 
-  function initReviewView() {
+
+  function initIpaView(force = false) {
+    if (!force && state.uiRuntime.hasRendered['ipa-view']) {
+      renderIpaView();
+      return;
+    }
+    state.uiRuntime.hasRendered['ipa-view'] = true;
+    renderIpaView();
+  }
+
+  function getFilteredIpaPairs() {
+    const query = normalizeAnswer(state.ipaLab.query || '');
+    const category = state.ipaLab.category || 'all';
+    return IPA_CONFUSION_PAIRS.filter((item) => {
+      if (category !== 'all' && item.category !== category) return false;
+      if (!query) return true;
+      const blob = normalizeAnswer(`${item.symbol} ${item.short} ${item.focus} ${item.practice} ${(item.tips || []).join(' ')} ${(item.sounds || []).map((sound) => `${sound.ipa} ${sound.label} ${sound.description} ${(sound.words || []).join(' ')}`).join(' ')}`);
+      return blob.includes(query);
+    });
+  }
+
+  function getIpaPairById(id) {
+    return IPA_CONFUSION_PAIRS.find((item) => item.id === id) || IPA_CONFUSION_PAIRS[0] || null;
+  }
+
+  function renderIpaView() {
+    const grid = byId('ipaPairGrid');
+    const detail = byId('ipaDetailContent');
+    if (!grid || !detail) return;
+    const filtered = getFilteredIpaPairs();
+    const selected = filtered.find((item) => item.id === state.ipaLab.selectedId) || filtered[0] || getIpaPairById(state.ipaLab.selectedId);
+    if (selected) state.ipaLab.selectedId = selected.id;
+    setTextValue('#ipaViewTitle', uiText('IPA pronunciation lab', 'IPA pronunciation lab', 'IPA pronunciation lab'));
+    setTextValue('#ipaViewSubtext', uiText('Tách riêng khu luyện âm dễ nhầm để bạn luyện rõ từng cặp âm.', 'A separate space for commonly confused sounds so you can train one contrast at a time.', 'A separate space for commonly confused sounds so you can train one contrast at a time.'));
+    setTextValue('#ipaListTitle', uiText('Các cặp IPA dễ nhầm', 'Commonly confused IPA pairs', 'Commonly confused IPA pairs'));
+    setTextValue('#ipaListLead', uiText('Chọn một cặp để xem cách đặt lưỡi, khác biệt chính và từ mẫu.', 'Choose a pair to see tongue position, the key contrast, and example words.', 'Choose a pair to see tongue position, the key contrast, and example words.'));
+    setTextValue('#ipaCountNote', `${filtered.length} ${uiText('cặp âm', 'pairs', 'pairs')}`);
+    byId('ipaSearchInput').placeholder = uiText('Tìm cặp IPA, từ mẫu hoặc ghi chú phát âm...', 'Search IPA pairs, example words, or pronunciation notes...', 'Search IPA pairs, example words, or pronunciation notes...');
+    document.querySelectorAll('.ipa-category-btn').forEach((button) => {
+      button.classList.toggle('active', button.dataset.ipaCategory === (state.ipaLab.category || 'all'));
+    });
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="ipa-empty">${escapeHtml(uiText('Không tìm thấy cặp âm phù hợp. Hãy đổi từ khóa hoặc bộ lọc.', 'No matching IPA pair was found. Try another keyword or filter.', 'No matching IPA pair was found. Try another keyword or filter.'))}</div>`;
+      detail.innerHTML = `<div class="ipa-empty">${escapeHtml(uiText('Chọn lại bộ lọc để xem hướng dẫn phát âm.', 'Change the filter to see a pronunciation guide.', 'Change the filter to see a pronunciation guide.'))}</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map((item) => `
+      <button type="button" class="ipa-pair-btn ${item.id === state.ipaLab.selectedId ? 'active' : ''}" data-ipa-pair-id="${escapeHtml(item.id)}">
+        <strong>${escapeHtml(item.symbol)}</strong>
+        <span>${escapeHtml(item.short)}</span>
+        <small>${escapeHtml(item.focus)}</small>
+      </button>
+    `).join('');
+
+    const soundCards = (selected?.sounds || []).map((sound) => `
+      <article class="ipa-sound-card">
+        <div class="ipa-sound-top"><strong>${escapeHtml(sound.ipa)}</strong><span>${escapeHtml(sound.label)}</span></div>
+        <div class="ipa-articulation">${escapeHtml(sound.articulation)}</div>
+        <p>${escapeHtml(sound.description)}</p>
+        <div class="ipa-word-list">${(sound.words || []).map((word) => `<span class="ipa-word-chip">${escapeHtml(word)}</span>`).join('')}</div>
+      </article>
+    `).join('');
+    const tips = (selected?.tips || []).map((tip) => `<li>${escapeHtml(tip.trim())}</li>`).join('');
+    detail.innerHTML = `
+      <div class="ipa-detail-head">
+        <span class="ipa-detail-chip">${escapeHtml(selected.category)}</span>
+        <h2>${escapeHtml(selected.symbol)}</h2>
+        <p class="muted-text">${escapeHtml(selected.focus)}</p>
+      </div>
+      <div class="ipa-sound-grid">${soundCards}</div>
+      <div class="ipa-tip-box">
+        <h3>${escapeHtml(uiText('Điểm khác chính', 'Key difference', 'Key difference'))}</h3>
+        <ul class="ipa-tip-list">${tips}</ul>
+      </div>
+      <div class="ipa-practice-box">
+        <h3>${escapeHtml(uiText('Luyện nhanh', 'Quick practice', 'Quick practice'))}</h3>
+        <p class="muted-text">${escapeHtml(selected.practice)}</p>
+      </div>`;
+  }
+
+  function initReviewView(force = false) {
+    if (!force && state.uiRuntime.hasRendered['review-dashboard-view']) {
+      renderReviewDashboard();
+      return;
+    }
+    state.uiRuntime.hasRendered['review-dashboard-view'] = true;
     populateSetDropdown(byId('reviewSetDropdown'), true);
     ensureClusterMissionPanel();
     renderReviewDashboard();
@@ -4295,63 +4613,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(nextRender, 760);
   }
 
-  let cachedPracticeCatalog = null;
-
-  function renderPracticeHubDetail(selected) {
-    const detail = byId('practiceModeDetail');
-    if (!detail || !selected) return;
-    const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
-    const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
-    detail.innerHTML = `
-      <div class="practice-detail-shell" data-accent="${selected.accent || 'blue'}">
-        <div class="practice-detail-topline">
-          <span class="practice-detail-kicker">${escapeHtml(selected.kicker)}</span>
-          <span class="practice-detail-status ${selected.available ? 'is-ready' : 'is-locked'}">${escapeHtml(selected.available ? uiText('Sẵn sàng', 'Ready', 'Ready') : uiText('Thiếu dữ liệu', 'Need more data', 'Need more data'))}</span>
-        </div>
-        <div class="practice-detail-hero">
-          <div class="practice-detail-copy">
-            <h3>${escapeHtml(selected.title)}</h3>
-            <p class="practice-detail-summary">${escapeHtml(selected.summary)}</p>
-            <div class="practice-detail-pill-row">
-              <span class="practice-detail-pill">${escapeHtml(getPracticeModeSizeLabel(selected))}</span>
-              <span class="practice-detail-pill">${escapeHtml(uiText('Dùng khi', 'Best when', 'Best when'))}: ${escapeHtml(selected.when)}</span>
-            </div>
-          </div>
-          <div class="practice-detail-visual" data-accent="${selected.accent || 'blue'}">
-            <div class="practice-visual-glow"></div>
-            <div class="practice-visual-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(selected.id))}</div>
-            <div class="practice-visual-title">${escapeHtml(selected.title)}</div>
-            <div class="practice-visual-subtitle">${escapeHtml(selected.available ? uiText('Sẵn sàng bắt đầu', 'Ready to start', 'Ready to start') : uiText('Cần thêm dữ liệu', 'Needs more data', 'Needs more data'))}</div>
-          </div>
-        </div>
-        <div class="practice-detail-block">
-          <strong>${escapeHtml(uiText('Game này luyện gì', 'What this trains', 'What this trains'))}</strong>
-          <div class="practice-train-row">${trainBadges}</div>
-        </div>
-        <div class="practice-detail-block">
-          <strong>${escapeHtml(uiText('Luật và cách chơi', 'Rules and flow', 'Rules and flow'))}</strong>
-          <ol class="practice-detail-rules">${ruleItems}</ol>
-        </div>
-        <div class="practice-detail-actions">
-          <button type="button" class="primary-btn" data-practice-action="start" ${selected.available ? '' : 'disabled'}>${escapeHtml(uiText('▶ Bắt đầu game này', '▶ Start this game', '▶ Start this game'))}</button>
-        </div>
-      </div>`;
-  }
-
   function selectPracticeMode(modeId) {
     state.selectedPracticeMode = modeId;
-    const grid = byId('practiceModeGrid');
-    
-    if (cachedPracticeCatalog && grid && cachedPracticeCatalog.some(item => item.id === modeId)) {
-      Array.from(grid.querySelectorAll('.practice-tile')).forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.game === modeId);
-        btn.setAttribute('aria-pressed', btn.dataset.game === modeId ? 'true' : 'false');
-      });
-      const selected = cachedPracticeCatalog.find(item => item.id === modeId) || cachedPracticeCatalog[0];
-      renderPracticeHubDetail(selected);
-      return;
-    }
-
     const setName = byId('reviewSetDropdown')?.value || 'all';
     const words = getWordsForSet(setName);
     renderPracticeHub(words, getSetStats(words), getRecommendedStudyPlan(words));
@@ -4397,7 +4660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return iconMap[modeId] || '•';
   }
 
-  function getPracticeModeSizeLabel(mode) {
+  function getPracticeModeSizeLabel(mode, words) {
     if (!mode) return '';
     if (mode.id === 'reflex') return uiText('1 phút · 20 câu', '1 minute · 20 rounds', '1 minute · 20 rounds');
     return `${Math.min(mode.count || 0, 20)} ${uiText('mục', 'items', 'items')}`;
@@ -4405,10 +4668,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderPracticeHub(words, stats = getSetStats(words), recommendedPlan = getRecommendedStudyPlan(words, stats)) {
     const grid = byId('practiceModeGrid');
-    if (!grid) return;
+    const detail = byId('practiceModeDetail');
+    if (!grid || !detail) return;
     const catalog = buildPracticeCatalog(words, stats, recommendedPlan);
-    cachedPracticeCatalog = catalog;
-    
     const recommendedId = recommendedPlan?.gameType || catalog[0]?.id || 'flashcard';
     if (!catalog.some(item => item.id === state.selectedPracticeMode)) {
       state.selectedPracticeMode = recommendedId;
@@ -4430,7 +4692,42 @@ document.addEventListener('DOMContentLoaded', () => {
       </button>`).join('');
 
     const selected = catalog.find(item => item.id === state.selectedPracticeMode) || catalog[0];
-    renderPracticeHubDetail(selected);
+    const trainBadges = selected.trains.map(item => `<span class="practice-train-pill">${escapeHtml(item)}</span>`).join('');
+    const ruleItems = selected.rules.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    detail.innerHTML = `
+      <div class="practice-detail-shell" data-accent="${selected.accent || 'blue'}">
+        <div class="practice-detail-topline">
+          <span class="practice-detail-kicker">${escapeHtml(selected.kicker)}</span>
+          <span class="practice-detail-status ${selected.available ? 'is-ready' : 'is-locked'}">${escapeHtml(selected.available ? uiText('Sẵn sàng', 'Ready', 'Ready') : uiText('Thiếu dữ liệu', 'Need more data', 'Need more data'))}</span>
+        </div>
+        <div class="practice-detail-hero">
+          <div class="practice-detail-copy">
+            <h3>${escapeHtml(selected.title)}</h3>
+            <p class="practice-detail-summary">${escapeHtml(selected.summary)}</p>
+            <div class="practice-detail-pill-row">
+              <span class="practice-detail-pill">${escapeHtml(getPracticeModeSizeLabel(selected, words))}</span>
+              <span class="practice-detail-pill">${escapeHtml(uiText('Dùng khi', 'Best when', 'Best when'))}: ${escapeHtml(selected.when)}</span>
+            </div>
+          </div>
+          <div class="practice-detail-visual" data-accent="${selected.accent || 'blue'}">
+            <div class="practice-visual-glow"></div>
+            <div class="practice-visual-icon" aria-hidden="true">${escapeHtml(getPracticeModeIcon(selected.id))}</div>
+            <div class="practice-visual-title">${escapeHtml(selected.title)}</div>
+            <div class="practice-visual-subtitle">${escapeHtml(selected.available ? uiText('Sẵn sàng bắt đầu', 'Ready to start', 'Ready to start') : uiText('Cần thêm dữ liệu', 'Needs more data', 'Needs more data'))}</div>
+          </div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Game này luyện gì', 'What this trains', 'What this trains'))}</strong>
+          <div class="practice-train-row">${trainBadges}</div>
+        </div>
+        <div class="practice-detail-block">
+          <strong>${escapeHtml(uiText('Luật và cách chơi', 'Rules and flow', 'Rules and flow'))}</strong>
+          <ol class="practice-detail-rules">${ruleItems}</ol>
+        </div>
+        <div class="practice-detail-actions">
+          <button type="button" class="primary-btn" data-practice-action="start" ${selected.available ? '' : 'disabled'}>${escapeHtml(uiText('▶ Bắt đầu game này', '▶ Start this game', '▶ Start this game'))}</button>
+        </div>
+      </div>`;
   }
 
   function renderQuiz() {
